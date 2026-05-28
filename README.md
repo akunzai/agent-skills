@@ -21,7 +21,3 @@ Use it when you want to:
 - Audit and score an existing `AGENTS.md` for quality
 - Keep `AGENTS.md` in sync with Claude Code via a `CLAUDE.md` symlink
 - Automatically write discovered knowledge back to `AGENTS.md` after solving problems
-
-## License
-
-MIT
