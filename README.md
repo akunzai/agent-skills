@@ -21,3 +21,16 @@ Use it when you want to:
 - Audit and score an existing `AGENTS.md` for quality
 - Keep `AGENTS.md` in sync with Claude Code via a `CLAUDE.md` symlink
 - Automatically write discovered knowledge back to `AGENTS.md` after solving problems
+
+### [`memory`](skills/memory/)
+
+Unified autopilot memory governance system for both project and user scopes.
+
+Use it when you want to:
+- Retrieve and query past context, preferences, or technical pitfalls across scopes
+- Automatically capture key learnings and newly verified coding patterns during sessions
+- Proactively promote verified daily candidate memories to durable `MEMORY.md` with interactive confirmation
+- Proactively audit, prune, and consolidate duplicate or obsolete conventions in long-term memory
+- Detect and resolve cloud synchronization conflicts (e.g., Google Drive conflict files) within `~/.agents/`
+
+
