@@ -2,10 +2,10 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SKILL_DIR="$ROOT_DIR/skills/agents-md-improver"
+SKILL_DIR="$ROOT_DIR/skills/agents-md"
 
 fail() {
-  echo "agents-md-improver content check failed: $*" >&2
+  echo "agents-md content check failed: $*" >&2
   exit 1
 }
 
@@ -23,4 +23,4 @@ grep -R -q -E 'If `?CLAUDE\.md`? already exists and is not the intended symlink'
 grep -R -q -E 'Choose the target `?AGENTS\.md`? explicitly' "$SKILL_DIR" \
   || fail "multi-AGENTS target selection rule is missing"
 
-echo "agents-md-improver content checks passed"
+echo "agents-md content checks passed"

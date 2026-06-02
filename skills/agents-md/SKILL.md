@@ -1,9 +1,9 @@
 ---
-name: agents-md-improver
+name: agents-md
 description: Create, audit, and improve AGENTS.md files in repositories to provide persistent context for agentic assistants. Use when the user asks to create, check, audit, update, improve, or maintain AGENTS.md, or mentions project memory optimization. Includes optional Claude Code compatibility via CLAUDE.md symbolic linking.
 ---
 
-# AGENTS.md Improver
+# AGENTS.md
 
 Audit, evaluate, create, and maintain AGENTS.md files across a repository to optimize project memory and context for AI assistants.
 

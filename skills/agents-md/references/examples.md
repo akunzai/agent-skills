@@ -1,6 +1,6 @@
-# Examples & Shell Patterns for `agents-md-improver`
+# Examples & Shell Patterns for `agents-md`
 
-This file documents example flows and mock transcripts for executing the `agents-md-improver` skill.
+This file documents example flows and mock transcripts for executing the `agents-md` skill.
 
 ---
 
