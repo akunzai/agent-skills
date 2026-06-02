@@ -1,0 +1,12 @@
+[project]
+name = "agent-skills"
+version = "0.1.0"
+description = "Custom Agent Skills"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "skills-ref",
+]
+
+[tool.uv.sources]
+skills-ref = { git = "https://github.com/agentskills/agentskills.git", subdirectory = "skills-ref" }

@@ -1,0 +1,31 @@
+name: Validate Skills
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Validate all skills
+        run: |
+          for skill_dir in skills/*/; do
+            if [ -d "$skill_dir" ]; then
+              echo "Validating $skill_dir..."
+              uv run skills-ref validate "$skill_dir"
+            fi
+          done

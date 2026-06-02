@@ -30,3 +30,8 @@ Icon
 
 # Built Visual Studio Code Extensions
 *.vsix
+
+### Python
+.venv/
+__pycache__/
+*.pyc
