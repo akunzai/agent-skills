@@ -13,6 +13,7 @@ Never record, log, or persist the following sensitive information under any circ
 
 - **No Speculations**: Never promote AI-generated guesses, unverified assumptions, or speculative coding ideas directly into durable memory.
 - **Diligence Rule**: Only persist knowledge that has been validated as working in the active environment.
+- **Redact Handoffs**: Short-term handoff notes and daily logs must redact secrets, PII, private records, and credential-adjacent values. Refer to safe artifact paths or URLs when possible instead of copying sensitive content.
 
 ## 3. Git Memory Sync Restrictions (Anti-Pollution Rules)
 
