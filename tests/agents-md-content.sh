@@ -23,4 +23,13 @@ grep -R -q -E 'If `?CLAUDE\.md`? already exists and is not the intended symlink'
 grep -R -q -E 'Choose the target `?AGENTS\.md`? explicitly' "$SKILL_DIR" \
   || fail "multi-AGENTS target selection rule is missing"
 
+grep -R -q --fixed-strings 'https://agents.md/' "$SKILL_DIR" \
+  || fail "official AGENTS.md reference URL is missing"
+
+grep -R -q -E 'plain Markdown|no required fields' "$SKILL_DIR" \
+  || fail "official plain Markdown/no required fields guidance is missing"
+
+grep -R -q -E 'closest .*AGENTS\.md|nearest .*AGENTS\.md' "$SKILL_DIR" \
+  || fail "closest AGENTS.md precedence guidance is missing"
+
 echo "agents-md content checks passed"

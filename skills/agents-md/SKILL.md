@@ -7,6 +7,8 @@ description: Create, audit, and improve AGENTS.md files in repositories to provi
 
 Audit, evaluate, create, and maintain AGENTS.md files across a repository to optimize project memory and context for AI assistants.
 
+Use the open AGENTS.md format reference at https://agents.md/ for baseline conventions: AGENTS.md is plain Markdown with no required fields, and nested files can scope instructions by directory. Repo evidence and explicit user instructions still govern the concrete content you write.
+
 ## Quick start
 
 Run this flow to check or create AGENTS.md:
@@ -28,6 +30,7 @@ Evaluate existing files using [references/quality-criteria.md](references/qualit
 Choose the target `AGENTS.md` explicitly:
 - If exactly one `AGENTS.md` exists, use it.
 - If multiple files exist, prefer the nearest `AGENTS.md` that governs the user's requested path or current working directory; otherwise ask before editing.
+- In nested repositories or monorepos, the closest `AGENTS.md` to the edited files has precedence for that subtree.
 - If none exists, create the root `AGENTS.md` unless the user requested a narrower package/module path.
 
 ### 2. Interactive Compatibility Check
