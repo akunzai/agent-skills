@@ -12,7 +12,7 @@ npx skills add akunzai/agent-skills
 
 ## Skills
 
-### [`agents-md-improver`](skills/agents-md-improver/)
+### [`agents-md`](skills/agents-md/)
 
 Audit, create, and improve `AGENTS.md` files to give AI assistants persistent project memory.
 
@@ -33,6 +33,5 @@ Use it when you want to:
 - Proactively audit, prune, and consolidate duplicate or obsolete conventions in long-term memory
 - Detect and resolve cloud synchronization conflicts (e.g., Google Drive conflict files) within `~/.agents/`
 - Seamlessly synchronize daily logs (`.memories/`) across devices using isolated Git Worktrees without workspace disruption
-
 
 

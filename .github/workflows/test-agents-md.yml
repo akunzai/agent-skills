@@ -1,0 +1,20 @@
+name: Test agents-md
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-agents-md:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Run agents-md name checks
+        run: bash tests/agents-md-name.sh
+
+      - name: Run agents-md content checks
+        run: bash tests/agents-md-content.sh
