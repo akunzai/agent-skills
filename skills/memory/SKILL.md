@@ -11,10 +11,10 @@ A unified, self-governing memory system that automatically retrieves, structures
 
 - **User Scope (Global Workspace)**: `~/.agents/`
   - Global durable preferences: `~/.agents/MEMORY.md` (Do NOT commit to Git).
-  - Global daily logs: `~/.agents/memory/YYYY-MM-DD.md`.
+  - Global daily logs: `~/.agents/memories/YYYY-MM-DD.md`.
 - **Project Scope (Local Repository)**: `<repo>/`
   - Local durable rules & memories: `<repo>/AGENTS.md` (or `CLAUDE.md`, MUST commit to Git).
-  - Local daily logs: `<repo>/memory/YYYY-MM-DD.md` (gitignored).
+  - Local daily logs: `<repo>/.memories/YYYY-MM-DD.md` (gitignored).
 
 ## Quick start
 
@@ -23,8 +23,8 @@ A unified, self-governing memory system that automatically retrieves, structures
 grep -rn "pattern" ~/.agents/ AGENTS.md CLAUDE.md
 
 # Log a candidate to today's daily log (include time stamp)
-mkdir -p memory
-echo "- [Candidate] Preferred database is PostgreSQL. [04:05]" >> memory/2026-06-02.md
+mkdir -p .memories
+echo "- [Candidate] Preferred database is PostgreSQL. [04:05]" >> .memories/2026-06-02.md
 ```
 
 ## Workflows
@@ -37,7 +37,7 @@ Coding agents must actively run this governance cycle during sessions and checkp
   - Automatically query memory files whenever preferences or conventions are unknown.
 - [ ] **2. Proactive Capture**:
   - **Read [references/security.md](references/security.md)** before writing.
-  - Log verified insights to today's log (`memory/YYYY-MM-DD.md`) as `[Candidate]` entries **with a daily time stamp** (e.g., `[HH:MM]`).
+  - Log verified insights to today's log (`.memories/YYYY-MM-DD.md` locally or `memories/` globally) as `[Candidate]` entries **with a daily time stamp** (e.g., `[HH:MM]`).
 - [ ] **3. Proactive Promotion Review (Interactive)**:
   - **Read [references/promote.md](references/promote.md)** to inspect validation criteria.
   - Scan daily logs for `[Candidate]` facts. Propose them to the user.

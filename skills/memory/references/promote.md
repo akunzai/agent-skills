@@ -12,9 +12,9 @@ Before any entry flagged as `[Candidate]` is eligible for promotion to durable m
 
 ## 2. Interactive Promotion Workflow
 
-1. **Scan**: Identify `[Candidate]` memories in `memory/YYYY-MM-DD.md`.
+1. **Scan**: Identify `[Candidate]` memories in `.memories/YYYY-MM-DD.md` (project) or `memories/YYYY-MM-DD.md` (user).
 2. **Filter**: Exclude any candidates that do not satisfy the promotion criteria above.
-3. **Format**: Draft a concise entry suitable for `MEMORY.md` (user) or `AGENTS.md` (project).
+3. **Format**: Draft a concise entry suitable for `MEMORY.md` (user) or `AGENTS.md` (project, fallback to `CLAUDE.md` if `AGENTS.md` is absent).
    - **Clean-up Rule**: **Strip out daily time stamps** (e.g., `[HH:MM]`) to keep durable files timeless and strictly concise.
 4. **Confirm**: Propose the drafted change to the user:
    > *"I found a stable convention in today's notes. Would you like me to promote it to local AGENTS.md (or CLAUDE.md)?"*
