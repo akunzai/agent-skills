@@ -1,0 +1,17 @@
+name: Test agents-md-improver
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-agents-md-improver:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Run agents-md-improver content checks
+        run: bash tests/agents-md-improver-content.sh

@@ -30,7 +30,7 @@ The codebase does not contain an `AGENTS.md` or `CLAUDE.md`. The agent discovers
 3. **Symlink and File Setup**
    If the user selects "Yes...", the agent runs:
    ```bash
-   ln -sf AGENTS.md CLAUDE.md
+   ln -s AGENTS.md CLAUDE.md
    ```
    And writes `AGENTS.md` incorporating the starter template along with the compatibility explanation block:
 
@@ -92,3 +92,27 @@ An `AGENTS.md` exists and `CLAUDE.md` is already a symbolic link pointing to `AG
 
 4. **Apply Improvements**
    The agent updates `AGENTS.md` directly while preserving or standardizing the Claude Code Compatibility section.
+
+---
+
+## Example 4: Existing CLAUDE.md is not a symlink
+
+### Scenario
+A repository has `AGENTS.md` and a regular `CLAUDE.md` file with separate instructions.
+
+### Flow
+
+1. **Discovery & Safety Check**
+   The agent detects that `CLAUDE.md` exists and is not the intended symlink to `AGENTS.md`.
+
+2. **Preserve Before Replacing**
+   The agent reads `CLAUDE.md`, compares it with `AGENTS.md`, and summarizes unique instructions that would be lost if the file were replaced.
+
+3. **Explicit Migration Proposal**
+   The agent asks the user whether to migrate the unique instructions into `AGENTS.md` and replace `CLAUDE.md` with a symlink.
+
+4. **Apply Only After Approval**
+   After approval, the agent updates `AGENTS.md`, moves or removes the old `CLAUDE.md` according to the agreed plan, and creates the symlink with:
+   ```bash
+   ln -s AGENTS.md CLAUDE.md
+   ```

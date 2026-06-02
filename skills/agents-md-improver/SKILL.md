@@ -12,8 +12,9 @@ Audit, evaluate, create, and maintain AGENTS.md files across a repository to opt
 Run this flow to check or create AGENTS.md:
 1. Scan for existing `AGENTS.md` and `CLAUDE.md` files, and check if `CLAUDE.md` is already a symbolic link pointing to `AGENTS.md`.
 2. Ask the user (via interactive prompts or user questions) if they want to maintain Claude Code compatibility. **If `CLAUDE.md` is already a symbolic link pointing to `AGENTS.md`, skip this step and automatically proceed under the assumption that compatibility is desired.**
-3. Generate or improve `AGENTS.md` with build/test/run commands, code styles, and workflows.
-4. If Claude compatibility is active or selected, establish/verify the symbolic link from `CLAUDE.md` to `AGENTS.md` and explain it in `AGENTS.md`.
+3. Choose the target `AGENTS.md` explicitly before editing.
+4. Generate or improve `AGENTS.md` with build/test/run commands, code styles, and workflows.
+5. If Claude compatibility is active or selected, establish/verify the symbolic link from `CLAUDE.md` to `AGENTS.md` and explain it in `AGENTS.md`.
 
 ## Workflows
 
@@ -24,17 +25,24 @@ find . -name "AGENTS.md" -o -name "CLAUDE.md" -o -name ".claude.md" 2>/dev/null 
 ```
 Evaluate existing files using [references/quality-criteria.md](references/quality-criteria.md) rubrics. Output a Quality Report before editing.
 
+Choose the target `AGENTS.md` explicitly:
+- If exactly one `AGENTS.md` exists, use it.
+- If multiple files exist, prefer the nearest `AGENTS.md` that governs the user's requested path or current working directory; otherwise ask before editing.
+- If none exists, create the root `AGENTS.md` unless the user requested a narrower package/module path.
+
 ### 2. Interactive Compatibility Check
 Before writing:
 - **Check if `CLAUDE.md` is already a symbolic link to `AGENTS.md`** (e.g., using `ls -la CLAUDE.md` or checking file properties).
 - **If already a symbolic link**: Skip the confirmation prompt entirely and automatically proceed under the assumption that compatibility is desired.
+- **If `CLAUDE.md` already exists and is not the intended symlink**: Do not replace it blindly. Read it, summarize any unique instructions, propose how to migrate them into `AGENTS.md`, and ask for explicit approval before moving or replacing the file.
 - **Otherwise**: Prompt the user:
   "Do you want to maintain Claude Code compatibility? (This will symlink CLAUDE.md to AGENTS.md and add an explanation block)"
 
 ### 3. Creation & Updates
 - Build/update `AGENTS.md` following templates in [references/templates.md](references/templates.md).
 - If compatibility is active or selected:
-  - Create or verify the symlink: `ln -sf AGENTS.md CLAUDE.md`
+  - Create the symlink only when `CLAUDE.md` is absent or already the intended symlink.
+  - If a regular `CLAUDE.md` exists, preserve its contents until the user approves migration and replacement.
   - Add the explanation block to `AGENTS.md`.
   - Add `CLAUDE.md` overrides (if any) to `AGENTS.md` or as separate imports.
 

@@ -24,9 +24,9 @@ Use this starter template when creating a new `AGENTS.md` file. Adjust the comma
 - `/tests`: Automated test suites
 
 ## Code Style & Conventions
-- Use TypeScript for all new code. Always specify types; avoid `any`.
-- Style components with Vanilla CSS; follow HSL variables defined in `/src/index.css`.
-- Keep component files under 200 lines; split complex UI into sub-components.
+- <Language/framework conventions verified from repo files, e.g. package manifests, config files, and existing code>
+- <Formatting/linting conventions backed by config or nearby code>
+- <Module boundaries or file organization rules that are specific to this repository>
 
 ## Workflows
 - **Testing**: Before submitting a PR, always run tests locally. Prefer testing a single file for speed: `npm run test -- <filepath>`.
@@ -48,10 +48,12 @@ If the user requests compatibility with Claude Code, append this exact section t
 > **DO NOT** delete the `CLAUDE.md` symbolic link or edit it independently; all guidelines must be updated directly in `AGENTS.md`.
 ```
 
-And execute the symbol link creation command in the repository root:
+Create the symbolic link in the repository root only when `CLAUDE.md` is absent or already points to `AGENTS.md`:
 ```bash
-ln -sf AGENTS.md CLAUDE.md
+ln -s AGENTS.md CLAUDE.md
 ```
+
+If `CLAUDE.md` already exists and is not the intended symlink, do not replace it blindly. Read it, preserve any unique instructions, propose a migration into `AGENTS.md`, and ask for explicit approval before moving or replacing the file.
 
 ---
 
@@ -83,4 +85,3 @@ discovered through problem-solving. Keep it short and prune stale entries regula
 > [!TIP]
 > This section is a quality signal: if it grows beyond 5–7 bullets, consider promoting entries to
 > the relevant section (Commands, Architecture, etc.) and deleting them here.
-
