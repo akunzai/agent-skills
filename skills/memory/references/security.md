@@ -1,6 +1,6 @@
 # Memory Security Specifications
 
-This reference outlines strict security restrictions and quality constraints for writing or persistence of memory.
+This reference outlines strict security restrictions, quality constraints, and branch protection rules for memory management.
 
 ## 1. Strictly Prohibited Data
 
@@ -11,5 +11,12 @@ Never record, log, or persist the following sensitive information under any circ
 
 ## 2. Quality & Authenticity Safeguards
 
-- **No Speculations**: Never promote AI-generated guesses, unverified assumptions, or speculative coding ideas directly into durable `MEMORY.md`.
+- **No Speculations**: Never promote AI-generated guesses, unverified assumptions, or speculative coding ideas directly into durable memory.
 - **Diligence Rule**: Only persist knowledge that has been validated as working in the active environment.
+
+## 3. Git Memory Sync Restrictions (Anti-Pollution Rules)
+
+To prevent repository history bloat and daily log conflicts, enforce these strict restrictions:
+- **No Direct Commits**: You are **STRICTLY PROHIBITED** from committing the local short-term memory directory (`.memories/`) to the active ordinary development branch (e.g., `main`, `dev`, `feature/*`).
+- **Intercept User Requests**: If the user requests to "commit memory" or "sync daily notes to Git", **intercept the request** and explain that daily logs must remain isolated.
+- **Enforce Syncer Usage**: You **MUST** use the dedicated `sync-memory.sh` workflow (running inside the isolated `project-memories` worktree) to synchronize daily logs.
