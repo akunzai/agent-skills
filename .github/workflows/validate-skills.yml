@@ -26,6 +26,6 @@ jobs:
           for skill_dir in skills/*/; do
             if [ -d "$skill_dir" ]; then
               echo "Validating $skill_dir..."
-              uv run skills-ref validate "$skill_dir"
+              uv run --with "git+https://github.com/agentskills/agentskills.git#subdirectory=skills-ref" -- skills-ref validate "$skill_dir"
             fi
           done
