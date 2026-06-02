@@ -1,6 +1,6 @@
 ---
 name: memory
-description: Unified autopilot memory governance system for both project and user scopes. Automatically searches past context, captures daily notes, and proactively triggers promotion, pruning, or sync-check reviews with user confirmation. Use as the master memory manager.
+description: Unified autopilot memory governance system for both project and user scopes. Automatically searches past context, captures daily notes, and proactively triggers promotion, pruning, or sync-check reviews with user confirmation. Use when retrieving developer preferences or project rules, logging daily notes, managing candidate facts, syncing daily logs, resolving sync conflicts, or optimizing project/user memory governance.
 ---
 
 # Unified Memory Autopilot
