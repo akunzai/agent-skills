@@ -12,7 +12,7 @@ npx skills add akunzai/agent-skills
 
 ## Skills
 
-### [`agents-md`](skills/agents-md/)
+### [`agents-md`](skills/agents-md/SKILL.md)
 
 Audit, create, and improve `AGENTS.md` files to give AI assistants persistent project memory.
 
@@ -22,7 +22,7 @@ Use it when you want to:
 - Keep `AGENTS.md` in sync with Claude Code via a `CLAUDE.md` symlink
 - Automatically write discovered knowledge back to `AGENTS.md` after solving problems
 
-### [`memory`](skills/memory/)
+### [`memory`](skills/memory/SKILL.md)
 
 Unified autopilot memory governance system for both project and user scopes.
 
