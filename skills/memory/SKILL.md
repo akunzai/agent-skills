@@ -47,4 +47,5 @@ Coding agents must actively run this governance cycle during sessions and checkp
   - Scan `MEMORY.md` or `AGENTS.md` / `CLAUDE.md` for duplicates or retired setups. Propose the exact diff changes to the user and request confirmation.
 - [ ] **5. Sync Conflict Resolution (Interactive)**:
   - **Read [references/sync-check.md](references/sync-check.md)** to inspect duplicate patterns and safe diff merge flows.
+  - **Read [references/sync-script.md](references/sync-script.md)** if working in a cross-device Git environment to automatically pull/push daily logs via isolated worktrees.
   - Check `~/.agents/` or project directory for conflicted sync copies. Draft a merge solution and request confirmation before clean deletion.

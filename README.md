@@ -29,8 +29,10 @@ Unified autopilot memory governance system for both project and user scopes.
 Use it when you want to:
 - Retrieve and query past context, preferences, or technical pitfalls across scopes
 - Automatically capture key learnings and newly verified coding patterns during sessions
-- Proactively promote verified daily candidate memories to durable `MEMORY.md` with interactive confirmation
+- Proactively promote verified daily candidate memories directly into `AGENTS.md` (or `CLAUDE.md`)
 - Proactively audit, prune, and consolidate duplicate or obsolete conventions in long-term memory
 - Detect and resolve cloud synchronization conflicts (e.g., Google Drive conflict files) within `~/.agents/`
+- Seamlessly synchronize daily logs (`.memories/`) across devices using isolated Git Worktrees without workspace disruption
+
 
 
