@@ -15,7 +15,9 @@ Since this skill can be loaded in different scopes, **DO NOT hardcode the script
 Instead of switching your active working branch (which triggers editor resets and file reloading), the automated script uses **Git Worktrees** in the background:
 - It creates a dedicated, isolated branch named `project-memories` with no parent history (an orphan branch).
 - It checks out this branch into a hidden workspace folder `.git/memories-worktree/`.
-- **Anti-Loss Sync Rule (Incremental)**: When syncing, the script **first pulls** the latest remote commits, and then performs an **incremental copy** (leaving older daily logs in the worktree untouched) before push, ensuring zero daily note loss.
+- **Anti-Loss Sync Rule (3-Way Rebase)**: When syncing, the script first records the local `.memories/` snapshot as a WIP commit inside the isolated worktree, then fetches and rebases onto `origin/project-memories`. This lets Git merge concurrent daily-log edits without relying on filesystem modification times.
+- **Append-Oriented Logs**: The syncer uses incremental overlay copying. It preserves existing daily logs, but it does not propagate deletes or renames.
+- **Conflict Safety**: If Git reports a rebase conflict, the script stops without copying conflicted files back to the local workspace. Resolve the conflict inside `.git/memories-worktree/`, run `git rebase --continue` or abort, then rerun sync.
 
 ## 3. Command Line Operations
 
@@ -27,11 +29,15 @@ You can run the script manually depending on the scope:
 ~/.agents/skills/memory/scripts/sync-memory.sh push
 ```
 
+`push` also fetches and rebases remote updates before pushing. Even when there are no new local changes, it can still bring another device's latest daily logs back into the local `.memories/` directory.
+
 ### Download & Pull Remote Notes
 ```bash
 # Example: Executing globally
 ~/.agents/skills/memory/scripts/sync-memory.sh pull
 ```
+
+`pull` records unpushed local daily notes before rebasing remote changes, so it is not a blind overwrite operation.
 
 ## 4. Automation Guidelines for AI Agents
 
