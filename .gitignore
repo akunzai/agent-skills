@@ -30,3 +30,6 @@ Icon
 
 # Built Visual Studio Code Extensions
 *.vsix
+
+# Local short-term project memory
+.memories/
