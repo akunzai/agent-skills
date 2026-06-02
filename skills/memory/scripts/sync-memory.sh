@@ -51,10 +51,17 @@ sync_push() {
     echo "Warning: Local '$LOCAL_DIR' directory does not exist. Nothing to push."
     return
   fi
+  
+  # Ensure the worktree is completely up-to-date with remote first
+  echo "Pulling remote changes to prevent overwriting..."
+  cd "$WORKTREE_DIR"
+  git pull origin "$BRANCH" || echo "Warning: git pull had conflicts, proceeding..."
+  cd - >/dev/null
+
   echo "Syncing local memories -> remote '$BRANCH'..."
-  # Clean and copy memories to worktree
-  rm -rf "$WORKTREE_DIR/.memories"
-  cp -R "$LOCAL_DIR" "$WORKTREE_DIR/.memories"
+  # Incremental copy: copy local memories but DO NOT delete existing files in worktree
+  mkdir -p "$WORKTREE_DIR/.memories"
+  cp -R "$LOCAL_DIR/." "$WORKTREE_DIR/.memories/"
   
   # Commit and push in the worktree directory
   cd "$WORKTREE_DIR"
@@ -64,9 +71,6 @@ sync_push() {
   else
     TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
     git commit -m "sync: daily memories at $TIMESTAMP"
-    # Pull remote changes to auto-merge before pushing
-    echo "Pulling remote changes to auto-merge..."
-    git pull origin "$BRANCH" || echo "Warning: git pull had conflicts, proceeding to push..."
     git push origin "$BRANCH"
     echo "Successfully pushed daily memories to remote."
   fi
