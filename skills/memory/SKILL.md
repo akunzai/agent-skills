@@ -10,11 +10,11 @@ A unified, self-governing memory system that automatically retrieves, structures
 ## Directory Structure
 
 - **User Scope (Global Workspace)**: `~/.agents/`
-  - Global durable preferences: `~/.agents/MEMORY.md` (Do NOT commit to Git).
-  - Global daily logs: `~/.agents/memories/YYYY-MM-DD.md`.
+  - Long-term memory: global durable preferences in `~/.agents/MEMORY.md` (Do NOT commit to Git).
+  - Short-term memory: daily handoff/candidate logs in `~/.agents/memories/YYYY-MM-DD.md`.
 - **Project Scope (Local Repository)**: `<repo>/`
-  - Local durable rules & memories: `<repo>/AGENTS.md` (or `CLAUDE.md`, MUST commit to Git).
-  - Local daily logs: `<repo>/.memories/YYYY-MM-DD.md` (gitignored).
+  - Long-term memory: local durable rules and conventions in `<repo>/AGENTS.md` (or `CLAUDE.md`, MUST commit to Git).
+  - Short-term memory: daily handoff/candidate logs in `<repo>/.memories/YYYY-MM-DD.md` (gitignored).
 
 ## Quick start
 
@@ -37,6 +37,8 @@ Coding agents must actively run this governance cycle during sessions and checkp
   - Automatically query memory files whenever preferences or conventions are unknown.
 - [ ] **2. Proactive Capture**:
   - **Read [references/security.md](references/security.md)** before writing.
+  - Capture short-term memory as a handoff delta: preserve only facts a fresh agent would need to continue, including current goal, material decisions, files changed or inspected, verification status, remaining work, blockers, and suggested skills to invoke next.
+  - Reference existing artifacts by path or URL instead of duplicating their contents.
   - Log verified insights to today's log (`.memories/YYYY-MM-DD.md` locally or `memories/` globally) as `[Candidate]` entries **with a daily time stamp** (e.g., `[HH:MM]`).
 - [ ] **3. Proactive Promotion Review (Interactive)**:
   - **Read [references/promote.md](references/promote.md)** to inspect validation criteria.
