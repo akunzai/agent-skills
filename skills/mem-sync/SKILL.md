@@ -29,24 +29,32 @@ Discover the script path dynamically (do NOT hardcode):
 - `mem-sync-git.sh status` — read-only: fetch the per-user branch and summarize how local `.memories/` differs (in sync, or local-only / remote-only / modified files).
 - `mem-sync-git.sh diff` — read-only: like `status` but prints the full unified diff (local vs remote).
 - `mem-sync-git.sh print-branch` — print the derived per-user branch and exit (used by tooling/tests).
+- `mem-sync-git.sh print-remote` — resolve and print the sync remote (env → config → auto-detect) and exit; use it to confirm which remote a sync would target. Exits non-zero with guidance if the remote is ambiguous.
 
 See [references/git-sync-workflow.md](references/git-sync-workflow.md) for mechanics,
 anti-pollution rules, and conflict handling.
 
-## Remote override
+## Remote resolution
 
-The sync remote defaults to `origin`. In a forked open-source repo — where `origin` may be
-your public fork, or you'd rather keep daily logs on a private remote — set the
-`MEM_SYNC_REMOTE` environment variable to an existing remote name:
+The sync remote is resolved in this order:
 
-```bash
-git remote add memvault git@example.com:me/private-notes.git
-MEM_SYNC_REMOTE=memvault mem-sync-git.sh push
-```
+1. **`MEM_SYNC_REMOTE` env var** — explicit one-off override; highest priority, never persisted.
+2. **`git config memsync.remote`** — a persisted per-repo choice.
+3. **Auto-detect** from the local remote list:
+   - exactly one remote → use it (not persisted);
+   - `origin` plus exactly one other remote → pick the non-`origin` one (this is the fork
+     case where `origin` is an upstream you cannot push to);
+   - two non-`origin` remotes, or more than two remotes → **ambiguous**: the command lists
+     the remotes and exits non-zero. Choose one with `git config memsync.remote <name>`
+     (persistent) or `MEM_SYNC_REMOTE=<name>` (one-off), then rerun.
 
-The named remote must already exist; the script aborts with a clear error otherwise. All
-operations (`push`/`pull`/`compact`/branch init) then target that remote. The per-user
-branch name is unaffected.
+After a successful `push`/`pull`/`compact` that used the two-remote auto-pick, the chosen
+remote is written to `git config --local memsync.remote`, so later sessions skip detection.
+A wrong remembered value is corrected with a single `git config memsync.remote <name>`.
+The per-user branch name (`memories/<email-localpart>`) is unaffected by the remote choice.
+
+If a command reports an ambiguous remote set, relay the printed remote list to the user and
+ask which remote to use, then set `git config memsync.remote <name>` before retrying.
 
 ## Anti-Pollution
 

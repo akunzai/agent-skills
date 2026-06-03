@@ -16,6 +16,13 @@ assert_contains() {
   fi
 }
 
+assert_eq_str() {
+  if [ "$1" != "$2" ]; then
+    echo "FAIL: ${3:-assertion}: expected '$2' but got '$1'" >&2
+    return 1
+  fi
+}
+
 copy_sync_script() {
   local repo="$1"
 
@@ -285,6 +292,206 @@ test_status_and_diff_report_local_vs_remote() {
   esac
 }
 
+test_auto_picks_non_origin_and_persists() {
+  local tmp
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "${tmp:-}"' RETURN
+
+  local repo_a
+  repo_a="$(init_origin_with_clone "$tmp")"
+  local origin="$tmp/origin.git"
+
+  # A second, writable remote (the user's fork).
+  local fork="$tmp/fork.git"
+  git init --bare "$fork" >/dev/null
+  git -C "$repo_a" remote add fork "$fork"
+
+  mkdir -p "$repo_a/.memories"
+  printf '%s\n' "note" > "$repo_a/.memories/2026-06-02.md"
+  run_sync "$repo_a" push >/dev/null
+
+  # Non-origin remote selected: branch lands on fork, not origin.
+  if ! git ls-remote --heads "$fork" memories/memory-test | grep -q memories/memory-test; then
+    echo "FAIL: auto-pick did not push to non-origin remote 'fork'" >&2
+    return 1
+  fi
+  if git ls-remote --heads "$origin" memories/memory-test | grep -q memories/memory-test; then
+    echo "FAIL: branch leaked to 'origin' despite non-origin auto-pick" >&2
+    return 1
+  fi
+  # The successful auto-pick is persisted to per-repo config.
+  local cfg
+  cfg="$(git -C "$repo_a" config --local memsync.remote || true)"
+  assert_eq_str "$cfg" "fork" "memsync.remote should be persisted as 'fork'"
+}
+
+test_single_remote_auto_detect_not_persisted() {
+  local tmp
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "${tmp:-}"' RETURN
+
+  local repo_a
+  repo_a="$(init_origin_with_clone "$tmp")"
+
+  mkdir -p "$repo_a/.memories"
+  printf '%s\n' "note" > "$repo_a/.memories/2026-06-02.md"
+  run_sync "$repo_a" push >/dev/null
+
+  local cfg
+  cfg="$(git -C "$repo_a" config --local memsync.remote 2>/dev/null || true)"
+  assert_eq_str "$cfg" "" "single-remote auto-detect must not persist memsync.remote"
+}
+
+test_ambiguous_remotes_abort_without_config() {
+  local tmp
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "${tmp:-}"' RETURN
+
+  local repo_a
+  repo_a="$(init_origin_with_clone "$tmp")"
+
+  # origin + two more remotes => >2 total => ambiguous.
+  local f1="$tmp/f1.git" f2="$tmp/f2.git"
+  git init --bare "$f1" >/dev/null
+  git init --bare "$f2" >/dev/null
+  git -C "$repo_a" remote add fork1 "$f1"
+  git -C "$repo_a" remote add fork2 "$f2"
+
+  mkdir -p "$repo_a/.memories"
+  printf '%s\n' "note" > "$repo_a/.memories/2026-06-02.md"
+  if (cd "$repo_a" && ./skills/mem-sync/scripts/mem-sync-git.sh push >/dev/null 2>&1); then
+    echo "FAIL: ambiguous remote set should abort push" >&2
+    return 1
+  fi
+  local cfg
+  cfg="$(git -C "$repo_a" config --local memsync.remote 2>/dev/null || true)"
+  assert_eq_str "$cfg" "" "ambiguous abort must not write memsync.remote"
+}
+
+test_config_remote_used_over_autodetect() {
+  local tmp
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "${tmp:-}"' RETURN
+
+  local repo_a
+  repo_a="$(init_origin_with_clone "$tmp")"
+  local origin="$tmp/origin.git"
+
+  # origin + chosen would auto-pick 'chosen'; config naming origin must win.
+  local chosen="$tmp/chosen.git"
+  git init --bare "$chosen" >/dev/null
+  git -C "$repo_a" remote add chosen "$chosen"
+  git -C "$repo_a" config --local memsync.remote origin
+
+  mkdir -p "$repo_a/.memories"
+  printf '%s\n' "note" > "$repo_a/.memories/2026-06-02.md"
+  run_sync "$repo_a" push >/dev/null
+
+  if ! git ls-remote --heads "$origin" memories/memory-test | grep -q memories/memory-test; then
+    echo "FAIL: config-named remote 'origin' was not used" >&2
+    return 1
+  fi
+  if git ls-remote --heads "$chosen" memories/memory-test | grep -q memories/memory-test; then
+    echo "FAIL: auto-pick overrode explicit config" >&2
+    return 1
+  fi
+  # config-sourced remotes are not rewritten by persist.
+  local cfg
+  cfg="$(git -C "$repo_a" config --local memsync.remote || true)"
+  assert_eq_str "$cfg" "origin" "config remote must remain unchanged"
+}
+
+test_env_overrides_persisted_config() {
+  local tmp
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "${tmp:-}"' RETURN
+
+  local repo_a
+  repo_a="$(init_origin_with_clone "$tmp")"
+
+  local envremote="$tmp/envr.git" cfgremote="$tmp/cfgr.git"
+  git init --bare "$envremote" >/dev/null
+  git init --bare "$cfgremote" >/dev/null
+  git -C "$repo_a" remote add envr "$envremote"
+  git -C "$repo_a" remote add cfgr "$cfgremote"
+  git -C "$repo_a" config --local memsync.remote cfgr
+
+  mkdir -p "$repo_a/.memories"
+  printf '%s\n' "note" > "$repo_a/.memories/2026-06-02.md"
+  (cd "$repo_a" && MEM_SYNC_REMOTE=envr ./skills/mem-sync/scripts/mem-sync-git.sh push >/dev/null)
+
+  if ! git ls-remote --heads "$envremote" memories/memory-test | grep -q memories/memory-test; then
+    echo "FAIL: env remote 'envr' not used" >&2
+    return 1
+  fi
+  if git ls-remote --heads "$cfgremote" memories/memory-test | grep -q memories/memory-test; then
+    echo "FAIL: config remote used despite env override" >&2
+    return 1
+  fi
+  # env is one-off: persisted config value is untouched.
+  local cfg
+  cfg="$(git -C "$repo_a" config --local memsync.remote || true)"
+  assert_eq_str "$cfg" "cfgr" "env override must not overwrite memsync.remote"
+}
+
+test_status_does_not_persist_autopick() {
+  local tmp
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "${tmp:-}"' RETURN
+
+  local repo_a
+  repo_a="$(init_origin_with_clone "$tmp")"
+
+  local fork="$tmp/fork.git"
+  git init --bare "$fork" >/dev/null
+  git -C "$repo_a" remote add fork "$fork"
+
+  # status auto-picks 'fork' but is read-only and must not write config.
+  (cd "$repo_a" && ./skills/mem-sync/scripts/mem-sync-git.sh status >/dev/null 2>&1) || true
+
+  local cfg
+  cfg="$(git -C "$repo_a" config --local memsync.remote 2>/dev/null || true)"
+  assert_eq_str "$cfg" "" "read-only status must not persist memsync.remote"
+}
+
+test_print_remote_reports_resolved_remote() {
+  local tmp
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "${tmp:-}"' RETURN
+
+  local repo_a
+  repo_a="$(init_origin_with_clone "$tmp")"
+  local script="./skills/mem-sync/scripts/mem-sync-git.sh"
+
+  # Single remote: print-remote reports it (read-only, no config written).
+  local r
+  r="$(cd "$repo_a" && "$script" print-remote)"
+  assert_eq_str "$r" "origin" "print-remote should report the single remote"
+  local cfg
+  cfg="$(git -C "$repo_a" config --local memsync.remote 2>/dev/null || true)"
+  assert_eq_str "$cfg" "" "print-remote must not persist memsync.remote"
+
+  # origin + fork: print-remote reports the non-origin auto-pick.
+  local fork="$tmp/fork.git"
+  git init --bare "$fork" >/dev/null
+  git -C "$repo_a" remote add fork "$fork"
+  r="$(cd "$repo_a" && "$script" print-remote)"
+  assert_eq_str "$r" "fork" "print-remote should report the auto-picked non-origin remote"
+
+  # env override wins.
+  r="$(cd "$repo_a" && MEM_SYNC_REMOTE=origin "$script" print-remote)"
+  assert_eq_str "$r" "origin" "print-remote should honor MEM_SYNC_REMOTE"
+
+  # Ambiguous remote set: print-remote exits non-zero.
+  local f2="$tmp/f2.git"
+  git init --bare "$f2" >/dev/null
+  git -C "$repo_a" remote add fork2 "$f2"
+  if (cd "$repo_a" && "$script" print-remote >/dev/null 2>&1); then
+    echo "FAIL: print-remote should abort on an ambiguous remote set" >&2
+    return 1
+  fi
+}
+
 main() {
   test_push_merges_remote_same_file_when_local_has_no_new_changes
   test_pull_preserves_local_wip_and_merges_remote_changes
@@ -292,6 +499,13 @@ main() {
   test_compact_is_rerunnable_after_interrupted_run
   test_push_respects_overridden_remote
   test_status_and_diff_report_local_vs_remote
+  test_auto_picks_non_origin_and_persists
+  test_single_remote_auto_detect_not_persisted
+  test_ambiguous_remotes_abort_without_config
+  test_config_remote_used_over_autodetect
+  test_env_overrides_persisted_config
+  test_status_does_not_persist_autopick
+  test_print_remote_reports_resolved_remote
   echo "git-sync-memory integration tests passed"
 }
 
