@@ -1,73 +1,39 @@
 ---
 name: mem-auto
-description: Autopilot memory governance umbrella — at session start restores the newest open [Handoff], captures verified [Candidate] notes during work, writes handoff blocks at boundaries, and closes handoffs. Delegates manual work to /mem-recall, /mem-promote, /mem-clean, /mem-sync. Use as the master memory manager.
+description: Memory autopilot for open [Handoff] resume/closure, verified [Candidate] capture, and delegation to /mem-recall, /mem-promote, /mem-clean, and /mem-sync.
 ---
 
-# Unified Memory Autopilot
+# mem-auto — Unified Memory Autopilot
 
-A unified, self-governing memory system that automatically retrieves, structures, and prunes project and user-level developer knowledge.
+Runs the automatic memory loop; delegate detailed work to the narrow mem-* skills.
 
-## Directory Structure
+## Memory Scopes
 
-- **User Scope (Global Workspace)**: `~/.agents/`
-  - Long-term memory: global durable preferences in `~/.agents/MEMORY.md` (Do NOT commit to Git).
-  - Short-term memory: daily `[Candidate]` logs in `~/.agents/memories/YYYY-MM-DD.md`.
-- **Project Scope (Local Repository)**: `<repo>/`
-  - Long-term memory: local durable rules and conventions in `<repo>/AGENTS.md` (or `CLAUDE.md`, MUST commit to Git).
-  - Short-term memory: daily logs in `<repo>/.memories/YYYY-MM-DD.md` holding `[Candidate]` and `[Handoff]` entries (untracked on dev branches; synced via the `mem-sync` skill's per-user `memories/<email-localpart>` branch).
+- Long-term memory: global durable preferences in `~/.agents/MEMORY.md`; project durable rules in `AGENTS.md` or `CLAUDE.md`.
+- Short-term memory: daily `[Candidate]` logs in `~/.agents/memories/YYYY-MM-DD.md`; project `.memories/YYYY-MM-DD.md` also stores `[Handoff]` and syncs through `/mem-sync`.
 
-## Quick start
+## Delegation
 
-```bash
-# Search global preferences or project rules (AGENTS.md or CLAUDE.md)
-grep -rn "pattern" ~/.agents/ AGENTS.md CLAUDE.md
+Use `/mem-recall` for short-term lookups, `/mem-promote` for durable promotion/prune,
+`/mem-clean` for destructive cleanup, and `/mem-sync` for project log status/diff/pull/push.
 
-# Log a candidate to today's daily log (include time stamp)
-mkdir -p .memories
-echo "- [Candidate] Preferred database is PostgreSQL. [04:05]" >> .memories/2026-06-02.md
+## Autopilot Loop
 
-# Check recent daily logs for an open [Handoff] to resume (one without a later [Handoff:done])
-grep -rn "\[Handoff" .memories/ 2>/dev/null | tail
-```
-
-## Delegated commands
-
-The umbrella runs the automatic loop and points you to these for manual work:
-
-- **`/mem-recall`** — search/load past context on demand.
-- **`/mem-promote`** — promote `[Candidate]` notes to durable memory; prune duplicates.
-- **`/mem-clean`** — clean expired short-term logs; resolve cloud-drive conflicts.
-- **`/mem-sync`** — pull/push daily logs across devices (per-user branch).
-
-## Workflows
-
-### The Autopilot Governance Loop
-
-Coding agents must actively run this governance cycle during sessions and checkpoints:
-
-- [ ] **1. Session Initialization (Handoff In)**:
-  - **Read [references/session-handoff.md](references/session-handoff.md)** to inspect active task state restoration rules.
-  - In a cross-device setup, pull first (see step 4) so you read the latest logs, not a stale local copy.
-  - Scan recent daily logs (`.memories/YYYY-MM-DD.md`) for the newest `[Handoff]` block that has no matching `[Handoff:done]` closure, and resume from it. If several are open (e.g., parallel worktrees), list them and let the user pick.
-  - Treat a stale open handoff (several days old, or its branch already merged/gone) as suspect: ask before resuming rather than blindly continuing.
-  - Automatically query other memory files (`AGENTS.md`, `CLAUDE.md`, `MEMORY.md`) whenever preferences or conventions are unknown.
-  - For ad-hoc lookups during the session, use **`/mem-recall`**.
-- [ ] **2. Proactive Capture & Handoff (Handoff Out)**:
-  - **Read [references/security.md](references/security.md)** and **[references/session-handoff.md](references/session-handoff.md)** before writing task states.
-  - At milestones, quota resets, or session boundaries, append a `[Handoff]` block to today's log capturing the current task state. Append a fresh block rather than rewriting earlier ones; the newest open block for a task is its current state.
-  - Preserve only facts a fresh agent would need to continue: current goal, implemented progress, verification status, next actions, blockers, and suggested skills to invoke next.
-  - Reference existing artifacts by path or URL instead of duplicating their contents.
-  - Treat `[Handoff]` entries as transient active state: they are not `[Candidate]` entries, must not be promoted directly, and are closed by appending `[Handoff:done]` — never by deleting history.
+- [ ] **Start / Handoff In**
+  - In cross-device projects, run `/mem-sync` pull first.
+  - Scan `.memories/YYYY-MM-DD.md` for the newest `[Handoff]` with no later `[Handoff:done]`; if several are open, list them and let the user pick.
+  - If the handoff is stale or its branch is merged/gone, ask before resuming.
+  - Treat auto-loaded `AGENTS.md` / `CLAUDE.md` as the normal source for durable instructions; use `/mem-recall` for short-term logs, and inspect durable files only when their loaded content seems incomplete or exact wording matters.
+- [ ] **Capture**
+  - Before writing task state, apply [references/security.md](references/security.md) and [references/session-handoff.md](references/session-handoff.md).
+  - At milestones, blockers, quota/context limits, or session boundaries, append a `[Handoff]` handoff delta: only what a fresh agent would need to continue, including goal, progress, verification, next actions, blockers/assumptions, and suggested skills.
+  - Reference existing artifacts by path or URL instead of duplicating contents.
+  - Treat `[Handoff]` as transient active state: not a `[Candidate]`, not promotable directly, and closed only by appending `[Handoff:done]`.
   - Log verified durable insights to today's log (`.memories/YYYY-MM-DD.md` locally or `memories/` globally) as `[Candidate]` entries **with a daily time stamp** (e.g., `[HH:MM]`).
-- [ ] **3. Promotion & Long-Term Prune (Interactive)** — delegate to **`/mem-promote`**:
-  - Scan daily logs for `[Candidate]` facts and propose promotion; scan durable files
-    for duplicates/obsoletes. Perform the interactive edits under `/mem-promote`.
-- [ ] **4. Cross-Device Git Sync (Daily Flow)** — delegate to **`/mem-sync`**:
-  - Run `mem-sync-git.sh pull` at session start and `push` at session end or after promotion.
-  - The script lives at `skills/mem-sync/scripts/mem-sync-git.sh`; see that skill for details.
-- [ ] **5. Short-Term Cleanup & Cloud Conflicts (Interactive)** — delegate to **`/mem-clean`**:
-  - When expired daily logs (older than the 30-day retention) or cloud conflict copies
-    exist, point the user to `/mem-clean`. Do not delete or rewrite history here.
-- [ ] **6. Handoff Closure**:
-  - **Read [references/session-handoff.md](references/session-handoff.md)** for closure guidelines.
-  - When a task is fully achieved and verified, append a `[Handoff:done]` entry referencing the task so future sessions skip the resolved handoff. Do not delete prior `[Handoff]` history — the dated log is pruned on its own schedule and synced append-only across devices.
+- [ ] **Sync**
+  - Use `/mem-sync` for project daily-log Git operations. Its `mem-sync-git.sh status` and `diff` commands are read-only checks for local/remote `.memories/` differences.
+  - Pull before reading remote handoffs; push at session end or after promotion/capture changes that should be available on other devices.
+- [ ] **Manual Governance**
+  - Delegate promotion/prune to `/mem-promote`; delegate expired logs and conflict copies to `/mem-clean`. Do not delete or rewrite history from `mem-auto`.
+- [ ] **Closure**
+  - When the task is achieved and verified, append `[Handoff:done]` for that task. Do not delete prior `[Handoff]` history.
