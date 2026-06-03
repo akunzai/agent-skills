@@ -4,7 +4,7 @@ This reference provides the checklist and workflows required to safely promote a
 
 ## 1. The Promotion Criteria
 
-Before any entry flagged as `[Candidate]` is eligible for promotion to durable memory, the Agent must verify it against these three rules:
+Before any entry flagged as `[Candidate]` is eligible for promotion to durable memory, the Agent must verify it against these four rules:
 
 - [ ] **Verified**: The fact, fix, or workflow has been proven to work successfully in the current workspace.
 - [ ] **Reusable**: The convention has a high probability of being useful in future sessions or to other developers on the project.
@@ -24,3 +24,5 @@ Before any entry flagged as `[Candidate]` is eligible for promotion to durable m
    - **User Scope**: Write the entry to `~/.agents/MEMORY.md`.
    - **Project Scope**: Write the entry to `<repo>/AGENTS.md` (or `CLAUDE.md` if `AGENTS.md` is absent).
    - Mark the daily log entry as `[Promoted]` to keep logs auditable.
+   - If the user declines promotion, mark the daily log entry `[Rejected]` (instead of
+     `[Promoted]`) so it no longer blocks short-term cleanup as an unresolved candidate.

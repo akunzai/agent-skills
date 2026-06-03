@@ -15,9 +15,3 @@ Never record, log, or persist the following sensitive information under any circ
 - **Diligence Rule**: Only persist knowledge that has been validated as working in the active environment.
 - **Redact Handoffs**: Short-term handoff notes and daily logs must redact secrets, PII, private records, and credential-adjacent values. Refer to safe artifact paths or URLs when possible instead of copying sensitive content.
 
-## 3. Git Memory Sync Restrictions (Anti-Pollution Rules)
-
-To prevent repository history bloat and daily log conflicts, enforce these strict restrictions:
-- **No Direct Commits**: You are **STRICTLY PROHIBITED** from committing the local short-term memory directory (`.memories/`) to the active ordinary development branch (e.g., `main`, `dev`, `feature/*`).
-- **Intercept User Requests**: If the user requests to "commit memory" or "sync daily notes to Git", **intercept the request** and explain that daily logs must remain isolated.
-- **Enforce Syncer Usage**: You **MUST** use the dedicated `sync-memory.sh` workflow (running inside the isolated `project-memories` worktree) to synchronize daily logs.

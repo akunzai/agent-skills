@@ -22,16 +22,15 @@ Use it when you want to:
 - Keep `AGENTS.md` in sync with Claude Code via a `CLAUDE.md` symlink
 - Automatically write discovered knowledge back to `AGENTS.md` after solving problems
 
-### [`memory`](skills/memory/SKILL.md)
+### [`mem-auto`](skills/mem-auto/SKILL.md)
 
-Unified autopilot memory governance system for both project and user scopes.
+Autopilot memory governance umbrella. Restores open handoffs at session start, captures
+verified candidate notes, writes handoff blocks at boundaries, and delegates manual work
+to the commands below.
 
-Use it when you want to:
-- Retrieve and query past context, preferences, or technical pitfalls across scopes
-- Automatically capture key learnings and newly verified coding patterns during sessions
-- Proactively promote verified daily candidate memories directly into `AGENTS.md` (or `CLAUDE.md`)
-- Proactively audit, prune, and consolidate duplicate or obsolete conventions in long-term memory
-- Detect and resolve cloud synchronization conflicts (e.g., Google Drive conflict files) within `~/.agents/`
-- Seamlessly synchronize daily logs (`.memories/`) across devices using isolated Git Worktrees without workspace disruption
+- [`mem-recall`](skills/mem-recall/SKILL.md) — search/load past context on demand
+- [`mem-promote`](skills/mem-promote/SKILL.md) — promote candidates to durable memory; prune duplicates
+- [`mem-clean`](skills/mem-clean/SKILL.md) — clean expired short-term logs; resolve cloud conflicts
+- [`mem-sync`](skills/mem-sync/SKILL.md) — sync daily logs across devices via a per-user branch
 
 
