@@ -36,14 +36,69 @@ derive_branch() {
 }
 
 BRANCH="$(derive_branch)"
-REMOTE="${MEM_SYNC_REMOTE:-origin}"
+REMOTE=""
+REMOTE_SOURCE=""
 
 WORKTREE_DIR="$GIT_COMMON_DIR/memories-worktree"
 LOCAL_DIR="$REPO_DIR/$MEMORY_PATH"
 
+resolve_remote() {
+  # 1. explicit one-off override (never persisted)
+  if [ -n "${MEM_SYNC_REMOTE:-}" ]; then
+    REMOTE="$MEM_SYNC_REMOTE"
+    REMOTE_SOURCE="env"
+    return
+  fi
+
+  # 2. persisted per-repo choice
+  local cfg
+  cfg="$(git -C "$REPO_DIR" config --local memsync.remote 2>/dev/null || true)"
+  if [ -n "$cfg" ]; then
+    REMOTE="$cfg"
+    REMOTE_SOURCE="config"
+    return
+  fi
+
+  # 3. auto-detect from the local remote list
+  local remotes count
+  remotes="$(git -C "$REPO_DIR" remote)"
+  count="$(printf '%s\n' "$remotes" | grep -c . || true)"
+
+  if [ "$count" -eq 0 ]; then
+    echo "Error: no git remote is configured for memory sync." >&2
+    echo "Add one (e.g. 'git remote add origin <url>') or set 'git config memsync.remote <name>'." >&2
+    exit 1
+  fi
+
+  if [ "$count" -eq 1 ]; then
+    # Single remote: use it, but do not persist (re-detect if a second is added later).
+    REMOTE="$remotes"
+    REMOTE_SOURCE="auto-single"
+    return
+  fi
+
+  # 2+ remotes: only 'origin + exactly one other' is unambiguous.
+  local others
+  others="$(printf '%s\n' "$remotes" | grep -vx 'origin' || true)"
+  if printf '%s\n' "$remotes" | grep -qx 'origin' \
+     && [ "$(printf '%s\n' "$others" | grep -c . || true)" -eq 1 ]; then
+    REMOTE="$others"
+    REMOTE_SOURCE="auto-pick"
+    return
+  fi
+
+  echo "Error: multiple remotes found; cannot pick the memory sync remote automatically." >&2
+  echo "Remotes:" >&2
+  printf '%s\n' "$remotes" | sed 's/^/  - /' >&2
+  echo "Choose one persistently:  git config memsync.remote <name>" >&2
+  echo "Or for a one-off run:      MEM_SYNC_REMOTE=<name> <command>" >&2
+  exit 1
+}
+
 ensure_remote() {
   if ! git -C "$REPO_DIR" remote get-url "$REMOTE" >/dev/null 2>&1; then
-    echo "Error: remote '$REMOTE' is required for memory sync."
+    echo "Error: remote '$REMOTE' (from $REMOTE_SOURCE) does not exist but is required for memory sync." >&2
+    echo "Fix it with 'git config memsync.remote <name>' or 'git remote add $REMOTE <url>'." >&2
     exit 1
   fi
 }
@@ -155,11 +210,20 @@ sync_merge_remote() {
   rebase_remote
 }
 
+persist_remote() {
+  # Remember a disambiguated auto-pick so future sessions skip detection.
+  # env/config sources are already explicit; single-remote auto-detect is not persisted.
+  if [ "$REMOTE_SOURCE" = "auto-pick" ]; then
+    git -C "$REPO_DIR" config --local memsync.remote "$REMOTE" || true
+  fi
+}
+
 sync_push() {
   echo "Syncing local memories -> remote '$BRANCH'..."
   sync_merge_remote
   git -C "$WORKTREE_DIR" push "$REMOTE" "$BRANCH"
   sync_back_to_local
+  persist_remote
   echo "Successfully pushed daily memories to remote."
 }
 
@@ -175,6 +239,7 @@ sync_pull() {
   else
     echo "No remote daily memories found."
   fi
+  persist_remote
 }
 
 sync_compact() {
@@ -197,6 +262,7 @@ sync_compact() {
   git -C "$WORKTREE_DIR" commit -m "compact: authoritative memory snapshot $(date '+%Y-%m-%d %H:%M:%S')" >/dev/null
   git -C "$WORKTREE_DIR" branch -M "$BRANCH"
   git -C "$WORKTREE_DIR" push --force "$REMOTE" "$BRANCH"
+  persist_remote
   echo "Force-pushed compacted '$BRANCH'. Other devices will adopt it on next sync."
 }
 
@@ -244,25 +310,34 @@ sync_status() {
 
 case "${1:-status}" in
   push)
+    resolve_remote
     sync_push
     ;;
   pull)
+    resolve_remote
     sync_pull
     ;;
   compact)
+    resolve_remote
     sync_compact
     ;;
   status)
+    resolve_remote
     sync_status summary
     ;;
   diff)
+    resolve_remote
     sync_status diff
     ;;
   print-branch)
     printf '%s\n' "$BRANCH"
     ;;
+  print-remote)
+    resolve_remote
+    printf '%s\n' "$REMOTE"
+    ;;
   *)
-    echo "Usage: $0 {push|pull|compact|status|diff|print-branch}"
+    echo "Usage: $0 {push|pull|compact|status|diff|print-branch|print-remote}"
     exit 1
     ;;
 esac

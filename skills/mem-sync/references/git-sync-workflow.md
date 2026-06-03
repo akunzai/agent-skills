@@ -15,7 +15,7 @@ Since this skill can be loaded in different scopes, **DO NOT hardcode the script
 Instead of switching your active working branch (which triggers editor resets and file reloading), the automated script uses **Git Worktrees** in the background:
 - It creates a dedicated, isolated per-user branch named `memories/<email-localpart>` with no parent history (an orphan branch).
 - It checks out this branch into a hidden workspace folder `.git/memories-worktree/`.
-- **Anti-Loss Sync Rule (3-Way Rebase)**: When syncing, the script first records the local `.memories/` snapshot as a WIP commit inside the isolated worktree, then fetches and rebases onto `origin/memories/<email-localpart>`. This lets Git merge concurrent daily-log edits without relying on filesystem modification times.
+- **Anti-Loss Sync Rule (3-Way Rebase)**: When syncing, the script first records the local `.memories/` snapshot as a WIP commit inside the isolated worktree, then fetches and rebases onto `<remote>/memories/<email-localpart>` (the resolved sync remote). This lets Git merge concurrent daily-log edits without relying on filesystem modification times.
 - **Append-Oriented Logs**: The syncer uses incremental overlay copying. It preserves existing daily logs, but it does not propagate deletes or renames.
 - **Conflict Safety**: If Git reports a rebase conflict, the script stops without copying conflicted files back to the local workspace. Resolve the conflict inside `.git/memories-worktree/`, run `git rebase --continue` or abort, then rerun sync.
 
@@ -52,21 +52,31 @@ You can run the script manually depending on the scope:
 `.memories/` directory — they never modify the working copy, the worktree, or the remote.
 If the remote branch does not exist yet, `status` reports how many local logs are unpushed.
 
-## 3a. Remote Override (`MEM_SYNC_REMOTE`)
+## 3a. Remote Resolution & Persistence
 
-By default the syncer uses the `origin` remote. In a fork-based open-source workflow your
-`origin` might be the public upstream you cannot (or should not) push memory to, or you may
-prefer to keep daily logs on a separate private remote. Set `MEM_SYNC_REMOTE` to any
-existing remote name to redirect every sync operation (`push`, `pull`, `compact`, and
-orphan-branch initialization):
+The remote is resolved as: `MEM_SYNC_REMOTE` env var → `git config memsync.remote` →
+auto-detect. Auto-detect uses the local remote list:
+
+- one remote → use it (not remembered);
+- `origin` + exactly one other → use the non-`origin` remote (the fork case where `origin`
+  is an upstream you cannot push memory to);
+- otherwise (two non-`origin` remotes, or more than two) → the command lists the remotes
+  and aborts so nothing is pushed to the wrong place.
 
 ```bash
-git remote add memvault git@example.com:me/private-notes.git
+# Persistent per-repo choice (recommended for forks):
+git config memsync.remote myfork
+~/.agents/skills/mem-sync/scripts/mem-sync-git.sh push
+
+# One-off override that does not touch the stored choice:
 MEM_SYNC_REMOTE=memvault ~/.agents/skills/mem-sync/scripts/mem-sync-git.sh push
 ```
 
-The remote must already be configured — the script aborts with a clear error if the named
-remote is missing. The per-user branch name (`memories/<email-localpart>`) is unaffected.
+After a successful `push`/`pull`/`compact` that auto-picked the non-`origin` remote, that
+remote is saved to `git config --local memsync.remote` so later runs skip detection. Env-
+and config-sourced remotes are never auto-rewritten; read-only `status`/`diff` never write
+config. The named remote must exist or the script aborts, naming the resolution source.
+The per-user branch name (`memories/<email-localpart>`) is unaffected.
 
 ## 4. Automation Guidelines for AI Agents
 
