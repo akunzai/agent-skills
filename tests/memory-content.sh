@@ -15,10 +15,13 @@ fail() {
 grep -R -q -E 'handoff delta|fresh agent would need to continue' "$SKILL_DIR" \
   || fail "short-term handoff delta capture guidance is missing"
 
-grep -q -E 'Long-term memory:.*durable' "$SKILL_DIR/SKILL.md" \
+grep -q -E 'Long-term memory:.*global durable.*instructions.*facts.*conventions' "$SKILL_DIR/SKILL.md" \
   || fail "long-term directory structure guidance is missing"
 grep -q -E 'Short-term memory:.*\[Candidate\]' "$SKILL_DIR/SKILL.md" \
   || fail "short-term directory structure guidance is missing"
+
+grep -q -E 'related-skills:.*mem-recall.*mem-promote.*mem-clean.*mem-sync' "$SKILL_DIR/SKILL.md" \
+  || fail "mem-auto must expose related mem-* skills as metadata, not implicit dependencies"
 
 grep -R -q -E 'Reference existing artifacts by path or URL|safe artifact paths or URLs' "$SKILL_DIR" \
   || fail "artifact reference guidance is missing"

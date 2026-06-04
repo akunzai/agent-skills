@@ -1,6 +1,8 @@
 ---
 name: mem-auto
-description: Memory autopilot for open [Handoff] resume/closure, verified [Candidate] capture, and delegation to /mem-recall, /mem-promote, /mem-clean, and /mem-sync.
+description: Run the automatic memory lifecycle on mem-auto, /mem-auto, or $mem-auto — resume open [Handoff] entries, capture verified [Candidate] notes, and delegate to mem-recall, mem-promote, mem-clean, and mem-sync.
+metadata:
+  related-skills: mem-recall, mem-promote, mem-clean, mem-sync
 ---
 
 # mem-auto — Unified Memory Autopilot
@@ -9,7 +11,7 @@ Runs the automatic memory loop; delegate detailed work to the narrow mem-* skill
 
 ## Memory Scopes
 
-- Long-term memory: global durable preferences in `~/.agents/MEMORY.md`; project durable rules in `AGENTS.md` or `CLAUDE.md`.
+- Long-term memory: global durable instructions, preferences, facts, and reusable conventions in `~/.agents/MEMORY.md`; project durable rules in `AGENTS.md` or `CLAUDE.md`.
 - Short-term memory: daily `[Candidate]` logs in `~/.agents/memories/YYYY-MM-DD.md`; project `.memories/YYYY-MM-DD.md` also stores `[Handoff]` and syncs through `/mem-sync`.
 
 ## Delegation
