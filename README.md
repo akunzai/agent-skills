@@ -15,12 +15,23 @@ npx skills add akunzai/agent-skills
 ### [`memory-autoload`](plugins/memory-autoload/README.md)
 
 Loads `~/.agents/MEMORY.md` into context at session start and nudges the agent to
-run the `mem-sync` and `mem-auto` skills. Install via the Claude Code marketplace:
+run the `mem-sync` and `mem-auto` skills.
+
+Install via the Claude Code marketplace:
 
 ```bash
 /plugin marketplace add akunzai/agent-skills
 /plugin install memory-autoload@akunzai
 ```
+
+Install via the Codex plugin marketplace:
+
+```bash
+codex plugin marketplace add akunzai/agent-skills
+```
+
+Then open `/plugins`, select the `akunzai agent skills` marketplace, and install
+`memory-autoload`.
 
 ## Skills
 
@@ -50,4 +61,3 @@ to the commands below.
 - [`mem-promote`](skills/mem-promote/SKILL.md) — promote candidates to durable memory; prune duplicates
 - [`mem-clean`](skills/mem-clean/SKILL.md) — clean expired short-term logs; resolve cloud conflicts
 - [`mem-sync`](skills/mem-sync/SKILL.md) — sync daily logs across devices via a per-user branch
-
