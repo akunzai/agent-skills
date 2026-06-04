@@ -10,6 +10,18 @@ My personal agent skills for AI coding assistants — compatible with Antigravit
 npx skills add akunzai/agent-skills
 ```
 
+## Plugins
+
+### [`memory-autoload`](plugins/memory-autoload/README.md)
+
+Loads `~/.agents/MEMORY.md` into context at session start and nudges the agent to
+run the `mem-sync` and `mem-auto` skills. Install via the Claude Code marketplace:
+
+```bash
+/plugin marketplace add akunzai/agent-skills
+/plugin install memory-autoload@akunzai
+```
+
 ## Skills
 
 ### [`tidy-commits`](skills/tidy-commits/SKILL.md)
