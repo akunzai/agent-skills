@@ -7,6 +7,7 @@ LOADER="$PLUGIN_DIR/hooks/load-memory.sh"
 NUDGE="$PLUGIN_DIR/hooks/nudge-memory-skills.sh"
 PLUGIN_JSON="$PLUGIN_DIR/.claude-plugin/plugin.json"
 HOOKS_JSON="$PLUGIN_DIR/hooks/hooks.json"
+MARKET_JSON="$ROOT_DIR/.claude-plugin/marketplace.json"
 
 fail() {
   echo "memory-autoload hook check failed: $*" >&2
@@ -42,6 +43,19 @@ entries = d["hooks"]["SessionStart"]
 cmds = [h["command"] for e in entries for h in e["hooks"]]
 assert any("load-memory.sh" in c for c in cmds), "missing load-memory.sh"
 assert any("nudge-memory-skills.sh" in c for c in cmds), "missing nudge-memory-skills.sh"
+PY
+
+# --- marketplace.json: valid JSON and lists the plugin ---
+python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$MARKET_JSON" || fail "invalid JSON: $MARKET_JSON"
+
+python3 - "$MARKET_JSON" <<'PY' || fail "marketplace.json does not list memory-autoload"
+import json, sys
+d = json.load(open(sys.argv[1]))
+plugins = d["plugins"]
+assert any(
+    p["name"] == "memory-autoload" and p["source"] == "./plugins/memory-autoload"
+    for p in plugins
+), "memory-autoload entry missing or wrong source"
 PY
 
 echo "memory-autoload hook checks passed"
