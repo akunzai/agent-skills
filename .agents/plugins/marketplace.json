@@ -1,0 +1,14 @@
+{
+  "name": "akunzai",
+  "interface": {
+    "displayName": "akunzai agent skills"
+  },
+  "plugins": [
+    {
+      "name": "memory-autoload",
+      "source": { "source": "local", "path": "./plugins/memory-autoload" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Productivity"
+    }
+  ]
+}
