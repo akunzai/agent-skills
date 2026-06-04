@@ -1,0 +1,53 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Run actionlint
+        uses: raven-actions/actionlint@v2
+
+  agents-md:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Run agents-md name checks
+        run: bash tests/agents-md-name.sh
+
+      - name: Run agents-md content checks
+        run: bash tests/agents-md-content.sh
+
+  git-sync-memory:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Run git-sync-memory integration tests
+        run: bash tests/git-sync-memory-integration.sh
+
+      - name: Run git-sync-memory branch derivation tests
+        run: bash tests/git-sync-memory-branch.sh
+
+      - name: Run memory content checks
+        run: bash tests/memory-content.sh
+
+  tidy-commits:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Run tidy-commits content checks
+        run: bash tests/tidy-commits-content.sh

@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  validate:
+  validate-skills:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
