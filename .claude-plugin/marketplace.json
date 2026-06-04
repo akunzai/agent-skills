@@ -1,0 +1,11 @@
+{
+  "name": "akunzai",
+  "owner": { "name": "Charley Wu" },
+  "plugins": [
+    {
+      "name": "memory-autoload",
+      "source": "./plugins/memory-autoload",
+      "description": "Auto-load ~/.agents/MEMORY.md into context at session start."
+    }
+  ]
+}

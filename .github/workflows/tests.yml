@@ -51,3 +51,12 @@ jobs:
 
       - name: Run tidy-commits content checks
         run: bash tests/tidy-commits-content.sh
+
+  memory-autoload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Run memory-autoload hook checks
+        run: bash tests/memory-autoload-hook.sh
