@@ -12,6 +12,12 @@ npx skills add akunzai/agent-skills
 
 ## Skills
 
+### [`tidy-commits`](skills/tidy-commits/SKILL.md)
+
+Clean up local git commit history before review or merge. Use it to turn WIP,
+fixup, review-fix, format-only, poorly ordered, unsigned, or poorly messaged
+commits into a clear, verified branch story.
+
 ### [`agents-md`](skills/agents-md/SKILL.md)
 
 Audit, create, and improve `AGENTS.md` files to give AI assistants persistent project memory.
@@ -32,5 +38,4 @@ to the commands below.
 - [`mem-promote`](skills/mem-promote/SKILL.md) — promote candidates to durable memory; prune duplicates
 - [`mem-clean`](skills/mem-clean/SKILL.md) — clean expired short-term logs; resolve cloud conflicts
 - [`mem-sync`](skills/mem-sync/SKILL.md) — sync daily logs across devices via a per-user branch
-
 
