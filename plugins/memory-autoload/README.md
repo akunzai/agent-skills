@@ -17,6 +17,8 @@ On `SessionStart`:
 
 Hooks cannot invoke skills directly, so the nudge is a soft trigger: the agent
 decides whether to act, and it is a no-op if the `mem-*` skills are not installed.
+This plugin does not install those skills; install them separately with
+`npx skills add akunzai/agent-skills`.
 
 ## Configuration
 

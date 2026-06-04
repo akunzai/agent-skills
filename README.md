@@ -33,6 +33,9 @@ codex plugin marketplace add akunzai/agent-skills
 Then open `/plugins`, select the `akunzai agent skills` marketplace, and install
 `memory-autoload`.
 
+The plugin only loads memory and nudges the agent to use the `mem-*` skills. It
+does not install those skills; install them with `npx skills add akunzai/agent-skills`.
+
 ## Skills
 
 ### [`tidy-commits`](skills/tidy-commits/SKILL.md)
