@@ -282,6 +282,7 @@ sync_compact() {
     cp -R "$LOCAL_DIR/." "$WORKTREE_DIR/$MEMORY_PATH/"
   fi
   touch "$WORKTREE_DIR/$MEMORY_PATH/.gitkeep"
+  printf '%s\n' "$MEMORY_PATH/** text eol=lf" > "$WORKTREE_DIR/.gitattributes"
   # Rebuild history as a single orphan commit.
   # Clean up any stale compact-tmp branch left by a prior interrupted run.
   git -C "$WORKTREE_DIR" checkout "$BRANCH" >/dev/null 2>&1 || true
