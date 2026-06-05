@@ -36,6 +36,7 @@ fi
 unset _msg_missing _tool
 
 MEMORY_PATH=".memories"
+MEMORY_ATTRS_RULE="$MEMORY_PATH/** text eol=lf"
 
 # Check if git repository exists
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -143,7 +144,7 @@ create_memory_branch() {
     git rm -rf . >/dev/null 2>&1 || true
     mkdir -p "$MEMORY_PATH"
     touch "$MEMORY_PATH/.gitkeep"
-    printf '%s\n' "$MEMORY_PATH/** text eol=lf" > .gitattributes
+    printf '%s\n' "$MEMORY_ATTRS_RULE" > .gitattributes
     git add -f "$MEMORY_PATH/.gitkeep" .gitattributes
     git commit -m "Initialize memory sync branch" >/dev/null
     git push "$REMOTE" "$BRANCH" >/dev/null
@@ -199,8 +200,9 @@ commit_local_snapshot() {
 
   mkdir -p "$WORKTREE_DIR/$MEMORY_PATH"
   cp -R "$LOCAL_DIR/." "$WORKTREE_DIR/$MEMORY_PATH/"
+  printf '%s\n' "$MEMORY_ATTRS_RULE" > "$WORKTREE_DIR/.gitattributes"
 
-  git -C "$WORKTREE_DIR" add -f "$MEMORY_PATH/"
+  git -C "$WORKTREE_DIR" add -f "$MEMORY_PATH/" .gitattributes
   if git -C "$WORKTREE_DIR" diff --cached --quiet; then
     echo "No local daily log changes detected."
   else
@@ -282,7 +284,7 @@ sync_compact() {
     cp -R "$LOCAL_DIR/." "$WORKTREE_DIR/$MEMORY_PATH/"
   fi
   touch "$WORKTREE_DIR/$MEMORY_PATH/.gitkeep"
-  printf '%s\n' "$MEMORY_PATH/** text eol=lf" > "$WORKTREE_DIR/.gitattributes"
+  printf '%s\n' "$MEMORY_ATTRS_RULE" > "$WORKTREE_DIR/.gitattributes"
   # Rebuild history as a single orphan commit.
   # Clean up any stale compact-tmp branch left by a prior interrupted run.
   git -C "$WORKTREE_DIR" checkout "$BRANCH" >/dev/null 2>&1 || true
@@ -322,13 +324,15 @@ sync_status() {
 
   # Exclude the .gitkeep placeholder: it stays on the branch but pull strips it
   # locally, so it would otherwise always show as a spurious remote-only diff.
+  # Ignore CRLF/LF-only differences: legacy memory branches may contain CRLF
+  # blobs from Windows clones before the .gitattributes rule was restored.
   if [ "$mode" = "diff" ]; then
-    diff -ru -x '.gitkeep' "$tmp/$MEMORY_PATH" "$LOCAL_DIR" || true
+    diff -ru --strip-trailing-cr -x '.gitkeep' "$tmp/$MEMORY_PATH" "$LOCAL_DIR" || true
     return 0
   fi
 
   local out
-  out="$(diff -rq -x '.gitkeep' "$tmp/$MEMORY_PATH" "$LOCAL_DIR" 2>/dev/null || true)"
+  out="$(diff -rq --strip-trailing-cr -x '.gitkeep' "$tmp/$MEMORY_PATH" "$LOCAL_DIR" 2>/dev/null || true)"
   if [ -z "$out" ]; then
     echo "In sync with '$REMOTE/$BRANCH'."
   else

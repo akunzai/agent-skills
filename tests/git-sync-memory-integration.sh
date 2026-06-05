@@ -543,6 +543,35 @@ test_gitattributes_survives_compact() {
   esac
 }
 
+test_push_restores_missing_gitattributes() {
+  local tmp
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "${tmp:-}"' RETURN
+
+  local repo_a
+  repo_a="$(init_origin_with_clone "$tmp")"
+  local origin="$tmp/origin.git"
+
+  mkdir -p "$repo_a/.memories"
+  printf '%s\n' "note" > "$repo_a/.memories/2026-06-02.md"
+  run_sync "$repo_a" push >/dev/null
+
+  local wt="$repo_a/.git/memories-worktree"
+  git -C "$wt" rm -q .gitattributes
+  git -C "$wt" commit -q -m "legacy: drop eol=lf rule"
+  git -C "$wt" push -q origin memories/memory-test
+
+  printf '%s\n' "second note" > "$repo_a/.memories/2026-06-03.md"
+  run_sync "$repo_a" push >/dev/null
+
+  local attrs
+  attrs="$(git -C "$origin" archive "memories/memory-test" -- ".gitattributes" 2>/dev/null | tar -xO -f - ".gitattributes" 2>/dev/null || true)"
+  case "$attrs" in
+    *".memories/** text eol=lf"*) ;;
+    *) echo "FAIL: push did not restore .gitattributes; got: $attrs" >&2; return 1 ;;
+  esac
+}
+
 test_status_in_sync_ignores_gitkeep_after_pull() {
   local tmp
   tmp="$(mktemp -d)"
@@ -574,6 +603,35 @@ test_status_in_sync_ignores_gitkeep_after_pull() {
   esac
 }
 
+test_status_ignores_crlf_lf_only_differences() {
+  local tmp
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "${tmp:-}"' RETURN
+
+  local repo_a
+  repo_a="$(init_origin_with_clone "$tmp")"
+
+  mkdir -p "$repo_a/.memories"
+  printf 'line one\r\nline two\r\n' > "$repo_a/.memories/2026-06-02.md"
+  run_sync "$repo_a" push >/dev/null
+
+  printf 'line one\nline two\n' > "$repo_a/.memories/2026-06-02.md"
+
+  local s
+  s="$(cd "$repo_a" && ./skills/mem-sync/scripts/mem-sync-git.sh status)"
+  case "$s" in
+    *"In sync"*) ;;
+    *) echo "FAIL: status should ignore CRLF/LF-only differences; got: $s" >&2; return 1 ;;
+  esac
+
+  local d
+  d="$(cd "$repo_a" && ./skills/mem-sync/scripts/mem-sync-git.sh diff)"
+  [ -z "$d" ] || {
+    echo "FAIL: diff should ignore CRLF/LF-only differences; got: $d" >&2
+    return 1
+  }
+}
+
 main() {
   test_push_merges_remote_same_file_when_local_has_no_new_changes
   test_pull_preserves_local_wip_and_merges_remote_changes
@@ -590,7 +648,9 @@ main() {
   test_print_remote_reports_resolved_remote
   test_gitattributes_enforces_lf_on_push
   test_gitattributes_survives_compact
+  test_push_restores_missing_gitattributes
   test_status_in_sync_ignores_gitkeep_after_pull
+  test_status_ignores_crlf_lf_only_differences
   echo "git-sync-memory integration tests passed"
 }
 
