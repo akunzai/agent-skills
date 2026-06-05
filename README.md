@@ -14,8 +14,7 @@ npx skills add akunzai/agent-skills
 
 ### [`memory-autoload`](plugins/memory-autoload/README.md)
 
-Loads `~/.agents/MEMORY.md` into context at session start and nudges the agent to
-run the `mem-sync` and `mem-auto` skills.
+Loads `~/.agents/MEMORY.md` into context at session start.
 
 Install via the Claude Code marketplace:
 
@@ -33,8 +32,12 @@ codex plugin marketplace add akunzai/agent-skills
 Then open `/plugins`, select the `akunzai agent skills` marketplace, and install
 `memory-autoload`.
 
-The plugin only loads memory and nudges the agent to use the `mem-*` skills. It
-does not install those skills; install them with `npx skills add akunzai/agent-skills`.
+On Windows, make sure `bash` is available on `PATH` before starting Codex. Git for
+Windows usually provides it at `C:\Program Files\Git\bin`; add that directory to
+`PATH` so session hooks can run.
+
+The plugin only loads memory. It does not install the `mem-*` skills; install
+them with `npx skills add akunzai/agent-skills`.
 
 ## Skills
 
