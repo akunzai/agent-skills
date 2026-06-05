@@ -41,6 +41,17 @@ Discover the script path dynamically (do NOT hardcode):
 See [references/git-sync-workflow.md](references/git-sync-workflow.md) for mechanics,
 anti-pollution rules, and conflict handling.
 
+## Read-After-Sync Ordering
+
+Run `pull`, `push`, and `compact` as exclusive operations against `.memories/`.
+Do not read `.memories/` in parallel with those commands.
+
+`pull` briefly removes and recreates the local `.memories/` directory while copying
+the synchronized snapshot back from the isolated worktree. A parallel `grep`,
+`Select-String`, `Get-Content`, `cat`, or similar read can observe that transient
+missing-directory state and report a false error. Wait for the sync command to
+finish successfully before scanning handoffs, candidates, or daily logs.
+
 ## Remote resolution
 
 The sync remote is resolved in this order:
