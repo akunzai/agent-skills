@@ -1,7 +1,7 @@
 {
   "name": "akunzai",
   "interface": {
-    "displayName": "akunzai agent skills"
+    "displayName": "akunzai-agent-skills"
   },
   "plugins": [
     {
