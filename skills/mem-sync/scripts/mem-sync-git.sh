@@ -143,7 +143,8 @@ create_memory_branch() {
     git rm -rf . >/dev/null 2>&1 || true
     mkdir -p "$MEMORY_PATH"
     touch "$MEMORY_PATH/.gitkeep"
-    git add -f "$MEMORY_PATH/.gitkeep"
+    printf '%s\n' "$MEMORY_PATH/** text eol=lf" > .gitattributes
+    git add -f "$MEMORY_PATH/.gitkeep" .gitattributes
     git commit -m "Initialize memory sync branch" >/dev/null
     git push "$REMOTE" "$BRANCH" >/dev/null
   )

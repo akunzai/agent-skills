@@ -492,6 +492,27 @@ test_print_remote_reports_resolved_remote() {
   fi
 }
 
+test_gitattributes_enforces_lf_on_push() {
+  local tmp
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "${tmp:-}"' RETURN
+
+  local repo_a
+  repo_a="$(init_origin_with_clone "$tmp")"
+  local origin="$tmp/origin.git"
+
+  mkdir -p "$repo_a/.memories"
+  printf '%s\n' "note" > "$repo_a/.memories/2026-06-02.md"
+  run_sync "$repo_a" push >/dev/null
+
+  local attrs
+  attrs="$(git -C "$origin" archive "memories/memory-test" -- ".gitattributes" 2>/dev/null | tar -xO -f - ".gitattributes" 2>/dev/null || true)"
+  case "$attrs" in
+    *".memories/** text eol=lf"*) ;;
+    *) echo "FAIL: memory branch .gitattributes missing eol=lf rule; got: $attrs" >&2; return 1 ;;
+  esac
+}
+
 main() {
   test_push_merges_remote_same_file_when_local_has_no_new_changes
   test_pull_preserves_local_wip_and_merges_remote_changes
@@ -506,6 +527,7 @@ main() {
   test_env_overrides_persisted_config
   test_status_does_not_persist_autopick
   test_print_remote_reports_resolved_remote
+  test_gitattributes_enforces_lf_on_push
   echo "git-sync-memory integration tests passed"
 }
 
