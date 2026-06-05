@@ -16,6 +16,13 @@ lowercased and slugified (non-alphanumeric runs become `-`). `User@Example.com` 
 `memories/user`. Each user pushes/pulls only their own branch, so two developers on
 the same repo never collide on same-date log filenames.
 
+## Windows
+
+On Windows, run this skill's script through Git Bash (Git for Windows). A PATH
+guard at the top of the script prepends the MSYS `usr/bin` so `find`/`tar` are not
+shadowed by the native same-name tools; if a required POSIX tool is still missing,
+the script aborts with an explicit error naming the missing tool.
+
 ## Commands
 
 Discover the script path dynamically (do NOT hardcode):

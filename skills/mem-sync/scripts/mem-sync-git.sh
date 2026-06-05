@@ -7,6 +7,34 @@
 
 set -euo pipefail
 
+# >>> posix-path-guard >>>
+# On Windows (Git Bash / MSYS / Cygwin), make MSYS coreutils win over the
+# native find.exe/tar.exe in C:\Windows\System32. Keep this block identical
+# across scripts (verified by tests/windows-path-guard.sh).
+case "${OSTYPE:-}" in
+  msys*|cygwin*)
+    if [ -x /usr/bin/sed ]; then
+      PATH="/usr/bin:/bin:$PATH"
+    elif command -v git >/dev/null 2>&1; then
+      _git_root="$(dirname "$(dirname "$(command -v git)")")"
+      [ -x "$_git_root/usr/bin/sed" ] && PATH="$_git_root/usr/bin:$_git_root/bin:$PATH"
+      unset _git_root
+    fi
+    ;;
+esac
+# <<< posix-path-guard <<<
+
+_msg_missing=""
+for _tool in sed grep tr mktemp date cp wc diff find tar; do
+  command -v "$_tool" >/dev/null 2>&1 || _msg_missing="$_msg_missing $_tool"
+done
+if [ -n "$_msg_missing" ]; then
+  echo "Error: required POSIX tool(s) not found:$_msg_missing" >&2
+  echo "On Windows, run mem-sync through Git Bash (Git for Windows) so its usr/bin tools are on PATH." >&2
+  exit 1
+fi
+unset _msg_missing _tool
+
 MEMORY_PATH=".memories"
 
 # Check if git repository exists
@@ -115,7 +143,8 @@ create_memory_branch() {
     git rm -rf . >/dev/null 2>&1 || true
     mkdir -p "$MEMORY_PATH"
     touch "$MEMORY_PATH/.gitkeep"
-    git add -f "$MEMORY_PATH/.gitkeep"
+    printf '%s\n' "$MEMORY_PATH/** text eol=lf" > .gitattributes
+    git add -f "$MEMORY_PATH/.gitkeep" .gitattributes
     git commit -m "Initialize memory sync branch" >/dev/null
     git push "$REMOTE" "$BRANCH" >/dev/null
   )
@@ -253,6 +282,7 @@ sync_compact() {
     cp -R "$LOCAL_DIR/." "$WORKTREE_DIR/$MEMORY_PATH/"
   fi
   touch "$WORKTREE_DIR/$MEMORY_PATH/.gitkeep"
+  printf '%s\n' "$MEMORY_PATH/** text eol=lf" > "$WORKTREE_DIR/.gitattributes"
   # Rebuild history as a single orphan commit.
   # Clean up any stale compact-tmp branch left by a prior interrupted run.
   git -C "$WORKTREE_DIR" checkout "$BRANCH" >/dev/null 2>&1 || true

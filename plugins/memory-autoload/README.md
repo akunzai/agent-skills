@@ -53,3 +53,6 @@ Then open `/plugins`, select the `akunzai agent skills` marketplace, and install
   session-start hook plugin is not packaged for OpenCode.
 - Antigravity CLI: uses a separate root `plugin.json` layout, which is not
   included in this plugin.
+- Windows: hooks must run through Git Bash (Claude Code on Windows ships its own).
+  The scripts embed an MSYS PATH guard so Git for Windows' `usr/bin` tools take
+  precedence over the native `find.exe`/`tar.exe`.
