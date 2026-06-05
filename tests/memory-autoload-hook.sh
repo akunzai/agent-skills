@@ -67,7 +67,7 @@ python3 - "$CODEX_PLUGIN_JSON" <<'PY' || fail "Codex plugin.json metadata incorr
 import json, sys
 d = json.load(open(sys.argv[1]))
 assert d["name"] == "memory-autoload", "wrong plugin name"
-assert d["version"] == "0.1.0", "wrong plugin version"
+assert d["version"] == "0.1.1", "wrong plugin version"
 assert "memory" in d["description"].lower(), "description should mention memory"
 assert d["author"]["name"] == "Charley Wu", "wrong author"
 assert d["repository"] == "https://github.com/akunzai/agent-skills", "wrong repository"
