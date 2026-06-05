@@ -543,6 +543,37 @@ test_gitattributes_survives_compact() {
   esac
 }
 
+test_status_in_sync_ignores_gitkeep_after_pull() {
+  local tmp
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "${tmp:-}"' RETURN
+
+  local repo_a
+  repo_a="$(init_origin_with_clone "$tmp")"
+  local origin="$tmp/origin.git"
+  local repo_b="$tmp/repo-b"
+  clone_repo "$origin" "$repo_b"
+
+  # Device A pushes a daily log; the branch also carries a .gitkeep placeholder.
+  mkdir -p "$repo_a/.memories"
+  printf '%s\n' "note" > "$repo_a/.memories/2026-06-02.md"
+  run_sync "$repo_a" push >/dev/null
+
+  # Device B pulls; pull strips the local .gitkeep while it stays on the branch.
+  run_sync "$repo_b" pull >/dev/null
+
+  # status must report in sync and must NOT flag the .gitkeep placeholder.
+  local s
+  s="$(cd "$repo_b" && ./skills/mem-sync/scripts/mem-sync-git.sh status)"
+  case "$s" in
+    *.gitkeep*) echo "FAIL: status leaked .gitkeep placeholder; got: $s" >&2; return 1 ;;
+  esac
+  case "$s" in
+    *"In sync"*) ;;
+    *) echo "FAIL: status should report in sync after pull; got: $s" >&2; return 1 ;;
+  esac
+}
+
 main() {
   test_push_merges_remote_same_file_when_local_has_no_new_changes
   test_pull_preserves_local_wip_and_merges_remote_changes
@@ -559,6 +590,7 @@ main() {
   test_print_remote_reports_resolved_remote
   test_gitattributes_enforces_lf_on_push
   test_gitattributes_survives_compact
+  test_status_in_sync_ignores_gitkeep_after_pull
   echo "git-sync-memory integration tests passed"
 }
 

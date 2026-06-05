@@ -320,13 +320,15 @@ sync_status() {
   mkdir -p "$tmp/$MEMORY_PATH" "$LOCAL_DIR"
   git -C "$REPO_DIR" archive "$REMOTE/$BRANCH" -- "$MEMORY_PATH" 2>/dev/null | tar -x -C "$tmp" 2>/dev/null || true
 
+  # Exclude the .gitkeep placeholder: it stays on the branch but pull strips it
+  # locally, so it would otherwise always show as a spurious remote-only diff.
   if [ "$mode" = "diff" ]; then
-    diff -ru "$tmp/$MEMORY_PATH" "$LOCAL_DIR" || true
+    diff -ru -x '.gitkeep' "$tmp/$MEMORY_PATH" "$LOCAL_DIR" || true
     return 0
   fi
 
   local out
-  out="$(diff -rq "$tmp/$MEMORY_PATH" "$LOCAL_DIR" 2>/dev/null || true)"
+  out="$(diff -rq -x '.gitkeep' "$tmp/$MEMORY_PATH" "$LOCAL_DIR" 2>/dev/null || true)"
   if [ -z "$out" ]; then
     echo "In sync with '$REMOTE/$BRANCH'."
   else
