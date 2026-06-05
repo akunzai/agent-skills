@@ -4,7 +4,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SYNC="$ROOT_DIR/skills/mem-sync/scripts/mem-sync-git.sh"
 LOADER="$ROOT_DIR/plugins/memory-autoload/hooks/load-memory.sh"
-NUDGE="$ROOT_DIR/plugins/memory-autoload/hooks/nudge-memory-skills.sh"
 BASH_BIN="$(command -v bash)"
 
 fail() { echo "windows-path-guard check failed: $*" >&2; exit 1; }
@@ -13,13 +12,11 @@ extract_guard() {
   sed -n '/# >>> posix-path-guard >>>/,/# <<< posix-path-guard <<</p' "$1"
 }
 
-# --- 1. All three guard blocks are byte-identical ---
+# --- 1. Guard blocks are byte-identical ---
 g_sync="$(extract_guard "$SYNC")"
 g_load="$(extract_guard "$LOADER")"
-g_nudge="$(extract_guard "$NUDGE")"
 [ -n "$g_sync" ] || fail "guard block missing in mem-sync-git.sh"
 [ "$g_sync" = "$g_load" ] || fail "guard differs between mem-sync-git.sh and load-memory.sh"
-[ "$g_sync" = "$g_nudge" ] || fail "guard differs between mem-sync-git.sh and nudge-memory-skills.sh"
 
 # --- 2. Guard prepends the MSYS bin, beating an injected fake tool ---
 # Put a fake `find` early on PATH; under OSTYPE=msys the guard prepends

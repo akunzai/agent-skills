@@ -1,8 +1,7 @@
 # memory-autoload
 
 A Claude Code and Codex plugin that loads durable long-term memory into context
-at the start of every session, and nudges the agent to run the memory-management
-skills.
+at the start of every session.
 
 ## What it does
 
@@ -11,14 +10,6 @@ On `SessionStart`:
 - **`load-memory.sh`** (matchers `startup|resume|clear|compact`) prints
   `~/.agents/MEMORY.md` to stdout, which the agent adds to the session context.
   If the file is missing or empty, it is a silent no-op.
-- **`nudge-memory-skills.sh`** (matchers `startup|resume`) injects a one-line
-  instruction asking the agent to run the `mem-sync` skill (pull other devices'
-  memory logs) and then `mem-auto` (resume handoffs, capture candidates).
-
-Hooks cannot invoke skills directly, so the nudge is a soft trigger: the agent
-decides whether to act, and it is a no-op if the `mem-*` skills are not installed.
-This plugin does not install those skills; install them separately with
-`npx skills add akunzai/agent-skills`.
 
 ## Configuration
 
@@ -42,6 +33,10 @@ codex plugin marketplace add akunzai/agent-skills
 
 Then open `/plugins`, select the `akunzai agent skills` marketplace, and install
 `memory-autoload`.
+
+On Windows, make sure `bash` is available on `PATH` before starting Codex. Git for
+Windows usually provides it at `C:\Program Files\Git\bin`; add that directory to
+`PATH` so session hooks can run.
 
 ## Compatibility
 

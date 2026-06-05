@@ -4,7 +4,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PLUGIN_DIR="$ROOT_DIR/plugins/memory-autoload"
 LOADER="$PLUGIN_DIR/hooks/load-memory.sh"
-NUDGE="$PLUGIN_DIR/hooks/nudge-memory-skills.sh"
 PLUGIN_JSON="$PLUGIN_DIR/.claude-plugin/plugin.json"
 CODEX_PLUGIN_JSON="$PLUGIN_DIR/.codex-plugin/plugin.json"
 HOOKS_JSON="$PLUGIN_DIR/hooks/hooks.json"
@@ -28,11 +27,6 @@ printf '%s' "$out" | grep -q 'KNOWN-MEMORY-LINE' || fail "loader did not emit me
 out="$(MEMORY_FILE="$ROOT_DIR/nonexistent-memory-file" bash "$LOADER")"
 [ -z "$out" ] || fail "loader emitted output for absent file"
 
-# --- nudge: names both skills ---
-out="$(bash "$NUDGE")"
-printf '%s' "$out" | grep -q 'mem-sync' || fail "nudge missing mem-sync"
-printf '%s' "$out" | grep -q 'mem-auto' || fail "nudge missing mem-auto"
-
 # --- plugin.json + hooks.json: valid JSON and correct wiring ---
 for f in "$PLUGIN_JSON" "$CODEX_PLUGIN_JSON" "$HOOKS_JSON"; do
   python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$f" || fail "invalid JSON: $f"
@@ -43,8 +37,7 @@ import json, sys
 d = json.load(open(sys.argv[1]))
 entries = d["hooks"]["SessionStart"]
 cmds = [h["command"] for e in entries for h in e["hooks"]]
-assert any("load-memory.sh" in c for c in cmds), "missing load-memory.sh"
-assert any("nudge-memory-skills.sh" in c for c in cmds), "missing nudge-memory-skills.sh"
+assert cmds == ['bash "${CLAUDE_PLUGIN_ROOT}/hooks/load-memory.sh"'], "session start should only load memory"
 PY
 
 # --- marketplace.json: valid JSON and lists the plugin ---
@@ -73,6 +66,7 @@ assert d["author"]["name"] == "Charley Wu", "wrong author"
 assert d["repository"] == "https://github.com/akunzai/agent-skills", "wrong repository"
 assert d["license"] == "MIT", "wrong license"
 assert d["interface"]["displayName"] == "Memory Autoload", "wrong displayName"
+assert d["interface"]["longDescription"] == "Loads ~/.agents/MEMORY.md into context at session start.", "wrong longDescription"
 assert d["interface"]["category"] == "Productivity", "wrong category"
 assert d["interface"]["defaultPrompt"] == "Use Memory Autoload to load durable memory at session start.", "wrong defaultPrompt"
 assert "hooks" not in d, "default hooks/hooks.json does not need a manifest hooks field"
@@ -82,7 +76,7 @@ python3 - "$CODEX_MARKET_JSON" <<'PY' || fail "Codex marketplace.json does not l
 import json, sys
 d = json.load(open(sys.argv[1]))
 assert d["name"] == "akunzai", "wrong marketplace name"
-assert d["interface"]["displayName"] == "akunzai agent skills", "wrong marketplace displayName"
+assert d["interface"]["displayName"] == "akunzai-agent-skills", "wrong marketplace displayName"
 plugins = d["plugins"]
 entry = next((p for p in plugins if p["name"] == "memory-autoload"), None)
 assert entry is not None, "memory-autoload entry missing"
