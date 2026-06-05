@@ -7,6 +7,34 @@
 
 set -euo pipefail
 
+# >>> posix-path-guard >>>
+# On Windows (Git Bash / MSYS / Cygwin), make MSYS coreutils win over the
+# native find.exe/tar.exe in C:\Windows\System32. Keep this block identical
+# across scripts (verified by tests/windows-path-guard.sh).
+case "${OSTYPE:-}" in
+  msys*|cygwin*)
+    if [ -x /usr/bin/sed ]; then
+      PATH="/usr/bin:/bin:$PATH"
+    elif command -v git >/dev/null 2>&1; then
+      _git_root="$(dirname "$(dirname "$(command -v git)")")"
+      [ -x "$_git_root/usr/bin/sed" ] && PATH="$_git_root/usr/bin:$_git_root/bin:$PATH"
+      unset _git_root
+    fi
+    ;;
+esac
+# <<< posix-path-guard <<<
+
+_msg_missing=""
+for _tool in sed grep tr mktemp date cp wc diff find tar; do
+  command -v "$_tool" >/dev/null 2>&1 || _msg_missing="$_msg_missing $_tool"
+done
+if [ -n "$_msg_missing" ]; then
+  echo "Error: required POSIX tool(s) not found:$_msg_missing" >&2
+  echo "On Windows, run mem-sync through Git Bash (Git for Windows) so its usr/bin tools are on PATH." >&2
+  exit 1
+fi
+unset _msg_missing _tool
+
 MEMORY_PATH=".memories"
 
 # Check if git repository exists
