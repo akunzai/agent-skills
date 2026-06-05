@@ -60,3 +60,29 @@ jobs:
 
       - name: Run memory-autoload hook checks
         run: bash tests/memory-autoload-hook.sh
+
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Run Windows POSIX path-guard tests
+        run: bash tests/windows-path-guard.sh
+
+      - name: Run git-sync-memory integration tests
+        run: bash tests/git-sync-memory-integration.sh
+
+      - name: Run git-sync-memory branch derivation tests
+        run: bash tests/git-sync-memory-branch.sh
+
+      - name: Run memory-autoload hook checks
+        run: bash tests/memory-autoload-hook.sh
