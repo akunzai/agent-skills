@@ -1,6 +1,6 @@
 {
   "name": "memory-autoload",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Auto-load ~/.agents/MEMORY.md (durable long-term memory) into context at session start.",
   "author": { "name": "Charley Wu" },
   "repository": "https://github.com/akunzai/agent-skills",
