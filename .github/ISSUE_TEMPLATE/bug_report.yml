@@ -1,0 +1,75 @@
+name: Bug Report
+description: Report a bug
+labels: [bug]
+body:
+  - type: dropdown
+    id: ai-assistant
+    attributes:
+      label: AI Assistant
+      description: Which AI coding assistant are you using?
+      options:
+        - Antigravity
+        - Claude Code
+        - Codex
+        - OpenCode
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: skill-plugin
+    attributes:
+      label: Skill / Plugin name
+      description: Which skill or plugin is this about?
+      placeholder: e.g. tidy-commits, memory-autoload
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - macOS
+        - Linux
+        - Windows
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of the bug.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Install skill '...'
+        2. Run '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen.
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual behavior
+      description: What actually happened.
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Any other context, logs, or screenshots about the bug.

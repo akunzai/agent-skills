@@ -17,9 +17,11 @@ if grep -R -n -E 'Use TypeScript for all new code|Vanilla CSS|HSL variables|comp
   fail "starter template must not include framework-specific rules without repo evidence"
 fi
 
+# shellcheck disable=SC2016
 grep -R -q -E 'If `?CLAUDE\.md`? already exists and is not the intended symlink' "$SKILL_DIR" \
   || fail "safe CLAUDE.md migration rule is missing"
 
+# shellcheck disable=SC2016
 grep -R -q -E 'Choose the target `?AGENTS\.md`? explicitly' "$SKILL_DIR" \
   || fail "multi-AGENTS target selection rule is missing"
 

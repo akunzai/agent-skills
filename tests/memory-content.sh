@@ -44,15 +44,18 @@ grep -R -q -E '\[Handoff:done\]|appending .Handoff:done' "$SKILL_DIR" \
 grep -R -q -E 'mem-sync-git\.sh status.*diff|status.*diff.*read-only' "$SKILL_DIR" \
   || fail "mem-auto must delegate read-only project memory difference checks to mem-sync status/diff"
 
+# shellcheck disable=SC2016
 grep -q -E 'Do not read `.memories/` in parallel|Wait for the sync command to[[:space:]]+finish' "$ROOT_DIR/skills/mem-sync/SKILL.md" \
   || fail "mem-sync must warn against parallel reads during pull/push/compact"
 
 grep -q -E 'short-term memory|short-term logs' "$RECALL_DIR/SKILL.md" \
   || fail "mem-recall must focus on short-term memory logs"
 
+# shellcheck disable=SC2016
 grep -q -E 'Do not re-read `AGENTS.md` / `CLAUDE.md`|normally load them as project instructions' "$RECALL_DIR/SKILL.md" \
   || fail "mem-recall must not duplicate auto-loaded project instructions"
 
+# shellcheck disable=SC2088
 grep -q -E '~/.agents/AGENTS.md.*~/.claude/CLAUDE.md|~/.claude/CLAUDE.md.*~/.agents/AGENTS.md' "$RECALL_DIR/SKILL.md" \
   || fail "mem-recall must suggest wiring global MEMORY.md through auto-loaded instructions"
 

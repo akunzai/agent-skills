@@ -16,6 +16,16 @@ jobs:
       - name: Run actionlint
         uses: raven-actions/actionlint@v2
 
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Run ShellCheck
+        run: |
+          find tests skills plugins -name "*.sh" -type f -exec shellcheck {} +
+
   agents-md:
     runs-on: ubuntu-latest
     steps:
@@ -71,7 +81,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.x'
 
