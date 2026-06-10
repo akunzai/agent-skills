@@ -2,7 +2,7 @@
 
 This document provides starter structures, formatting rules, and imports configuration for `AGENTS.md` files.
 
-Reference the open AGENTS.md format at https://agents.md/. AGENTS.md is plain Markdown with no required fields; common useful sections include project overview, build and test commands, code style, testing instructions, and security considerations. In monorepos, nested `AGENTS.md` files can scope instructions to subprojects, and the closest `AGENTS.md` to the edited file wins.
+Reference the open AGENTS.md format at https://agents.md/. AGENTS.md is plain Markdown with no required fields; common useful sections include project overview, build and test commands, code style, testing instructions, and security considerations. In monorepos, nested `AGENTS.md` files can scope instructions to subprojects (nested files are optional), and the closest `AGENTS.md` to the edited file wins.
 
 ---
 

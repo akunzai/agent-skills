@@ -30,6 +30,7 @@ Use `/mem-recall` for short-term lookups, `/mem-promote` for durable promotion/p
   - Before writing task state, apply [references/security.md](references/security.md) and [references/session-handoff.md](references/session-handoff.md).
   - At milestones, blockers, quota/context limits, or session boundaries, append a `[Handoff]` handoff delta: only what a fresh agent would need to continue, including goal, progress, verification, next actions, blockers/assumptions, and suggested skills.
   - Reference existing artifacts by path or URL instead of duplicating contents.
+  - Avoid logging known information already tracked in external tools (e.g., GitHub/GitLab Issues) into short-term memory. If suitable external tracking tools are available, ask the user if they want to create an issue to track the item.
   - Treat `[Handoff]` as transient active state: not a `[Candidate]`, not promotable directly, and closed only by appending `[Handoff:done]`.
   - Log verified durable insights to today's log (`.memories/YYYY-MM-DD.md` locally or `memories/` globally) as `[Candidate]` entries **with a daily time stamp** (e.g., `[HH:MM]`).
 - [ ] **Sync**
