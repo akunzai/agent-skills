@@ -1,6 +1,0 @@
-{
-  "name": "memory-autoload",
-  "description": "Auto-load ~/.agents/MEMORY.md (durable long-term memory) into context at session start.",
-  "version": "0.1.1",
-  "author": { "name": "Charley Wu" }
-}

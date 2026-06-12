@@ -1,6 +1,6 @@
 .PHONY: test lint lint-shell
 
-SHELL_FILES := $(shell find tests skills plugins -name '*.sh' -type f 2>/dev/null)
+SHELL_FILES := $(shell find tests skills -name '*.sh' -type f 2>/dev/null)
 
 test:
 	@exit_code=0; \

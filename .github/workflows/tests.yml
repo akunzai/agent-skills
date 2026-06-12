@@ -24,7 +24,7 @@ jobs:
 
       - name: Run ShellCheck
         run: |
-          find tests skills plugins -name "*.sh" -type f -exec shellcheck {} +
+          find tests skills -name "*.sh" -type f -exec shellcheck {} +
 
   agents-md:
     runs-on: ubuntu-latest
@@ -62,15 +62,6 @@ jobs:
       - name: Run tidy-commits content checks
         run: bash tests/tidy-commits-content.sh
 
-  memory-autoload:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Run memory-autoload hook checks
-        run: bash tests/memory-autoload-hook.sh
-
   windows:
     runs-on: windows-latest
     defaults:
@@ -93,6 +84,3 @@ jobs:
 
       - name: Run git-sync-memory branch derivation tests
         run: bash tests/git-sync-memory-branch.sh
-
-      - name: Run memory-autoload hook checks
-        run: bash tests/memory-autoload-hook.sh
