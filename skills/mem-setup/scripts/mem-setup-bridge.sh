@@ -21,7 +21,7 @@ esac
 # <<< posix-path-guard <<<
 
 _msg_missing=""
-for _tool in sed grep ln mv cp mktemp date readlink dirname; do
+for _tool in sed grep ln mv cp cmp mktemp date readlink dirname; do
   command -v "$_tool" >/dev/null 2>&1 || _msg_missing="$_msg_missing $_tool"
 done
 if [ -n "$_msg_missing" ]; then
@@ -120,10 +120,12 @@ apply_symlink() {
   mkdir -p "$(dirname "$target")"
   state="$(classify "$target")"
   if is_windows_shell; then
+    # Git Bash usually can't make real symlinks — copy instead, idempotently.
     # Never cp through a symlink (would clobber its target); remove it first.
     if [ "$state" = symlink ]; then
       rm "$target"
     elif [ "$state" = file ]; then
+      if cmp -s "$CANONICAL" "$target"; then echo "    already copied: $target"; return; fi
       backup_file "$target"
     fi
     cp "$CANONICAL" "$target"

@@ -20,7 +20,7 @@ mkdir -p "$HOME_DIR/.claude" "$HOME_DIR/.codex" "$HOME_DIR/.pi/agent" \
 
 run() {
   HOME="$HOME_DIR" MEM_SETUP_CANONICAL="$CANON" MEM_SETUP_AUGMENT="$AUG" \
-    OSTYPE="linux-gnu" bash "$SCRIPT" "$@"
+    bash "$SCRIPT" "$@"
 }
 
 # --- plan is read-only ---
@@ -39,10 +39,16 @@ if grep -qF "@$AUG" "$HOME_DIR/.claude/CLAUDE.md"; then fail "claude (high) must
 grep -qF "@$CANON" "$HOME_DIR/.gemini/GEMINI.md" || fail "gemini stub missing core import"
 grep -qF "@$AUG" "$HOME_DIR/.gemini/GEMINI.md" || fail "gemini (low) missing augment import"
 
-# codex/pi: symlink to canonical core
-[ -L "$HOME_DIR/.codex/AGENTS.md" ] || fail "codex must be a symlink"
-[ "$(readlink "$HOME_DIR/.codex/AGENTS.md")" = "$CANON" ] || fail "codex symlink wrong target"
-[ -L "$HOME_DIR/.pi/agent/AGENTS.md" ] || fail "pi must be a symlink"
+# codex/pi: bridged to canonical core — a symlink where supported, else a copy
+# (Git Bash on Windows can't make real symlinks).
+for t in "$HOME_DIR/.codex/AGENTS.md" "$HOME_DIR/.pi/agent/AGENTS.md"; do
+  [ -e "$t" ] || fail "expected bridged target missing: $t"
+  if [ -L "$t" ]; then
+    [ "$(readlink "$t")" = "$CANON" ] || fail "symlink wrong target: $t"
+  else
+    cmp -s "$CANON" "$t" || fail "copy content mismatch: $t"
+  fi
+done
 
 # opencode: instructions[] contains core + augment (python3 only)
 if command -v python3 >/dev/null 2>&1; then
@@ -76,7 +82,7 @@ grep -qF "@$CANON" "$HOME_DIR/.claude/CLAUDE.md" || fail "replacement stub missi
 HOME_DIR2="$(mktemp -d)"
 mkdir -p "$HOME_DIR2/.agents" "$HOME_DIR2/.codex"
 printf 'CORE\n' > "$HOME_DIR2/.agents/AGENTS.md"
-HOME="$HOME_DIR2" MEM_SETUP_CANONICAL="$HOME_DIR2/.agents/AGENTS.md" OSTYPE="linux-gnu" \
+HOME="$HOME_DIR2" MEM_SETUP_CANONICAL="$HOME_DIR2/.agents/AGENTS.md" \
   bash "$SCRIPT" apply >/dev/null
 [ -e "$HOME_DIR2/.codex/AGENTS.md" ] || fail "installed codex not bridged"
 [ ! -e "$HOME_DIR2/.gemini/GEMINI.md" ] || fail "uninstalled gemini must be skipped"
