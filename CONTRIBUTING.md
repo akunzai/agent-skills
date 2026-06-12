@@ -70,17 +70,6 @@ set -euo pipefail
 
 Register the test in `.github/workflows/tests.yml` under an appropriate job.
 
-## Writing a Plugin
-
-Follow the existing `plugins/memory-autoload/` structure. Each plugin needs:
-
-- A `hooks/` directory with hook scripts and `hooks.json`
-- `.claude-plugin/plugin.json` for Claude Code
-- `.codex-plugin/plugin.json` for Codex
-
-See the [memory-autoload README](plugins/memory-autoload/README.md) for a
-complete example.
-
 ## Code Style
 
 - All shell scripts must pass **ShellCheck** with no warnings.

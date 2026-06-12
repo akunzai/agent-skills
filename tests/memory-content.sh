@@ -15,8 +15,9 @@ fail() {
 grep -R -q -E 'handoff delta|fresh agent would need to continue' "$SKILL_DIR" \
   || fail "short-term handoff delta capture guidance is missing"
 
-grep -q -E 'Long-term memory:.*global durable.*instructions.*facts.*conventions' "$SKILL_DIR/SKILL.md" \
-  || fail "long-term directory structure guidance is missing"
+# shellcheck disable=SC2088
+grep -q -E 'Long-term memory:.*global durable.*~/.agents/AGENTS.md' "$SKILL_DIR/SKILL.md" \
+  || fail "long-term memory must point at the canonical ~/.agents/AGENTS.md"
 grep -q -E 'Short-term memory:.*\[Candidate\]' "$SKILL_DIR/SKILL.md" \
   || fail "short-term directory structure guidance is missing"
 
@@ -54,10 +55,6 @@ grep -q -E 'short-term memory|short-term logs' "$RECALL_DIR/SKILL.md" \
 # shellcheck disable=SC2016
 grep -q -E 'Do not re-read `AGENTS.md` / `CLAUDE.md`|normally load them as project instructions' "$RECALL_DIR/SKILL.md" \
   || fail "mem-recall must not duplicate auto-loaded project instructions"
-
-# shellcheck disable=SC2088
-grep -q -E '~/.agents/AGENTS.md.*~/.claude/CLAUDE.md|~/.claude/CLAUDE.md.*~/.agents/AGENTS.md' "$RECALL_DIR/SKILL.md" \
-  || fail "mem-recall must suggest wiring global MEMORY.md through auto-loaded instructions"
 
 grep -R -q -E 'Default retention is .?30 days|Retention: 30 days' "$CLEAN_DIR" \
   || fail "short-term cleanup default retention is missing"

@@ -6,9 +6,8 @@ description: Search short-term memory on demand — project .memories/ and ~/.ag
 # mem-recall — On-Demand Memory Search
 
 Retrieves short-term context: recent daily logs, candidates, and open handoffs.
-Durable instructions should come from auto-loaded `AGENTS.md` / `CLAUDE.md`; suggest
-referencing `~/.agents/MEMORY.md` from `~/.agents/AGENTS.md` or `~/.claude/CLAUDE.md`
-when the runtime supports it.
+Durable instructions come from auto-loaded `AGENTS.md` / `CLAUDE.md`, so this skill stays
+focused on short-term memory.
 
 ## How to recall
 
@@ -26,8 +25,6 @@ grep -rn "\[Handoff" .memories/ 2>/dev/null | tail
 ## Guidance
 
 - In a cross-device setup, run `/mem-sync` (pull) first so you read the freshest logs.
-- Focus recall on short-term logs. Do not re-read `AGENTS.md` / `CLAUDE.md` just because the skill is active; coding agents normally load them as project instructions.
-- Search `~/.agents/MEMORY.md`, `AGENTS.md`, or `CLAUDE.md` only when the auto-loaded
-  instructions seem incomplete or you need exact wording.
+- Focus recall on short-term logs. Do not re-read `AGENTS.md` / `CLAUDE.md` just because the skill is active; coding agents already load them as project instructions — open them only if the loaded copy looks incomplete or you need exact wording.
 - When resuming work, surface the newest open `[Handoff]` block and confirm with the user
   before continuing (the `mem-auto` autopilot does this at session start).
