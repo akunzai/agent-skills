@@ -50,16 +50,23 @@ for t in "$HOME_DIR/.codex/AGENTS.md" "$HOME_DIR/.pi/agent/AGENTS.md"; do
   fi
 done
 
-# opencode: instructions[] contains core + augment (python3 only)
-if command -v python3 >/dev/null 2>&1; then
-  python3 - "$HOME_DIR/.config/opencode/opencode.json" "$CANON" "$AUG" <<'PY' \
-    || fail "opencode instructions[] wrong"
+# opencode: instructions[] contains core + augment (python3 only).
+# Skip on Git Bash: MSYS rewrites POSIX path args to Windows form (with a drive
+# colon) when calling native Windows python, which collides with the ':' AUGMENT
+# separator. The Linux mem-setup job exercises this path.
+case "${OSTYPE:-}" in
+  msys*|cygwin*) : ;;
+  *)
+    if command -v python3 >/dev/null 2>&1; then
+      python3 - "$HOME_DIR/.config/opencode/opencode.json" "$CANON" "$AUG" <<'PY' \
+        || fail "opencode instructions[] wrong"
 import json, sys
 d = json.load(open(sys.argv[1]))
 ins = d["instructions"]
 assert sys.argv[2] in ins and sys.argv[3] in ins
 PY
-fi
+    fi ;;
+esac
 
 # --- idempotency: second apply reports no changes for the import bridge ---
 out="$(run apply)"
