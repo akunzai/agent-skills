@@ -48,6 +48,7 @@ to the commands below.
 - [`mem-promote`](skills/mem-promote/SKILL.md) — promote candidates to durable memory; prune duplicates
 - [`mem-clean`](skills/mem-clean/SKILL.md) — clean expired short-term logs; resolve cloud conflicts
 - [`mem-sync`](skills/mem-sync/SKILL.md) — sync daily logs across devices via a per-user branch
+- [`mem-setup`](skills/mem-setup/SKILL.md) — bridge every installed agent's global memory to one canonical `~/.agents/AGENTS.md`
 
 ## Compatibility
 
