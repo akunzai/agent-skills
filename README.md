@@ -10,7 +10,7 @@ My personal agent skills for AI coding assistants — compatible with Antigravit
 
 AI coding assistants are powerful out of the box, but they lack persistent memory
 and opinionated workflows across sessions. This project fills that gap with
-reusable skills and plugins that give your assistant long-term memory, cleaner
+reusable skills that give your assistant long-term memory, cleaner
 git history, and better project awareness — without manual setup every time.
 
 ## Install
@@ -18,35 +18,6 @@ git history, and better project awareness — without manual setup every time.
 ```bash
 npx skills add akunzai/agent-skills
 ```
-
-## Plugins
-
-### [`memory-autoload`](plugins/memory-autoload/README.md)
-
-Loads `~/.agents/MEMORY.md` into context at session start.
-
-Install via the Claude Code marketplace:
-
-```bash
-/plugin marketplace add akunzai/agent-skills
-/plugin install memory-autoload@akunzai
-```
-
-Install via the Codex plugin marketplace:
-
-```bash
-codex plugin marketplace add akunzai/agent-skills
-```
-
-Then open `/plugins`, select the `akunzai agent skills` marketplace, and install
-`memory-autoload`.
-
-On Windows, make sure `bash` is available on `PATH` before starting Codex. Git for
-Windows usually provides it at `C:\Program Files\Git\bin`; add that directory to
-`PATH` so session hooks can run.
-
-The plugin only loads memory. It does not install the `mem-*` skills; install
-them with `npx skills add akunzai/agent-skills`.
 
 ## Skills
 

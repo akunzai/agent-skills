@@ -11,7 +11,7 @@ Runs the automatic memory loop; delegate detailed work to the narrow mem-* skill
 
 ## Memory Scopes
 
-- Long-term memory: global durable instructions, preferences, facts, and reusable conventions in `~/.agents/MEMORY.md`; project durable rules in `AGENTS.md` or `CLAUDE.md`.
+- Long-term memory: global durable instructions, preferences, facts, and reusable conventions in `~/.agents/AGENTS.md` (the canonical core read natively by every agent); project durable rules in `AGENTS.md` or `CLAUDE.md`.
 - Short-term memory: daily `[Candidate]` logs in `~/.agents/memories/YYYY-MM-DD.md`; project `.memories/YYYY-MM-DD.md` also stores `[Handoff]` and syncs through `/mem-sync`.
 
 ## Delegation

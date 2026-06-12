@@ -21,7 +21,7 @@ body:
     attributes:
       label: Skill / Plugin name
       description: Which skill or plugin is this about?
-      placeholder: e.g. tidy-commits, memory-autoload
+      placeholder: e.g. tidy-commits, mem-setup
     validations:
       required: true
 

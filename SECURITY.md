@@ -3,8 +3,8 @@
 ## Scope
 
 This project includes shell scripts that execute on users' machines via session
-hooks (e.g., `plugins/memory-autoload/hooks/`), test scripts, and skill helper
-scripts. Security issues in any executable code are in scope.
+hooks, test scripts, and skill helper scripts. Security issues in any executable
+code are in scope.
 
 ## Reporting a Vulnerability
 
