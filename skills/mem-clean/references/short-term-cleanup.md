@@ -29,8 +29,8 @@ If the user asks to retain specific memory entries or files, preserve those item
 
 Before deleting or compacting a daily log:
 
-- Block cleanup for files that contain an open `[Handoff]` without a matching later `[Handoff:done]`.
-- Block cleanup for files containing unresolved `[Candidate]` entries that are not marked `[Promoted]`, `[Rejected]`, or `[Expired]`.
+- Block cleanup for daily logs containing unresolved `[Candidate]` entries that are not marked `[Promoted]`, `[Rejected]`, or `[Expired]`.
+- Do not clean `.memories/handoffs/` files here: active handoffs are owned by `mem-auto`, which deletes each task's file on completion. Only remove a handoff file when the user confirms its task is abandoned.
 - Prefer marking old candidates as `[Expired]` with user confirmation before cleanup.
 - Redact sensitive content immediately if discovered; do not wait for the normal retention window.
 

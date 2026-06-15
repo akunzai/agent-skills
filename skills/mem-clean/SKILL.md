@@ -20,8 +20,11 @@ interactive: produce a dry-run plan and get explicit confirmation before deletin
 ## Rules (summary)
 
 - Default retention is 30 days, computed from the `YYYY-MM-DD.md` filename, never mtime.
-- Block cleanup of files with an open `[Handoff]` (no later `[Handoff:done]`) or with
-  unresolved `[Candidate]` entries (not `[Promoted]`, `[Rejected]`, or `[Expired]`).
+- Block cleanup of daily logs with unresolved `[Candidate]` entries (not `[Promoted]`,
+  `[Rejected]`, or `[Expired]`).
+- Leave `.memories/handoffs/` files alone: active handoffs are managed by `mem-auto`, which
+  deletes each task's file on completion. Only offer to remove a handoff file when the user
+  confirms its task is abandoned.
 - Project cleanup is per-user: after deleting expired logs locally, run
   `/mem-sync` first, then `mem-sync-git.sh compact` to rewrite the user's
   `memories/<email-localpart>` branch to a single commit and force-push. Other devices

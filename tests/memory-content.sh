@@ -39,8 +39,14 @@ grep -R -q -E 'Not Handoff-Only|handoff notes as source material' "$PROMOTE_DIR"
 grep -R -q -E 'transient active state|active handoff.*must not be promoted' "$SKILL_DIR" \
   || fail "active handoff transient-state boundary is missing"
 
-grep -R -q -E '\[Handoff:done\]|appending .Handoff:done' "$SKILL_DIR" \
-  || fail "handoff closure-by-append (not delete) rule is missing"
+grep -R -q -E 'delete that task.?s handoff file|deleted on completion' "$SKILL_DIR" \
+  || fail "handoff closure-by-delete rule is missing"
+
+grep -R -q -E '\.memories/handoffs/' "$SKILL_DIR" \
+  || fail "per-task handoff files must live under .memories/handoffs/"
+
+grep -R -q -E 'one-time migration|handoff-migration' "$SKILL_DIR" \
+  || fail "one-time handoff migration guidance is missing"
 
 grep -R -q -E 'mem-sync-git\.sh status.*diff|status.*diff.*read-only' "$SKILL_DIR" \
   || fail "mem-auto must delegate read-only project memory difference checks to mem-sync status/diff"
