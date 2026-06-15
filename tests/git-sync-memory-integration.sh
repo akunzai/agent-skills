@@ -76,6 +76,53 @@ clone_repo() {
   copy_sync_script "$repo"
 }
 
+test_push_propagates_file_deletion() {
+  local tmp
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "${tmp:-}"' RETURN
+
+  local repo_a
+  repo_a="$(init_origin_with_clone "$tmp")"
+  local origin="$tmp/origin.git"
+  local repo_b="$tmp/repo-b"
+  clone_repo "$origin" "$repo_b"
+
+  mkdir -p "$repo_a/.memories"
+  printf '%s\n' "keep" > "$repo_a/.memories/2026-06-02.md"
+  printf '%s\n' "delete me" > "$repo_a/.memories/2026-06-03.md"
+  run_sync "$repo_a" push >/dev/null
+
+  run_sync "$repo_b" pull >/dev/null
+  assert_contains "$repo_b/.memories/2026-06-03.md" "delete me"
+
+  # Device A deletes a file and pushes.
+  rm "$repo_a/.memories/2026-06-03.md"
+  run_sync "$repo_a" push >/dev/null
+
+  # The deleted file must not come back to device A's local dir.
+  if [ -e "$repo_a/.memories/2026-06-03.md" ]; then
+    echo "FAIL: deleted file resurrected on device A after push" >&2
+    return 1
+  fi
+
+  # Device B pulls: deleted file must be gone.
+  run_sync "$repo_b" pull >/dev/null
+  if [ -e "$repo_b/.memories/2026-06-03.md" ]; then
+    echo "FAIL: deleted file resurrected on device B after push+pull" >&2
+    return 1
+  fi
+  assert_contains "$repo_b/.memories/2026-06-02.md" "keep"
+
+  # Verify the deletion is on origin too.
+  local verify="$tmp/verify"
+  clone_repo "$origin" "$verify"
+  run_sync "$verify" pull >/dev/null
+  if [ -e "$verify/.memories/2026-06-03.md" ]; then
+    echo "FAIL: deleted file still present on origin after push" >&2
+    return 1
+  fi
+}
+
 test_push_merges_remote_same_file_when_local_has_no_new_changes() {
   local tmp
   tmp="$(mktemp -d)"
@@ -632,7 +679,45 @@ test_status_ignores_crlf_lf_only_differences() {
   }
 }
 
+test_push_syncs_back_remote_deletion_to_local() {
+  local tmp
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "${tmp:-}"' RETURN
+
+  local repo_a
+  repo_a="$(init_origin_with_clone "$tmp")"
+  local origin="$tmp/origin.git"
+  local repo_b="$tmp/repo-b"
+  clone_repo "$origin" "$repo_b"
+
+  # Device A pushes two files; device B pulls both.
+  mkdir -p "$repo_a/.memories"
+  printf '%s\n' "keep" > "$repo_a/.memories/2026-06-02.md"
+  printf '%s\n' "gone" > "$repo_a/.memories/2026-06-03.md"
+  run_sync "$repo_a" push >/dev/null
+  run_sync "$repo_b" pull >/dev/null
+  assert_contains "$repo_b/.memories/2026-06-03.md" "gone"
+
+  # Device A deletes one file and pushes.
+  rm "$repo_a/.memories/2026-06-03.md"
+  run_sync "$repo_a" push >/dev/null
+
+  # Device B still has the file locally and has not pulled the deletion yet.
+  assert_contains "$repo_b/.memories/2026-06-03.md" "gone"
+
+  # Device B pushes: rebase incorporates A's deletion; sync_back_to_local must
+  # apply the merged result so the deleted file disappears from B's local dir.
+  run_sync "$repo_b" push >/dev/null
+  if [ -e "$repo_b/.memories/2026-06-03.md" ]; then
+    echo "FAIL: deleted file survived in device B local after push absorbed remote deletion" >&2
+    return 1
+  fi
+  assert_contains "$repo_b/.memories/2026-06-02.md" "keep"
+}
+
 main() {
+  test_push_propagates_file_deletion
+  test_push_syncs_back_remote_deletion_to_local
   test_push_merges_remote_same_file_when_local_has_no_new_changes
   test_pull_preserves_local_wip_and_merges_remote_changes
   test_compact_rewrite_is_adopted_without_resurrecting_deletes
