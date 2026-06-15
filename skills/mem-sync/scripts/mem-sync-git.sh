@@ -198,11 +198,13 @@ commit_local_snapshot() {
     return
   fi
 
+  rm -rf "${WORKTREE_DIR:?}/$MEMORY_PATH"
   mkdir -p "$WORKTREE_DIR/$MEMORY_PATH"
   cp -R "$LOCAL_DIR/." "$WORKTREE_DIR/$MEMORY_PATH/"
+  touch "$WORKTREE_DIR/$MEMORY_PATH/.gitkeep"
   printf '%s\n' "$MEMORY_ATTRS_RULE" > "$WORKTREE_DIR/.gitattributes"
 
-  git -C "$WORKTREE_DIR" add -f "$MEMORY_PATH/" .gitattributes
+  git -C "$WORKTREE_DIR" -c core.safecrlf=false add -f "$MEMORY_PATH/" .gitattributes
   if git -C "$WORKTREE_DIR" diff --cached --quiet; then
     echo "No local daily log changes detected."
   else
@@ -229,8 +231,10 @@ rebase_remote() {
 
 sync_back_to_local() {
   if [ -d "$WORKTREE_DIR/$MEMORY_PATH" ]; then
+    rm -rf "${LOCAL_DIR:?}"
     mkdir -p "$LOCAL_DIR"
     cp -R "$WORKTREE_DIR/$MEMORY_PATH/." "$LOCAL_DIR/"
+    find "$LOCAL_DIR" -name '.gitkeep' -delete 2>/dev/null || true
   fi
 }
 
@@ -290,7 +294,7 @@ sync_compact() {
   git -C "$WORKTREE_DIR" checkout "$BRANCH" >/dev/null 2>&1 || true
   git -C "$WORKTREE_DIR" branch -D "compact-tmp" >/dev/null 2>&1 || true
   git -C "$WORKTREE_DIR" checkout --orphan "compact-tmp" >/dev/null
-  git -C "$WORKTREE_DIR" add -Af
+  git -C "$WORKTREE_DIR" -c core.safecrlf=false add -Af
   git -C "$WORKTREE_DIR" commit -m "compact: authoritative memory snapshot $(date '+%Y-%m-%d %H:%M:%S')" >/dev/null
   git -C "$WORKTREE_DIR" branch -M "$BRANCH"
   git -C "$WORKTREE_DIR" push --force "$REMOTE" "$BRANCH"
