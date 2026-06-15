@@ -23,7 +23,7 @@ Use `/mem-recall` for short-term lookups, `/mem-promote` for durable promotion/p
 
 - [ ] **Start / Handoff In**
   - In cross-device projects, run `/mem-sync` pull first.
-  - If old-style `[Handoff]` blocks still live inside daily logs (`.memories/*.md`) and no `.memories/handoffs/` directory exists yet, run the one-time migration in [references/handoff-migration.md](references/handoff-migration.md) before resuming.
+  - **Legacy handoff migration runs at most once.** If the sentinel `.memories/.handoff-migrated` exists, skip this step — do not re-scan. Otherwise run the one-time migration in [references/handoff-migration.md](references/handoff-migration.md): it greps project and global daily logs for inline `[Handoff]` residue, migrates any found, and writes the sentinel so later sessions never re-check. Legacy handoffs that arrive later via `/mem-sync` are surfaced on demand by `/mem-recall`'s fallback grep, not by checking at every start.
   - Resolve handoffs by listing `.memories/handoffs/` — one file per active task, named `YYYY-MM-DD__<slug>.md`. Read only the relevant task file(s); do not load the whole `.memories/` tree into context. If several handoffs are open, list them and let the user pick.
   - If the handoff is stale or its branch is merged/gone, ask before resuming.
   - Treat auto-loaded `AGENTS.md` / `CLAUDE.md` as the normal source for durable instructions; use `/mem-recall` for short-term logs, and inspect durable files only when their loaded content seems incomplete or exact wording matters.
