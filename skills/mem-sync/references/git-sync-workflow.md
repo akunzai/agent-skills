@@ -52,31 +52,34 @@ You can run the script manually depending on the scope:
 `.memories/` directory — they never modify the working copy, the worktree, or the remote.
 If the remote branch does not exist yet, `status` reports how many local logs are unpushed.
 
-## 3a. Remote Resolution & Persistence
+## 3a. Remote Resolution
 
-The remote is resolved as: `MEM_SYNC_REMOTE` env var → `git config memsync.remote` →
-auto-detect. Auto-detect uses the local remote list:
+The remote is resolved as: `MEM_SYNC_REMOTE` env var → auto-detect. Auto-detect follows the
+repo's **own push configuration** instead of guessing by remote name:
 
-- one remote → use it (not remembered);
-- `origin` + exactly one other → use the non-`origin` remote (the fork case where `origin`
-  is an upstream you cannot push memory to);
-- otherwise (two non-`origin` remotes, or more than two) → the command lists the remotes
-  and aborts so nothing is pushed to the wrong place.
+- it resolves the current branch's push target via Git itself
+  (`git for-each-ref --format='%(push:remotename)'`, i.e. `branch.<name>.pushRemote` →
+  `remote.pushDefault` → tracking remote) and uses that remote — so memory follows wherever
+  this repo actually pushes (a fork's writable remote, etc.), independent of the name
+  `origin`;
+- if no push target is configured but exactly one remote exists → use it;
+- otherwise (no push target and multiple remotes) → the command lists the remotes and
+  aborts so nothing is pushed to the wrong place.
 
 ```bash
-# Persistent per-repo choice (recommended for forks):
-git config memsync.remote myfork
+# Normal case: the remote is taken from where the current branch pushes.
+git push -u myfork "$(git branch --show-current)"   # if not set up yet
 ~/.agents/skills/mem-sync/scripts/mem-sync-git.sh push
 
-# One-off override that does not touch the stored choice:
+# One-off override for an ambiguous repo or a different target:
 MEM_SYNC_REMOTE=memvault ~/.agents/skills/mem-sync/scripts/mem-sync-git.sh push
 ```
 
-After a successful `push`/`pull`/`compact` that auto-picked the non-`origin` remote, that
-remote is saved to `git config --local memsync.remote` so later runs skip detection. Env-
-and config-sourced remotes are never auto-rewritten; read-only `status`/`diff` never write
-config. The named remote must exist or the script aborts, naming the resolution source.
-The per-user branch name (`memories/<email-localpart>`) is unaffected.
+The remote is recomputed from live Git config each run, so retargeting your push remote is
+picked up automatically — nothing is stored for memory sync to go stale. The env-sourced
+remote is taken verbatim; read-only `status`/`diff` never write config. The resolved remote
+must exist or the script aborts, naming the resolution source. The per-user branch name
+(`memories/<email-localpart>`) is unaffected.
 
 ## 4. Automation Guidelines for AI Agents
 
