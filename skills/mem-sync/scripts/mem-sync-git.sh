@@ -296,6 +296,12 @@ sync_status() {
   local mode="${1:-summary}"
   ensure_remote
 
+  # Surface the resolved remote/branch up front (folds in 'print-remote'), so a
+  # plain status answers "which remote would a sync target?" without a 2nd call.
+  if [ "$mode" = "summary" ]; then
+    echo "Remote: $REMOTE ($REMOTE_SOURCE)  Branch: $BRANCH"
+  fi
+
   if ! git -C "$REPO_DIR" ls-remote --exit-code --heads "$REMOTE" "$BRANCH" >/dev/null 2>&1; then
     echo "Remote branch '$BRANCH' does not exist on '$REMOTE' yet."
     if [ -d "$LOCAL_DIR" ]; then

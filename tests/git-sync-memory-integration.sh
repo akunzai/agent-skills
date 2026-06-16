@@ -304,6 +304,11 @@ test_status_and_diff_report_local_vs_remote() {
     *"In sync"*) ;;
     *) echo "FAIL: status should report in sync after push; got: $s" >&2; return 1 ;;
   esac
+  # status surfaces the resolved remote/branch header (folds in print-remote).
+  case "$s" in
+    *"Remote: origin"*"Branch: memories/memory-test"*) ;;
+    *) echo "FAIL: status should show resolved remote/branch header; got: $s" >&2; return 1 ;;
+  esac
 
   # No argument must default to 'status' and not error under set -u.
   local s0

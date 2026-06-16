@@ -33,10 +33,10 @@ Discover the script path dynamically (do NOT hardcode):
 - `mem-sync-git.sh pull` — record local WIP, fetch+rebase remote, copy back. Run at session start.
 - `mem-sync-git.sh push` — same merge, then push. Run at session end or after promoting candidates.
 - `mem-sync-git.sh` (no argument) — defaults to `status`.
-- `mem-sync-git.sh status` — read-only: fetch the per-user branch and summarize how local `.memories/` differs (in sync, or local-only / remote-only / modified files).
+- `mem-sync-git.sh status` — read-only: print the resolved remote/branch header, then summarize how local `.memories/` differs (in sync, or local-only / remote-only / modified files).
 - `mem-sync-git.sh diff` — read-only: like `status` but prints the full unified diff (local vs remote).
-- `mem-sync-git.sh print-branch` — print the derived per-user branch and exit (used by tooling/tests).
-- `mem-sync-git.sh print-remote` — resolve and print the sync remote (env → config → auto-detect) and exit; use it to confirm which remote a sync would target. Exits non-zero with guidance if the remote is ambiguous.
+- `mem-sync-git.sh print-branch` — print the derived per-user branch and exit (machine-readable, used by tooling/tests).
+- `mem-sync-git.sh print-remote` — resolve and print just the sync remote (env → auto-detect) and exit (machine-readable). `status` already shows this; use `print-remote` when a script needs the bare value. Exits non-zero with guidance if the remote is ambiguous.
 
 See [references/git-sync-workflow.md](references/git-sync-workflow.md) for mechanics,
 anti-pollution rules, and conflict handling.
