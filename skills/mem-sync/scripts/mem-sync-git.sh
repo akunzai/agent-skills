@@ -200,6 +200,10 @@ commit_local_snapshot() {
   rm -rf "${WORKTREE_DIR:?}/$MEMORY_PATH"
   mkdir -p "$WORKTREE_DIR/$MEMORY_PATH"
   cp -R "$LOCAL_DIR/." "$WORKTREE_DIR/$MEMORY_PATH/"
+  # Per-device sentinel: must not propagate to other machines
+  rm -f "$WORKTREE_DIR/$MEMORY_PATH/.handoff-migrated"
+  # Ensure empty subdirectories are tracked (e.g. handoffs/ with no active tasks)
+  find "$WORKTREE_DIR/$MEMORY_PATH" -mindepth 1 -type d -empty -exec touch '{}/.gitkeep' \;
   touch "$WORKTREE_DIR/$MEMORY_PATH/.gitkeep"
   printf '%s\n' "$MEMORY_ATTRS_RULE" > "$WORKTREE_DIR/.gitattributes"
 
@@ -230,10 +234,14 @@ rebase_remote() {
 
 sync_back_to_local() {
   if [ -d "$WORKTREE_DIR/$MEMORY_PATH" ]; then
+    # Preserve per-device sentinel before replacing local dir from remote snapshot
+    local had_migrated=false
+    if [ -f "$LOCAL_DIR/.handoff-migrated" ]; then had_migrated=true; fi
     rm -rf "${LOCAL_DIR:?}"
     mkdir -p "$LOCAL_DIR"
     cp -R "$WORKTREE_DIR/$MEMORY_PATH/." "$LOCAL_DIR/"
     find "$LOCAL_DIR" -name '.gitkeep' -delete 2>/dev/null || true
+    if $had_migrated; then touch "$LOCAL_DIR/.handoff-migrated"; fi
   fi
 }
 
@@ -256,10 +264,14 @@ sync_pull() {
   echo "Syncing remote '$BRANCH' -> local memories..."
   sync_merge_remote
   if [ -d "$WORKTREE_DIR/$MEMORY_PATH" ]; then
+    # Preserve per-device sentinel before replacing local dir from remote snapshot
+    local had_migrated=false
+    if [ -f "$LOCAL_DIR/.handoff-migrated" ]; then had_migrated=true; fi
     rm -rf "${LOCAL_DIR:?}"
     mkdir -p "$LOCAL_DIR"
     cp -R "$WORKTREE_DIR/$MEMORY_PATH/." "$LOCAL_DIR/"
     find "$LOCAL_DIR" -name '.gitkeep' -delete 2>/dev/null || true
+    if $had_migrated; then touch "$LOCAL_DIR/.handoff-migrated"; fi
     echo "Successfully pulled and updated local daily memories."
   else
     echo "No remote daily memories found."
@@ -325,12 +337,12 @@ sync_status() {
   # Ignore CRLF/LF-only differences: legacy memory branches may contain CRLF
   # blobs from Windows clones before the .gitattributes rule was restored.
   if [ "$mode" = "diff" ]; then
-    diff -ru --strip-trailing-cr -x '.gitkeep' "$tmp/$MEMORY_PATH" "$LOCAL_DIR" || true
+    diff -ru --strip-trailing-cr -x '.gitkeep' -x '.handoff-migrated' "$tmp/$MEMORY_PATH" "$LOCAL_DIR" || true
     return 0
   fi
 
   local out
-  out="$(diff -rq --strip-trailing-cr -x '.gitkeep' "$tmp/$MEMORY_PATH" "$LOCAL_DIR" 2>/dev/null || true)"
+  out="$(diff -rq --strip-trailing-cr -x '.gitkeep' -x '.handoff-migrated' "$tmp/$MEMORY_PATH" "$LOCAL_DIR" 2>/dev/null || true)"
   if [ -z "$out" ]; then
     echo "In sync with '$REMOTE/$BRANCH'."
   else
