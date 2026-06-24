@@ -693,9 +693,60 @@ test_pull_with_empty_local_dir_does_not_wipe_remote() {
   assert_contains "$verify/.memories/2026-06-03.md" "keep two"
 }
 
+test_pull_does_not_commit_handoff_migrated_sentinel() {
+  local tmp
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "${tmp:-}"' RETURN
+
+  local repo_a
+  repo_a="$(init_origin_with_clone "$tmp")"
+  local origin="$tmp/origin.git"
+  local repo_b="$tmp/repo-b"
+  clone_repo "$origin" "$repo_b"
+
+  # Device A pushes a normal daily log.
+  mkdir -p "$repo_a/.memories"
+  printf '%s\n' "note" > "$repo_a/.memories/2026-06-02.md"
+  run_sync "$repo_a" push >/dev/null
+
+  # Simulate a LEGACY branch that tracks the per-device sentinel (committed
+  # before the strip logic existed): inject it onto the branch via A's worktree.
+  local wt_a="$repo_a/.git/memories-worktree"
+  touch "$wt_a/.memories/.handoff-migrated"
+  git -C "$wt_a" add -f .memories/.handoff-migrated
+  git -C "$wt_a" commit -q -m "legacy: track .handoff-migrated"
+  git -C "$wt_a" push -q origin memories/memory-test
+
+  # Device B pulls the legacy branch, then drops its own copy of the sentinel
+  # so its local '.memories/' looks like a device that does not carry it.
+  run_sync "$repo_b" pull >/dev/null
+  rm -f "$repo_b/.memories/.handoff-migrated"
+
+  # The pull under test: it must NOT stage a sentinel-only deletion (which would
+  # leave B's per-user branch ahead of origin and propagate on the next push),
+  # and must NOT import another device's sentinel into local.
+  run_sync "$repo_b" pull >/dev/null
+
+  if [ -e "$repo_b/.memories/.handoff-migrated" ]; then
+    echo "FAIL: pull imported another device's .handoff-migrated into local" >&2
+    return 1
+  fi
+
+  local bwt="$repo_b/.git/memories-worktree"
+  git -C "$bwt" fetch -q origin memories/memory-test
+  local local_head remote_head
+  local_head="$(git -C "$bwt" rev-parse memories/memory-test)"
+  remote_head="$(git -C "$bwt" rev-parse origin/memories/memory-test)"
+  assert_eq_str "$local_head" "$remote_head" \
+    "pull must not advance the branch past origin for a sentinel-only change"
+
+  assert_contains "$repo_b/.memories/2026-06-02.md" "note"
+}
+
 main() {
   test_push_propagates_file_deletion
   test_pull_with_empty_local_dir_does_not_wipe_remote
+  test_pull_does_not_commit_handoff_migrated_sentinel
   test_push_syncs_back_remote_deletion_to_local
   test_push_merges_remote_same_file_when_local_has_no_new_changes
   test_pull_preserves_local_wip_and_merges_remote_changes
