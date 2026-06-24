@@ -192,12 +192,23 @@ ensure_clean_worktree() {
 }
 
 commit_local_snapshot() {
+  # propagate_deletions=true (push): mirror local exactly, so files removed
+  # locally are recorded as deletions and propagate upstream.
+  # propagate_deletions=false (pull): overlay local onto the remote snapshot
+  # already checked out in the worktree, so local WIP (new/modified files) is
+  # preserved while files merely ABSENT locally are NOT deleted. Pull must never
+  # turn an empty or partial local '.memories/' (fresh device, post-clean) into
+  # an authoritative deletion of remote files.
+  local propagate_deletions="${1:-true}"
+
   if [ ! -d "$LOCAL_DIR" ]; then
     echo "No local '$MEMORY_PATH' directory found. Only remote memories will be synced."
     return
   fi
 
-  rm -rf "${WORKTREE_DIR:?}/$MEMORY_PATH"
+  if [ "$propagate_deletions" = "true" ]; then
+    rm -rf "${WORKTREE_DIR:?}/$MEMORY_PATH"
+  fi
   mkdir -p "$WORKTREE_DIR/$MEMORY_PATH"
   cp -R "$LOCAL_DIR/." "$WORKTREE_DIR/$MEMORY_PATH/"
   # Per-device sentinel: must not propagate to other machines
@@ -246,15 +257,18 @@ sync_back_to_local() {
 }
 
 sync_merge_remote() {
+  # First arg selects deletion semantics for commit_local_snapshot:
+  # push propagates local deletions; pull does not. Defaults to push.
+  local propagate_deletions="${1:-true}"
   setup_worktree
   ensure_clean_worktree
-  commit_local_snapshot
+  commit_local_snapshot "$propagate_deletions"
   rebase_remote
 }
 
 sync_push() {
   echo "Syncing local memories -> remote '$BRANCH'..."
-  sync_merge_remote
+  sync_merge_remote true
   git -C "$WORKTREE_DIR" push "$REMOTE" "$BRANCH"
   sync_back_to_local
   echo "Successfully pushed daily memories to remote."
@@ -262,7 +276,7 @@ sync_push() {
 
 sync_pull() {
   echo "Syncing remote '$BRANCH' -> local memories..."
-  sync_merge_remote
+  sync_merge_remote false
   if [ -d "$WORKTREE_DIR/$MEMORY_PATH" ]; then
     # Preserve per-device sentinel before replacing local dir from remote snapshot
     local had_migrated=false

@@ -657,8 +657,45 @@ test_push_syncs_back_remote_deletion_to_local() {
   assert_contains "$repo_b/.memories/2026-06-02.md" "keep"
 }
 
+test_pull_with_empty_local_dir_does_not_wipe_remote() {
+  local tmp
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "${tmp:-}"' RETURN
+
+  local repo_a
+  repo_a="$(init_origin_with_clone "$tmp")"
+  local origin="$tmp/origin.git"
+  local repo_b="$tmp/repo-b"
+  clone_repo "$origin" "$repo_b"
+
+  # Device A pushes two daily logs.
+  mkdir -p "$repo_a/.memories"
+  printf '%s\n' "keep one" > "$repo_a/.memories/2026-06-02.md"
+  printf '%s\n' "keep two" > "$repo_a/.memories/2026-06-03.md"
+  run_sync "$repo_a" push >/dev/null
+
+  # Device B has an empty .memories/ directory (freshly created, or emptied by a
+  # local clean) and has never synced. A pull must POPULATE it from remote, not
+  # treat the empty dir as an authoritative deletion of the remote files.
+  mkdir -p "$repo_b/.memories"
+  run_sync "$repo_b" pull >/dev/null
+
+  assert_contains "$repo_b/.memories/2026-06-02.md" "keep one"
+  assert_contains "$repo_b/.memories/2026-06-03.md" "keep two"
+
+  # The empty-dir pull must not have staged a deletion that a later push would
+  # propagate: pushing from B must leave origin's files intact.
+  run_sync "$repo_b" push >/dev/null
+  local verify="$tmp/verify"
+  clone_repo "$origin" "$verify"
+  run_sync "$verify" pull >/dev/null
+  assert_contains "$verify/.memories/2026-06-02.md" "keep one"
+  assert_contains "$verify/.memories/2026-06-03.md" "keep two"
+}
+
 main() {
   test_push_propagates_file_deletion
+  test_pull_with_empty_local_dir_does_not_wipe_remote
   test_push_syncs_back_remote_deletion_to_local
   test_push_merges_remote_same_file_when_local_has_no_new_changes
   test_pull_preserves_local_wip_and_merges_remote_changes
