@@ -211,8 +211,13 @@ commit_local_snapshot() {
   fi
   mkdir -p "$WORKTREE_DIR/$MEMORY_PATH"
   cp -R "$LOCAL_DIR/." "$WORKTREE_DIR/$MEMORY_PATH/"
-  # Per-device sentinel: must not propagate to other machines
-  rm -f "$WORKTREE_DIR/$MEMORY_PATH/.handoff-migrated"
+  # Per-device sentinel: must not propagate to other machines. On push, strip it
+  # so it leaves the branch. On pull, leave the branch's copy untouched so the
+  # snapshot stages no sentinel-only deletion (pull must stay a no-op when only
+  # the sentinel differs); the copy-back step keeps it from reaching local.
+  if [ "$propagate_deletions" = "true" ]; then
+    rm -f "$WORKTREE_DIR/$MEMORY_PATH/.handoff-migrated"
+  fi
   # Ensure empty subdirectories are tracked (e.g. handoffs/ with no active tasks)
   find "$WORKTREE_DIR/$MEMORY_PATH" -mindepth 1 -type d -empty -exec touch '{}/.gitkeep' \;
   touch "$WORKTREE_DIR/$MEMORY_PATH/.gitkeep"
@@ -245,13 +250,15 @@ rebase_remote() {
 
 sync_back_to_local() {
   if [ -d "$WORKTREE_DIR/$MEMORY_PATH" ]; then
-    # Preserve per-device sentinel before replacing local dir from remote snapshot
+    # The .handoff-migrated sentinel is per-device: never import another
+    # machine's copy carried on the branch, and preserve only this device's own.
     local had_migrated=false
     if [ -f "$LOCAL_DIR/.handoff-migrated" ]; then had_migrated=true; fi
     rm -rf "${LOCAL_DIR:?}"
     mkdir -p "$LOCAL_DIR"
     cp -R "$WORKTREE_DIR/$MEMORY_PATH/." "$LOCAL_DIR/"
     find "$LOCAL_DIR" -name '.gitkeep' -delete 2>/dev/null || true
+    rm -f "$LOCAL_DIR/.handoff-migrated"
     if $had_migrated; then touch "$LOCAL_DIR/.handoff-migrated"; fi
   fi
 }
@@ -278,14 +285,7 @@ sync_pull() {
   echo "Syncing remote '$BRANCH' -> local memories..."
   sync_merge_remote false
   if [ -d "$WORKTREE_DIR/$MEMORY_PATH" ]; then
-    # Preserve per-device sentinel before replacing local dir from remote snapshot
-    local had_migrated=false
-    if [ -f "$LOCAL_DIR/.handoff-migrated" ]; then had_migrated=true; fi
-    rm -rf "${LOCAL_DIR:?}"
-    mkdir -p "$LOCAL_DIR"
-    cp -R "$WORKTREE_DIR/$MEMORY_PATH/." "$LOCAL_DIR/"
-    find "$LOCAL_DIR" -name '.gitkeep' -delete 2>/dev/null || true
-    if $had_migrated; then touch "$LOCAL_DIR/.handoff-migrated"; fi
+    sync_back_to_local
     echo "Successfully pulled and updated local daily memories."
   else
     echo "No remote daily memories found."
