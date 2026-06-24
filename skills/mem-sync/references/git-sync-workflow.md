@@ -16,7 +16,7 @@ Instead of switching your active working branch (which triggers editor resets an
 - It creates a dedicated, isolated per-user branch named `memories/<email-localpart>` with no parent history (an orphan branch).
 - It checks out this branch into a hidden workspace folder `.git/memories-worktree/`.
 - **Anti-Loss Sync Rule (3-Way Rebase)**: When syncing, the script first records the local `.memories/` snapshot as a WIP commit inside the isolated worktree, then fetches and rebases onto `<remote>/memories/<email-localpart>` (the resolved sync remote). This lets Git merge concurrent daily-log edits without relying on filesystem modification times.
-- **Append-Oriented Logs**: The syncer uses incremental overlay copying. It preserves existing daily logs, but it does not propagate deletes or renames.
+- **Deletion Semantics (push vs pull)**: `push` mirrors the local `.memories/` exactly, so a file removed locally is recorded as a deletion and propagates to other devices. `pull` is non-destructive: it overlays local WIP (new/modified files) onto the remote snapshot but never records a deletion for a file that is merely absent locally. This keeps a pull on a fresh device — or one whose `.memories/` was emptied by a local clean — from wiping the remote logs of other devices.
 - **Conflict Safety**: If Git reports a rebase conflict, the script stops without copying conflicted files back to the local workspace. Resolve the conflict inside `.git/memories-worktree/`, run `git rebase --continue` or abort, then rerun sync.
 
 ## 3. Command Line Operations
@@ -37,7 +37,7 @@ You can run the script manually depending on the scope:
 ~/.agents/skills/mem-sync/scripts/mem-sync-git.sh pull
 ```
 
-`pull` records unpushed local daily notes before rebasing remote changes, so it is not a blind overwrite operation.
+`pull` records unpushed local daily notes before rebasing remote changes, so it is not a blind overwrite operation. Unlike `push`, it never propagates a local deletion: files absent locally are restored from the remote rather than removed from the branch.
 
 ### Inspect Differences (read-only)
 ```bash
