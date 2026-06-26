@@ -222,6 +222,42 @@ test_compact_rewrite_is_adopted_without_resurrecting_deletes() {
   fi
 }
 
+test_push_after_compact_preserves_unpushed_local_logs() {
+  local tmp
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "${tmp:-}"' RETURN
+
+  local repo_a
+  repo_a="$(init_origin_with_clone "$tmp")"
+  local origin="$tmp/origin.git"
+  local repo_b="$tmp/repo-b"
+  clone_repo "$origin" "$repo_b"
+
+  # Both devices share one log.
+  mkdir -p "$repo_a/.memories"
+  printf '%s\n' "shared" > "$repo_a/.memories/2026-06-01.md"
+  run_sync "$repo_a" push >/dev/null
+  run_sync "$repo_b" pull >/dev/null
+
+  # Device A compacts: the branch becomes an orphan with no common ancestor.
+  run_sync "$repo_a" compact >/dev/null
+
+  # Device B writes a NEW local log it has not pushed, then pushes. The push path
+  # must adopt the rewritten branch AND keep B's un-pushed log — not reset --hard
+  # it away.
+  printf '%s\n' "todays note" > "$repo_b/.memories/2026-06-26.md"
+  run_sync "$repo_b" push >/dev/null
+
+  # B's new log must survive locally...
+  assert_contains "$repo_b/.memories/2026-06-26.md" "todays note"
+  # ...and reach origin, without dropping the adopted base's shared log.
+  local verify="$tmp/verify"
+  clone_repo "$origin" "$verify"
+  run_sync "$verify" pull >/dev/null
+  assert_contains "$verify/.memories/2026-06-26.md" "todays note"
+  assert_contains "$verify/.memories/2026-06-01.md" "shared"
+}
+
 test_compact_is_rerunnable_after_interrupted_run() {
   local tmp
   tmp="$(mktemp -d)"
@@ -751,6 +787,7 @@ main() {
   test_push_merges_remote_same_file_when_local_has_no_new_changes
   test_pull_preserves_local_wip_and_merges_remote_changes
   test_compact_rewrite_is_adopted_without_resurrecting_deletes
+  test_push_after_compact_preserves_unpushed_local_logs
   test_compact_is_rerunnable_after_interrupted_run
   test_push_respects_overridden_remote
   test_status_and_diff_report_local_vs_remote

@@ -233,11 +233,33 @@ commit_local_snapshot() {
 }
 
 rebase_remote() {
+  local propagate_deletions="${1:-true}"
   echo "Rebasing memory worktree with remote '$BRANCH'..."
   git -C "$WORKTREE_DIR" fetch "$REMOTE" "$BRANCH"
   if ! git -C "$WORKTREE_DIR" merge-base HEAD "$REMOTE/$BRANCH" >/dev/null 2>&1; then
-    echo "Remote '$BRANCH' was rewritten (no common ancestor); adopting it authoritatively."
     git -C "$WORKTREE_DIR" reset --hard "$REMOTE/$BRANCH"
+    if [ "$propagate_deletions" = "true" ] && [ -d "$LOCAL_DIR" ]; then
+      # PUSH: the branch was rewritten (e.g. a compaction's orphan commit) so we
+      # cannot rebase onto it. Adopt it as the new base, then RE-APPLY this
+      # device's local daily logs on top — otherwise an un-pushed local log (e.g.
+      # today's) is silently discarded by the reset --hard. Overlay only (never
+      # delete the adopted base's files, so other devices' logs survive) and strip
+      # the per-device sentinel, matching a normal push.
+      echo "Remote '$BRANCH' was rewritten (no common ancestor); adopting it as the new base and re-applying local daily logs."
+      cp -R "$LOCAL_DIR/." "$WORKTREE_DIR/$MEMORY_PATH/"
+      rm -f "$WORKTREE_DIR/$MEMORY_PATH/.handoff-migrated"
+      find "$WORKTREE_DIR/$MEMORY_PATH" -mindepth 1 -type d -empty -exec touch '{}/.gitkeep' \;
+      touch "$WORKTREE_DIR/$MEMORY_PATH/.gitkeep"
+      printf '%s\n' "$MEMORY_ATTRS_RULE" > "$WORKTREE_DIR/.gitattributes"
+      git -C "$WORKTREE_DIR" -c core.safecrlf=false add -f "$MEMORY_PATH/" .gitattributes
+      if ! git -C "$WORKTREE_DIR" diff --cached --quiet; then
+        git -C "$WORKTREE_DIR" commit -m "sync: re-apply local daily memories after adopting rewritten '$BRANCH'"
+      fi
+    else
+      # PULL: adopt the rewrite verbatim — the compaction is authoritative,
+      # including its deletions (do not resurrect locally-retained old logs).
+      echo "Remote '$BRANCH' was rewritten (no common ancestor); adopting it authoritatively."
+    fi
     return
   fi
   if ! git -C "$WORKTREE_DIR" rebase "$REMOTE/$BRANCH"; then
@@ -270,7 +292,7 @@ sync_merge_remote() {
   setup_worktree
   ensure_clean_worktree
   commit_local_snapshot "$propagate_deletions"
-  rebase_remote
+  rebase_remote "$propagate_deletions"
 }
 
 sync_push() {
