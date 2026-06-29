@@ -13,8 +13,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Set up mise
+        uses: jdx/mise-action@v4
+
       - name: Run actionlint
-        uses: raven-actions/actionlint@v2
+        run: mise run lint-actions
 
   shellcheck:
     runs-on: ubuntu-latest
@@ -22,9 +25,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Set up mise
+        uses: jdx/mise-action@v4
+
       - name: Run ShellCheck
-        run: |
-          find tests skills -name "*.sh" -type f -exec shellcheck {} +
+        run: mise run lint-shell
 
   agents-md:
     runs-on: ubuntu-latest
@@ -68,10 +73,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.x'
+      - name: Set up mise
+        uses: jdx/mise-action@v4
 
       - name: Run mem-setup content checks
         run: bash tests/mem-setup-content.sh
@@ -88,10 +91,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.x'
+      - name: Set up mise
+        uses: jdx/mise-action@v4
 
       - name: Run Windows POSIX path-guard tests
         run: bash tests/windows-path-guard.sh

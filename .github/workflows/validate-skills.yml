@@ -13,14 +13,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-          cache-dependency-glob: .github/workflows/validate-skills.yml
-
-      - name: Set up Python
-        run: uv python install
+      - name: Set up mise
+        uses: jdx/mise-action@v4
 
       - name: Validate all skills
         run: |

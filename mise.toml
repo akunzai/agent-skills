@@ -1,0 +1,32 @@
+[tools]
+shellcheck = "latest"
+actionlint = "latest"
+uv = "latest"
+python = "3.14"
+
+[tasks.test]
+description = "Run all test scripts"
+run = '''
+exit_code=0
+for t in tests/*.sh; do
+  if bash "$t"; then
+    printf 'PASS: %s\n' "$t"
+  else
+    printf 'FAIL: %s\n' "$t"
+    exit_code=1
+  fi
+done
+exit $exit_code
+'''
+
+[tasks.lint-shell]
+description = "Lint shell scripts with ShellCheck"
+run = "find tests skills -name '*.sh' -type f -exec shellcheck {} +"
+
+[tasks.lint-actions]
+description = "Lint GitHub Actions workflows with actionlint"
+run = "actionlint"
+
+[tasks.lint]
+description = "Run all linters"
+depends = ["lint-shell", "lint-actions"]

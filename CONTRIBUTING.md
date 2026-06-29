@@ -14,23 +14,32 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Development Setup
 
+This project uses [mise](https://mise.jdx.dev/) to manage development tools
+(ShellCheck, actionlint, uv, Python) and tasks. After
+[installing mise](https://mise.jdx.dev/getting-started.html):
+
 ```bash
 git clone https://github.com/akunzai/agent-skills.git
 cd agent-skills
 
-# Run all tests
-make test
+# Install the pinned tools declared in mise.toml
+mise install
 
-# Lint shell scripts
-make lint
+# Run all tests
+mise run test
+
+# Lint shell scripts and workflows
+mise run lint
 ```
 
 ### Prerequisites
 
 | Tool | Purpose |
 | --- | --- |
+| [mise](https://mise.jdx.dev/) | Provisions the tools below and runs tasks |
 | Bash 4+ | Tests and hook scripts |
-| [ShellCheck](https://www.shellcheck.net/) | Shell linting (`make lint-shell`) |
+| [ShellCheck](https://www.shellcheck.net/) | Shell linting (`mise run lint-shell`) |
+| [actionlint](https://github.com/rhysd/actionlint) | GitHub Actions linting (`mise run lint-actions`) |
 
 ## Writing a Skill
 
@@ -81,6 +90,6 @@ Register the test in `.github/workflows/tests.yml` under an appropriate job.
 
 1. Fork the repository and create a feature branch.
 2. Make your changes with clear, focused commits.
-3. Ensure `make test` and `make lint` pass.
+3. Ensure `mise run test` and `mise run lint` pass.
 4. Open a PR against `main`.
 5. Describe what changed and link any related issues.
