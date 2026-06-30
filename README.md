@@ -50,6 +50,18 @@ to the commands below.
 - [`mem-sync`](skills/mem-sync/SKILL.md) — sync daily logs across devices via a per-user branch
 - [`mem-setup`](skills/mem-setup/SKILL.md) — bridge every installed agent's global memory to one canonical `~/.agents/AGENTS.md`
 
+### [`mise`](skills/mise/SKILL.md)
+
+Manage a project's toolchain, language runtimes, and tasks through a single
+committed `mise.toml`. Captures opinionated conventions for pinning, built-in
+backends, tasks over scripts, and phased host → CI → container adoption.
+
+### [`aube`](skills/aube/SKILL.md)
+
+Use [aube](https://aube.jdx.dev/) as the Node.js package manager, installed and
+pinned through mise. Covers `aubr`/`aube ci` workflows, lockfile policy, the
+lifecycle-script jail, and migrating from pnpm/npm/bun.
+
 ## Compatibility
 
 | AI Assistant | Supported |

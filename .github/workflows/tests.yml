@@ -67,6 +67,24 @@ jobs:
       - name: Run tidy-commits content checks
         run: bash tests/tidy-commits-content.sh
 
+  mise:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Run mise content checks
+        run: bash tests/mise-content.sh
+
+  aube:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Run aube content checks
+        run: bash tests/aube-content.sh
+
   mem-setup:
     runs-on: ubuntu-latest
     steps:
