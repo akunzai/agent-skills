@@ -105,3 +105,7 @@ propagate instead of resurrecting. This is per-user and never affects other deve
   explain that daily logs sync through the isolated per-user `memories/<email-localpart>`
   branch via this syncer, not the active branch.
 - Always use `mem-sync-git.sh` (running inside the isolated memory worktree) to sync.
+- To keep `.memories/` out of the main branch, add a self-contained `.memories/.gitignore`
+  (`*` plus `!.gitignore`) instead of an entry in the repo's root `.gitignore`. This travels
+  with the directory, needs no edits to the root config, and still lets the ignore rule itself
+  be committed and picked up by other clones.
