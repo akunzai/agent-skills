@@ -31,6 +31,22 @@ only. Low-tier agents have weak hook support, so augmentation modules are
 composed into their static prompt via import / config — never by duplicating a
 file.
 
+Gemini's `@import` method degrades to a plain symlink when there's nothing to
+compose (no `MEM_SETUP_AUGMENT`) and the target is missing or already a
+symlink — same effect, but skips depending on the target agent's own import
+resolution. A configured augment module always keeps the append-import
+behavior (a symlink can't reference two files). An existing real `GEMINI.md`
+keeps it too, *unless* its bytes exactly match this script's own prior stub
+output (no augment) — that case is self-healed into a symlink (after a
+backup), since it holds no manual content to preserve. This only applies to
+the low tier — Claude Code's own `import` bridge always stays an `@import`
+stub, never a symlink.
+
+OpenCode's `config` method edits `instructions[]` in JSON: it prefers `jq`
+(the tool this repo's `mise.toml` pins), falls back to `python3` if `jq` is
+absent, and otherwise prints the paths to add manually. Neither is a hard
+requirement.
+
 ## Workflow (always dry-run first)
 
 1. Ensure `~/.agents/AGENTS.md` exists (your durable cross-agent instructions).

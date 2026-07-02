@@ -15,7 +15,7 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 ## Development Setup
 
 This project uses [mise](https://mise.jdx.dev/) to manage development tools
-(ShellCheck, actionlint, uv, Python) and tasks. After
+(ShellCheck, actionlint, uv, jq) and tasks. After
 [installing mise](https://mise.jdx.dev/getting-started.html):
 
 ```bash
