@@ -2,7 +2,7 @@
 shellcheck = "latest"
 actionlint = "latest"
 uv = "latest"
-python = "3.14"
+jq = "latest"
 
 [tasks.test]
 description = "Run all test scripts"

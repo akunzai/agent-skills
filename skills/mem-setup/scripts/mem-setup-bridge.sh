@@ -55,11 +55,28 @@ sources_for_tier() {
   fi
 }
 
+# Exact bytes apply_import writes for a fresh stub — also used to detect
+# whether an existing real file is untouched output from a prior run of this
+# script (safe to upgrade to a symlink) versus content a user edited by hand.
+render_import_stub() {
+  local tier="$1" src
+  echo "# Global instructions — single source of truth is the canonical AGENTS.md."
+  while IFS= read -r src; do echo "@$src"; done < <(sources_for_tier "$tier")
+}
+
 classify() {
   if [ -L "$1" ]; then echo symlink
   elif [ -e "$1" ]; then echo file
   else echo missing
   fi
+}
+
+# True only for the low tier with no augment configured, i.e. nothing to
+# compose beyond the core — where a plain symlink is equivalent to a one-line
+# import stub. High tier stays on `import` unconditionally (e.g. Claude Code's
+# own CLAUDE.md is deliberately bridged via @import, never a symlink).
+unaugmented_low_tier() {
+  [ "$1" = low ] && [ "$(sources_for_tier "$1" | grep -c .)" -eq 1 ]
 }
 
 backup_file() {
@@ -71,10 +88,23 @@ backup_file() {
 
 plan_one() {
   local name="$1" tier="$2" method="$3" target="$4" state src
+  local effective_method="$3" stub_upgrade=false
   state="$(classify "$target")"
   echo "  [$name] tier=$tier method=$method"
   echo "    target: $target ($state)"
-  case "$method" in
+  if [ "$method" = import ] && unaugmented_low_tier "$tier"; then
+    case "$state" in
+      missing|symlink) effective_method=symlink ;;
+      file)
+        # A real file whose bytes exactly match this script's own prior stub
+        # output (no augment) holds no manual content — safe to upgrade.
+        if cmp -s <(render_import_stub "$tier") "$target" 2>/dev/null; then
+          effective_method=symlink
+          stub_upgrade=true
+        fi ;;
+    esac
+  fi
+  case "$effective_method" in
     import|config)
       while IFS= read -r src; do echo "    reference: $src"; done < <(sources_for_tier "$tier") ;;
     symlink)
@@ -85,7 +115,12 @@ plan_one() {
       fi ;;
   esac
   case "$state" in
-    file)    echo "    on apply: back up real file, then update in place";;
+    file)
+      if $stub_upgrade; then
+        echo "    on apply: back up real file (matches prior stub), then replace with a symlink"
+      else
+        echo "    on apply: back up real file, then update in place"
+      fi ;;
     symlink) echo "    on apply: remove existing symlink (target content untouched), then recreate";;
     missing) echo "    on apply: create new";;
   esac
@@ -95,12 +130,27 @@ apply_import() {
   local target="$1" tier="$2" state src changed=0
   mkdir -p "$(dirname "$target")"
   state="$(classify "$target")"
+  # No augment to compose: a symlink is equivalent to a one-line import stub
+  # but avoids depending on the target agent's own @import resolution.
+  if unaugmented_low_tier "$tier"; then
+    case "$state" in
+      missing|symlink)
+        apply_symlink "$target"
+        return ;;
+      file)
+        # A real file whose bytes exactly match this script's own prior stub
+        # output holds no manual content — safe to back up and upgrade.
+        if cmp -s <(render_import_stub "$tier") "$target"; then
+          backup_file "$target"
+          rm "$target"
+          apply_symlink "$target"
+          return
+        fi ;;
+    esac
+  fi
   if [ "$state" = symlink ]; then rm "$target"; state=missing; fi
   if [ "$state" = missing ]; then
-    {
-      echo "# Global instructions — single source of truth is the canonical AGENTS.md."
-      while IFS= read -r src; do echo "@$src"; done < <(sources_for_tier "$tier")
-    } > "$target"
+    render_import_stub "$tier" > "$target"
     echo "    wrote import stub: $target"
     return
   fi
@@ -142,14 +192,40 @@ apply_symlink() {
   echo "    linked: $target -> $CANONICAL"
 }
 
-apply_config() {
-  local target="$1" tier="$2"
-  mkdir -p "$(dirname "$target")"
-  if ! command -v python3 >/dev/null 2>&1; then
-    echo "    python3 not found; add these to \"instructions\" in $target manually:"
-    sources_for_tier "$tier" | sed 's/^/      - /'
+# Preferred JSON editor (mise.toml pins jq, so it's the tool this project
+# actually guarantees). Treats a missing/non-object/invalid target as a fresh
+# {}, appends any source path not already in "instructions" (order
+# preserved), backs up only if a real file existed, skips untouched if
+# nothing changed.
+apply_config_jq() {
+  local target="$1" tier="$2" existed=false data paths_json new_data old_ins new_ins
+  if [ -e "$target" ]; then
+    existed=true
+    if ! data="$(jq -c '.' "$target" 2>/dev/null)"; then
+      echo "    skipped: $target is not valid JSON; fix it and re-run"
+      return
+    fi
+    [ "$(printf '%s' "$data" | jq -r 'type')" = object ] || data='{}'
+  else
+    data='{}'
+  fi
+  paths_json="$(sources_for_tier "$tier" | jq -Rsc 'split("\n") | map(select(length > 0))')"
+  old_ins="$(printf '%s' "$data" | jq -c '.instructions // []')"
+  new_data="$(printf '%s' "$data" | jq --argjson paths "$paths_json" \
+    '.instructions = ((.instructions // []) as $ins | $ins + ($paths - $ins))')"
+  new_ins="$(printf '%s' "$new_data" | jq -c '.instructions')"
+  if [ "$old_ins" = "$new_ins" ]; then
+    echo "    already in instructions[]: $target"
     return
   fi
+  if $existed; then backup_file "$target"; fi
+  printf '%s' "$new_data" | jq '.' > "$target"
+  echo "    updated instructions[]: $target"
+}
+
+# Fallback for machines with python3 but no jq. Mirrors apply_config_jq.
+apply_config_python3() {
+  local target="$1" tier="$2"
   python3 - "$target" "$tier" "$CANONICAL" "$AUGMENT" <<'PY'
 import json, os, shutil, sys, time
 target, tier, canonical, augment = sys.argv[1:5]
@@ -186,6 +262,19 @@ if changed:
 else:
     print("    already in instructions[]:", target)
 PY
+}
+
+apply_config() {
+  local target="$1" tier="$2"
+  mkdir -p "$(dirname "$target")"
+  if command -v jq >/dev/null 2>&1; then
+    apply_config_jq "$target" "$tier"
+  elif command -v python3 >/dev/null 2>&1; then
+    apply_config_python3 "$target" "$tier"
+  else
+    echo "    neither jq nor python3 found; add these to \"instructions\" in $target manually:"
+    sources_for_tier "$tier" | sed 's/^/      - /'
+  fi
 }
 
 run() {
