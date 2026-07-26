@@ -1,6 +1,6 @@
 ---
 name: agents-md
-description: Create, audit, and improve AGENTS.md files in repositories to provide persistent context for agentic assistants. Use when the user asks to create, check, audit, update, improve, or maintain AGENTS.md, or mentions project memory optimization. Includes optional Claude Code compatibility via CLAUDE.md symbolic linking.
+description: Create, audit, and maintain AGENTS.md files in repositories to provide persistent context for agentic assistants. Use when the user mentions AGENTS.md or project memory optimization. Includes optional Claude Code compatibility via CLAUDE.md symbolic linking.
 ---
 
 # AGENTS.md

@@ -1,6 +1,6 @@
 ---
 name: mem-promote
-description: Interactively promote verified [Candidate] daily-log notes into durable long-term memory (global ~/.agents/AGENTS.md, or project AGENTS.md / CLAUDE.md), and prune/dedupe those long-term files. Use when reviewing candidates for promotion or consolidating durable conventions.
+description: Interactively promote verified [Candidate] daily-log notes into durable long-term memory (global ~/.agents/AGENTS.md, or project AGENTS.md / CLAUDE.md), and prune those long-term files. Use when reviewing candidates for promotion or consolidating durable conventions.
 ---
 
 # mem-promote — Promotion & Long-Term Prune
