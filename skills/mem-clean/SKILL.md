@@ -5,9 +5,6 @@ description: Interactively clean short-term memory — delete expired project/gl
 
 # mem-clean — Short-Term Memory Cleanup
 
-Removes expired daily logs and tidies cloud-sync conflict copies. Every action is
-interactive: produce a dry-run plan and get explicit confirmation before deleting.
-
 ## What it cleans
 
 - **Expired project logs** in `<repo>/.memories/YYYY-MM-DD.md` — see
