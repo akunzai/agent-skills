@@ -41,16 +41,17 @@ Discover the script path dynamically (do NOT hardcode):
 See [references/git-sync-workflow.md](references/git-sync-workflow.md) for mechanics,
 anti-pollution rules, and conflict handling.
 
-## Read-After-Sync Ordering
+## Avoid a Race with `pull`
 
-Run `pull`, `push`, and `compact` as exclusive operations against `.memories/`.
+`pull`, `push`, and `compact` mutate `.memories/` — treat them as a critical section.
 Do not read `.memories/` in parallel with those commands.
 
 `pull` briefly removes and recreates the local `.memories/` directory while copying
-the synchronized snapshot back from the isolated worktree. A parallel `grep`,
-`Select-String`, `Get-Content`, `cat`, or similar read can observe that transient
-missing-directory state and report a false error. Wait for the sync command to
-finish successfully before scanning handoffs, candidates, or daily logs.
+the synchronized snapshot back from the isolated worktree. A read racing against
+that window — `grep`, `Select-String`, `Get-Content`, `cat`, or similar — can
+observe the transient missing-directory state and report a false error. Wait for
+the sync command to finish successfully before scanning handoffs, candidates, or
+daily logs.
 
 ## Remote resolution
 

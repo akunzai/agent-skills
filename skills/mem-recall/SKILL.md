@@ -6,8 +6,6 @@ description: Search short-term memory on demand — project .memories/ and ~/.ag
 # mem-recall — On-Demand Memory Search
 
 Retrieves short-term context: recent daily logs, candidates, and open handoffs.
-Durable instructions come from auto-loaded `AGENTS.md` / `CLAUDE.md`, so this skill stays
-focused on short-term memory.
 
 ## How to recall
 

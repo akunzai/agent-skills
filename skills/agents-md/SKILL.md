@@ -1,22 +1,11 @@
 ---
 name: agents-md
-description: Create, audit, and improve AGENTS.md files in repositories to provide persistent context for agentic assistants. Use when the user asks to create, check, audit, update, improve, or maintain AGENTS.md, or mentions project memory optimization. Includes optional Claude Code compatibility via CLAUDE.md symbolic linking.
+description: Create, audit, and maintain AGENTS.md files in repositories to provide persistent context for agentic assistants. Use when the user mentions AGENTS.md or project memory optimization. Includes optional Claude Code compatibility via CLAUDE.md symbolic linking.
 ---
 
 # AGENTS.md
 
-Audit, evaluate, create, and maintain AGENTS.md files across a repository to optimize project memory and context for AI assistants.
-
 Use the open AGENTS.md format reference at https://agents.md/ for baseline conventions: AGENTS.md is plain Markdown with no required fields. Nested files can scope instructions by directory but are optional (root file is sufficient). Repo evidence and explicit user instructions still govern the concrete content you write.
-
-## Quick start
-
-Run this flow to check or create AGENTS.md:
-1. Scan for existing `AGENTS.md` and `CLAUDE.md` files, and check if `CLAUDE.md` is already a symbolic link pointing to `AGENTS.md`.
-2. Ask the user (via interactive prompts or user questions) if they want to maintain Claude Code compatibility. **If `CLAUDE.md` is already a symbolic link pointing to `AGENTS.md`, skip this step and automatically proceed under the assumption that compatibility is desired.**
-3. Choose the target `AGENTS.md` explicitly before editing.
-4. Generate or improve `AGENTS.md` with build/test/run commands, code styles, and workflows.
-5. If Claude compatibility is active or selected, establish/verify the symbolic link from `CLAUDE.md` to `AGENTS.md` and explain it in `AGENTS.md`.
 
 ## Workflows
 

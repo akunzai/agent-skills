@@ -4,7 +4,7 @@ This reference provides instructions on how to safely compress, clean, and resol
 
 ## 1. Pruning Objectives
 
-- **Reduce Bloat**: Keep durable files under 100 lines so that loading memory in every session remains fast and token-efficient.
+- **Reduce Sprawl**: Keep durable files under 100 lines so that loading memory in every session remains fast and token-efficient.
 - **Single Source of Truth**: Eliminate outdated memory entries, redundant wording, and retired configurations.
 
 ## 2. Interactive Pruning Workflow
