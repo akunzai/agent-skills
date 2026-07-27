@@ -1,23 +1,28 @@
 # Templates & Formatting for `AGENTS.md`
 
-This document provides starter structures, formatting rules, and imports configuration for `AGENTS.md` files.
+This document provides starter structures, formatting rules, and progressive disclosure configurations for `AGENTS.md` files.
 
-Reference the open AGENTS.md format at https://agents.md/. AGENTS.md is plain Markdown with no required fields; common useful sections include project overview, build and test commands, code style, testing instructions, and security considerations. In monorepos, nested `AGENTS.md` files can scope instructions to subprojects (nested files are optional), and the closest `AGENTS.md` to the edited file wins.
+Reference the open AGENTS.md format at https://agents.md/. AGENTS.md is plain Markdown acting as an **Index-Driven Entrypoint**; common useful sections include project overview, build/test commands, code style, testing instructions, and security considerations. Keep root files under 100 lines. Offload multi-step SOPs to dedicated Skills or auxiliary Markdown files (*Context Offloading*).
 
 ---
 
-## 1. AGENTS.md Starter Template
+## 1. Progressive Disclosure Starter Template
 
-Use this starter template when creating a new `AGENTS.md` file. Adjust the commands and folder layouts depending on the detected build and test frameworks.
+Use this starter template when creating a new `AGENTS.md` file. Prefer **Rich References** (pointers to type schemas and gold-standard tests) over long prose specifications.
 
 ```markdown
 # [Project Name] Developer Guidelines
 
 ## Quick Commands
 - Build: <command> (e.g., npm run build)
-- Test: <command> (e.g., pytest)
+- Test All: <command> (e.g., pytest)
+- Single Test: <command> <filepath> (e.g., npx vitest run src/utils.test.ts)
 - Lint/Format: <command> (e.g., npx eslint .)
-- Run Dev: <command> (e.g., npm run dev)
+
+## Rich References & Core Schemas
+- Domain Schemas: @src/types/index.ts
+- API Contracts: @src/api/schema.ts
+- Gold-Standard Test Spec: @tests/example.spec.ts
 
 ## Architecture Overview
 - `/src`: Main application logic
@@ -30,10 +35,13 @@ Use this starter template when creating a new `AGENTS.md` file. Adjust the comma
 - <Formatting/linting conventions backed by config or nearby code>
 - <Module boundaries or file organization rules that are specific to this repository>
 
-## Workflows
-- **Testing**: Before submitting a PR, always run tests locally. Prefer testing a single file for speed: `npm run test -- <filepath>`.
-- **Git**: Branch name format: `feature/<desc>` or `bugfix/<desc>`.
+## Workflows & Context Offloading
+- **Single-Test Run**: Always target single test files during iteration for speed.
+- **Complex SOPs**: For database migration or deployment procedures, see @docs/deploy-sop.md or invoke relevant skills.
+- **Knowledge Writeback**: When discovering non-obvious gotchas, propose adding context-tagged rules to a `## Lessons Learned` section (see Section 4 below for format and pruning hygiene).
 ```
+
+Don't include a `## Lessons Learned` section in a brand-new `AGENTS.md` — it has no history to document yet. Add it later, per Section 4 below, once real gotchas surface.
 
 ---
 
@@ -59,31 +67,32 @@ If `CLAUDE.md` already exists and is not the intended symlink, do not replace it
 
 ---
 
-## 3. Advanced Imports and References
+## 3. Advanced Imports & Progressive Disclosure (Lazy Loading)
 
 To maintain modularity and avoid overloading `AGENTS.md` with every detail, use imports for auxiliary guidelines (supported by agent systems including Claude Code):
 
 ```markdown
-# Additional Instructions
-- Git workflow: @docs/git-instructions.md
-- Personal overrides: @~/.claude/my-project-instructions.md
+# Auxiliary Instructions (Loaded On-Demand)
+- Deployment SOP: @docs/deploy.md
+- Database Migration: @docs/db-migration.md
+- Personal Overrides: @~/.claude/my-project-instructions.md
 ```
-- `@path/to/file` tells the agent to load the referenced file on-demand.
-- Keep references to auxiliary files separated to save context token usage.
+- `@path/to/file` tells the agent to load the referenced file on-demand (*Lazy Loading*).
+- Keep root `AGENTS.md` lean (< 100 lines) by offloading deep specs to sub-documents.
 
 ---
 
-## 4. Lessons Learned Section (Optional)
+## 4. Lessons Learned & Active Pruning Section (Optional)
 
-Add this section to `AGENTS.md` only when the project has accumulated non-obvious institutional knowledge
-discovered through problem-solving. Keep it short and prune stale entries regularly.
+Add this section to `AGENTS.md` only when the project has accumulated non-obvious institutional knowledge discovered through problem-solving. Always include context tags (e.g. library version or OS scope).
 
 ```markdown
-## Lessons Learned
-- <Short rule or gotcha, e.g. "Running `npm test` without `--forceExit` hangs in CI due to an open DB connection in `src/db/client.ts`">
-- <Another non-obvious constraint discovered in practice>
+## Lessons Learned (Actively Pruned, max 5 entries)
+- [Node 20+] Running `npm test` without `--forceExit` hangs in CI due to an unclosed DB connection in `src/db/client.ts`.
 ```
 
-> [!TIP]
-> This section is a quality signal: if it grows beyond 5–7 bullets, consider promoting entries to
-> the relevant section (Commands, Architecture, etc.) and deleting them here.
+> [!IMPORTANT]
+> **Active Pruning Hygiene**: Keep this section under 5 bullet points. If it exceeds 5 entries, perform a pruning check:
+> 1. Delete gotchas for obsolete package versions.
+> 2. Promote durable architectural rules into Rich References (types or static linter rules).
+

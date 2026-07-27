@@ -51,26 +51,32 @@ The codebase does not contain an `AGENTS.md` or `CLAUDE.md`. The agent discovers
 
 ---
 
-## Example 2: Auditing and Updating an Existing AGENTS.md
+## Example 2: Auditing and Slimming Down an Over-Constrained AGENTS.md
 
 ### Scenario
-An `AGENTS.md` exists but lacks style guides and quick test commands.
+An `AGENTS.md` exists but is over-constrained with defensive micromanagement ("always write clean code", "never use null"), bloated prose tutorials, and unpruned stale gotchas.
 
 ### Flow
 
-1. **Discovery**
-   The agent finds `./AGENTS.md`.
+1. **Discovery & Assessment**
+   The agent finds `./AGENTS.md` and audits it against [quality-criteria.md](quality-criteria.md).
    
 2. **Quality Assessment Report**
    The agent outputs:
    > ### AGENTS.md Quality Report
-   > **Current Score**: B (75/100)
-   > **Gaps Identified**:
-   > - Testing commands are listed but missing faster single-file test options.
-   > - Lacks specific guidelines on CSS styles or typescript coding patterns.
+   > **Current Score**: C (60/100) - Over-Constrained & Monolithic SOP Bloat
+   > **Gaps & Red Flags Identified**:
+   > - **Micromanagement Audit Failure**: Contains defensive generic rules ("Write clean functions", "Add JSDoc to every line") which cause attention dilution.
+   > - **Prose Specs**: Contains a 30-line text tutorial on React state instead of pointing to Rich References.
+   > - **Unpruned Memory**: `## Lessons Learned` contains 8 stale entries without version scope tags.
+   > - **SOP Bloat**: Includes a 12-step DB migration script directly in root `AGENTS.md`.
 
-3. **Apply Improvements**
-   The agent keeps existing commands but refines the style instructions and updates `AGENTS.md` with targeted edits.
+3. **Apply Improvements (Progressive Disclosure & Context Offloading)**
+   The agent rewrites `AGENTS.md` to function as an Index-driven Entrypoint (< 100 lines):
+   - Removes all generic micromanagement rules (trusts model reasoning).
+   - Replaces prose specs with Rich References (`Domain Schemas: @src/types/index.ts`).
+   - Offloads DB Migration SOP to `@docs/db-migration.md` (*Context Offloading*).
+   - Prunes `Lessons Learned` down to 2 active, context-tagged gotchas.
 
 ---
 
