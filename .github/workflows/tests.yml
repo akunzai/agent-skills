@@ -67,6 +67,15 @@ jobs:
       - name: Run tidy-commits content checks
         run: bash tests/tidy-commits-content.sh
 
+  github-epic:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Run github-epic content checks
+        run: bash tests/github-epic-content.sh
+
   mise:
     runs-on: ubuntu-latest
     steps:
