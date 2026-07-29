@@ -38,7 +38,11 @@ Use this starter template when creating a new `AGENTS.md` file. Prefer **Rich Re
 ## Workflows & Context Offloading
 - **Single-Test Run**: Always target single test files during iteration for speed.
 - **Complex SOPs**: For database migration or deployment procedures, see @docs/deploy-sop.md or invoke relevant skills.
-- **Knowledge Writeback**: When discovering non-obvious gotchas, propose adding context-tagged rules to a `## Lessons Learned` section (see Section 4 below for format and pruning hygiene).
+
+## Knowledge Writeback & Active Pruning
+- **Extract Insights**: Distill non-obvious gotchas, hidden configurations, or project patterns into concise, non-derivable rules (1–2 bullets, no drifting metrics). Propose candidate additions to the user and update `AGENTS.md` (or relevant technical notes) upon explicit confirmation.
+- **Location**: Write global/project-level rules to `AGENTS.md`; offload topic-specific or multi-step details to dedicated notes.
+- **Active Pruning**: Keep `AGENTS.md` lean (< 100 lines). If `## Lessons Learned` or gotchas exceed 5 entries, prune obsolete items or promote mature patterns into types, tests, or auxiliary files.
 ```
 
 Don't include a `## Lessons Learned` section in a brand-new `AGENTS.md` — it has no history to document yet. Add it later, per Section 4 below, once real gotchas surface.
@@ -47,15 +51,12 @@ Don't include a `## Lessons Learned` section in a brand-new `AGENTS.md` — it h
 
 ## 2. Claude Code Compatibility Section
 
-If the user requests compatibility with Claude Code, append this exact section to the bottom of `AGENTS.md`:
+If the user requests compatibility with Claude Code, append this concise section to the bottom of `AGENTS.md`:
 
 ```markdown
 ## Claude Code Compatibility
 
-> [!NOTE]
-> This repository maintains compatibility with Claude Code. The file `CLAUDE.md` is a symbolic link pointing to `AGENTS.md`. 
-> All commands, style guides, and workflows defined in `AGENTS.md` apply to both Antigravity (and other agentic assistants) and Claude Code.
-> **DO NOT** delete the `CLAUDE.md` symbolic link or edit it independently; all guidelines must be updated directly in `AGENTS.md`.
+`CLAUDE.md` is a symbolic link pointing to `AGENTS.md`. Edit `AGENTS.md` directly.
 ```
 
 Create the symbolic link in the repository root only when `CLAUDE.md` is absent or already points to `AGENTS.md`:
@@ -63,7 +64,7 @@ Create the symbolic link in the repository root only when `CLAUDE.md` is absent 
 ln -s AGENTS.md CLAUDE.md
 ```
 
-If `CLAUDE.md` already exists and is not the intended symlink, do not replace it blindly. Read it, preserve any unique instructions, propose a migration into `AGENTS.md`, and ask for explicit approval before moving or replacing the file.
+If `CLAUDE.md` already exists and is not the intended symlink, do not replace it blindly. Read it, summarize any unique instructions, propose a migration into `AGENTS.md`, and ask for explicit approval before moving or replacing the file.
 
 ---
 
@@ -94,5 +95,4 @@ Add this section to `AGENTS.md` only when the project has accumulated non-obviou
 > [!IMPORTANT]
 > **Active Pruning Hygiene**: Keep this section under 5 bullet points. If it exceeds 5 entries, perform a pruning check:
 > 1. Delete gotchas for obsolete package versions.
-> 2. Promote durable architectural rules into Rich References (types or static linter rules).
-
+> 2. Promote durable architectural rules into Rich References (types or static linter rules) or auxiliary notes.
