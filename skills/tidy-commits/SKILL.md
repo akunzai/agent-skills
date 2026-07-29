@@ -36,6 +36,8 @@ Classify each commit before rewriting.
 
 Do not blend unrelated concerns just to reduce commit count. A good stack is a readable story, not necessarily one commit.
 
+- **Mixed-concern fixups guard**: Never `fixup` or `squash` a WIP or fixup commit into a target commit if the WIP commit contains changes to files in unrelated modules. Split the WIP commit first (or perform a soft reset and stage hunk-by-hunk) so each change is merged into its corresponding feature commit.
+
 ## Rewrite
 
 **Collapsing the whole range into one commit?** Skip the todo: `git reset --soft <base> && git commit`. This leaves the final tree staged and re-commits it as a single commit — nothing is replayed, so there are no conflicts (it signs automatically when `commit.gpgsign` is set). Use the rebase todo below only when you need selective fixup, reorder, or split.
@@ -76,6 +78,7 @@ If the repo uses a stacked-PR tool such as `gh stack`, prefer that tool's sync/r
 After rewriting:
 
 - Compare the final tree against the backup ref unless commits were intentionally dropped: `git diff --stat <backup-ref> HEAD` and `git diff <backup-ref> HEAD`.
+- Inspect per-commit file scope: Run `git log --stat <base>..HEAD` and verify each commit contains only files belonging to its own feature/scope (no cross-module pollution).
 - Show the new story: `git log --oneline --decorate <base>..HEAD`.
 - Run relevant tests, type checks, linters, or focused reproductions.
 - If branch protection requires verified signatures, check commit signatures with `git log --show-signature <base>..HEAD` or the repo's GitHub status. Re-sign rewritten commits before pushing when needed.
