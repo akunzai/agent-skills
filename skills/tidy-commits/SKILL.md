@@ -40,12 +40,12 @@ Do not blend unrelated concerns just to reduce commit count. A good stack is a r
 
 **Collapsing the whole range into one commit?** Skip the todo: `git reset --soft <base> && git commit`. This leaves the final tree staged and re-commits it as a single commit — nothing is replayed, so there are no conflicts (it signs automatically when `commit.gpgsign` is set). Use the rebase todo below only when you need selective fixup, reorder, or split.
 
-Otherwise prefer non-interactive rebase patterns (no editor prompts). Generate the todo oldest-first (the reverse of `git log`), edit the actions and order, then feed it back:
+Otherwise prefer non-interactive rebase patterns (no editor prompts; set `GIT_EDITOR=true` to prevent launching GUI editors like Zed). Generate the todo oldest-first (the reverse of `git log`), edit the actions and order, then feed it back:
 
 ```bash
 git log --reverse --format='pick %h %s' <base>..HEAD > "${TMPDIR:-/tmp}/tidy-commits-todo"
 # edit that file, then:
-GIT_SEQUENCE_EDITOR="cp ${TMPDIR:-/tmp}/tidy-commits-todo" git rebase -i --update-refs <base>
+GIT_EDITOR=true GIT_SEQUENCE_EDITOR="cp ${TMPDIR:-/tmp}/tidy-commits-todo" git rebase -i --update-refs <base>
 ```
 
 The first column is the action; lines run top (oldest) to bottom (newest):
@@ -57,7 +57,7 @@ pick   7890abc Add CLI flag
 edit   def1234 Wire CLI to parser   # stop to amend, then git rebase --continue
 ```
 
-Avoid `reword` in todo files because it opens an editor; use `edit`, then `git commit --amend -m ...` and `git rebase --continue`. Use `GIT_SEQUENCE_EDITOR=:` with `--exec` for bulk mechanical amendments.
+Avoid `reword` in todo files because it opens an editor; use `edit`, then `git commit --amend -m ...` and `git rebase --continue`.
 
 Recovery: mid-rebase, `git rebase --abort` restores the pre-rebase state; after a bad finish, `git reset --hard <backup-ref>`.
 

@@ -45,20 +45,15 @@ Before writing:
 - If compatibility is active or selected:
   - Create the symlink only when `CLAUDE.md` is absent or already the intended symlink.
   - If a regular `CLAUDE.md` exists, preserve its contents until the user approves migration and replacement.
-  - Add the explanation block to `AGENTS.md`.
+  - Add the concise explanation block (`CLAUDE.md is a symbolic link...`) to `AGENTS.md`.
   - Add `CLAUDE.md` overrides (if any) to `AGENTS.md` or as separate imports.
+- Include the `Knowledge Writeback & Active Pruning` section rules in `AGENTS.md` so all future agents follow them.
 
 ### 4. Knowledge Writeback & Active Pruning (on problem-solving)
-When solving a problem reveals non-obvious knowledge (e.g. a gotcha, hidden config, env var quirk, non-intuitive framework behavior), the agent MUST:
-1. **Extract reusable insight**: Distill the raw finding into a concise, durable rule with context tagging (e.g., framework/library version scope).
-2. **Propose the writeback**: Present the candidate snippet to the user and ask:
-   > "This insight may be worth preserving. Shall I add it to `AGENTS.md`?"
-3. **Write on approval only**: Update the most relevant `AGENTS.md` only after explicit user confirmation.
-4. **Active Pruning**: If `## Lessons Learned` exceeds 5 entries, perform a pruning check: propose deleting stale/obsolete gotchas or promoting durable patterns into Rich References (types/tests).
-5. **Apply quality filters** before writing (see [references/quality-criteria.md](references/quality-criteria.md)):
-   - Must be non-derivable from the codebase alone.
-   - Must not be a drifting metric or micromanagement rule.
-   - Must be concise (prefer one bullet point).
+When solving a problem reveals non-obvious knowledge (e.g., a gotcha, hidden config, env var quirk), the agent MUST:
+1. **Extract reusable insight**: Distill into a concise, non-derivable rule (1–2 bullets, no drifting metrics or micromanagement).
+2. **Propose the writeback**: Present the candidate snippet to the user for explicit confirmation before writing to `AGENTS.md` or dedicated notes.
+3. **Active Pruning**: Keep `AGENTS.md` lean (< 100 lines). If `## Lessons Learned` or gotchas exceed 5 entries, propose deleting stale items or promoting mature patterns into types, tests, or auxiliary files (see [references/quality-criteria.md](references/quality-criteria.md)).
 
 ## Advanced features
 
