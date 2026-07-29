@@ -85,6 +85,15 @@ jobs:
       - name: Run gitlab-epic content checks
         run: bash tests/gitlab-epic-content.sh
 
+  pr-workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Run pr-workflow content checks
+        run: bash tests/pr-workflow-content.sh
+
   mise:
     runs-on: ubuntu-latest
     steps:
