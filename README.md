@@ -27,6 +27,18 @@ Clean up local git commit history before review or merge. Use it to turn WIP,
 fixup, review-fix, format-only, poorly ordered, unsigned, or poorly messaged
 commits into a clear, verified branch story.
 
+### [`pr-workflow`](skills/pr-workflow/SKILL.md)
+
+Standard operating procedure for preparing, opening, and managing Pull Requests (PR) and Merge Requests (MR) safely with preflight checks, commit scoping, and issue auto-closing rules.
+
+### [`github-epic`](skills/github-epic/SKILL.md)
+
+Manage multi-issue epics, parent-child task hierarchies, and blocking dependencies natively on GitHub (`gh api ... sub_issues` and `dependencies/blocked_by`).
+
+### [`gitlab-epic`](skills/gitlab-epic/SKILL.md)
+
+Manage multi-issue epics and task hierarchies on GitLab (supporting Premium/Ultimate native epics and Free/CE tier label & markdown emulation).
+
 ### [`agents-md`](skills/agents-md/SKILL.md)
 
 Audit, create, and improve `AGENTS.md` files to give AI assistants persistent project memory.

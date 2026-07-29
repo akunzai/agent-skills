@@ -18,6 +18,7 @@
 
 ## Workflows & Conventions
 - **Skill Requirements**: Every skill lives in `skills/<name>/` and must contain `SKILL.md` with valid YAML frontmatter (`name`, `description`).
+- **Skill Documentation**: When creating or updating a skill in `skills/`, always update `README.md` to document its description and link.
 - **Shell Scripts**: Shell script style and linting standards are defined in @CONTRIBUTING.md.
 - **Single Test Execution**: Always run a targeted single test (`bash tests/<name>.sh`) during fast iteration.
 - **Knowledge Writeback**: When non-obvious gotchas or framework quirks are discovered, propose adding context-tagged rules to a `## Lessons Learned` section (create it if it doesn't already exist) upon user confirmation (keep max 5 items; prune or promote stale entries).
