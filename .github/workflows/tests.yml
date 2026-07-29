@@ -76,6 +76,15 @@ jobs:
       - name: Run github-epic content checks
         run: bash tests/github-epic-content.sh
 
+  gitlab-epic:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Run gitlab-epic content checks
+        run: bash tests/gitlab-epic-content.sh
+
   mise:
     runs-on: ubuntu-latest
     steps:
