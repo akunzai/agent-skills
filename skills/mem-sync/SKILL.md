@@ -1,13 +1,12 @@
 ---
 name: mem-sync
-description: Synchronize project daily memory logs (.memories/) across devices over Git using an isolated per-user branch and worktree, without polluting the active development branch. Use to pull other devices' logs at session start and push local logs at session end.
+description: DEPRECATED — Project short-term memory is now stored globally at ~/.agents/memories/projects/<proj-slug>/ without requiring Git sync operations.
 ---
 
-# mem-sync — Cross-Device Memory Sync
+# mem-sync — Cross-Device Memory Sync (DEPRECATED)
 
-Synchronizes `<repo>/.memories/` across machines through a dedicated, isolated
-per-user branch `memories/<email-localpart>` using a background git worktree, so the
-active development branch and your editor workspace are never disturbed.
+> [!NOTE]
+> `mem-sync` is deprecated. Project short-term memory has been migrated out of Git repositories to central device-local storage under `~/.agents/memories/projects/<proj-slug>/`. Git-based memory synchronization commands are no longer required.
 
 ## Per-User Branch
 
