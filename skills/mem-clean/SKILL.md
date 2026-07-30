@@ -7,10 +7,9 @@ description: Interactively clean short-term memory — delete expired project/gl
 
 ## What it cleans
 
-- **Expired project logs** in `<repo>/.memories/YYYY-MM-DD.md` — see
+- **Expired project logs** in `~/.agents/memories/projects/<proj-slug>/YYYY-MM-DD.md` — see
   [references/short-term-cleanup.md](references/short-term-cleanup.md).
-- **Expired global logs** in `~/.agents/memories/YYYY-MM-DD.md` — deleted directly
-  (not git-synced; see the reference).
+- **Expired global logs** in `~/.agents/memories/YYYY-MM-DD.md` — deleted directly.
 - **Cloud conflict copies** (`*Conflict*` / `*conflicted*`) in `~/.agents/` — see
   [references/cloud-conflict-resolver.md](references/cloud-conflict-resolver.md).
 
@@ -19,12 +18,6 @@ description: Interactively clean short-term memory — delete expired project/gl
 - Default retention is 30 days, computed from the `YYYY-MM-DD.md` filename, never mtime.
 - Block cleanup of daily logs with unresolved `[Candidate]` entries (not `[Promoted]`,
   `[Rejected]`, or `[Expired]`).
-- Leave `.memories/handoffs/` files alone: active handoffs are managed by `mem-auto`, which
-  deletes each task's file on completion. Only offer to remove a handoff file when the user
-  confirms its task is abandoned.
-- Project cleanup is per-user: after deleting expired logs locally, run
-  `/mem-sync` first, then `mem-sync-git.sh compact` to rewrite the user's
-  `memories/<email-localpart>` branch to a single commit and force-push. Other devices
-  adopt it on next pull.
+- Leave handoff files alone unless the user explicitly confirms a task is abandoned.
 - Always show the dry-run plan (scope, retention window, delete list, blocked files,
   user keep-list) and require explicit confirmation.
