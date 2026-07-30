@@ -52,14 +52,12 @@ Use it when you want to:
 
 ### [`mem-auto`](skills/mem-auto/SKILL.md)
 
-Autopilot memory governance umbrella. Restores open handoffs at session start, captures
-verified candidate notes, writes handoff blocks at boundaries, and delegates manual work
-to the commands below.
+Autopilot memory governance umbrella. Captures verified candidate notes to global project memory, and delegates manual work to the commands below.
 
 - [`mem-recall`](skills/mem-recall/SKILL.md) — search/load past context on demand
 - [`mem-promote`](skills/mem-promote/SKILL.md) — promote candidates to durable memory; prune duplicates
 - [`mem-clean`](skills/mem-clean/SKILL.md) — clean expired short-term logs; resolve cloud conflicts
-- [`mem-sync`](skills/mem-sync/SKILL.md) — sync daily logs across devices via a per-user branch
+- [`mem-sync`](skills/mem-sync/SKILL.md) — (DEPRECATED) project short-term memory is now stored globally without Git sync operations
 - [`mem-setup`](skills/mem-setup/SKILL.md) — bridge every installed agent's global memory to one canonical `~/.agents/AGENTS.md`
 
 ### [`mise`](skills/mise/SKILL.md)
@@ -78,15 +76,6 @@ lifecycle-script jail, and migrating from pnpm/npm/bun.
 
 Analyze conversation history across AI agents using `agentsview` (CLI or MCP) to extract reusable gotchas/preferences into `AGENTS.md` or construct new skills.
 
-
-## Compatibility
-
-| AI Assistant | Supported |
-| --- | --- |
-| [Antigravity](https://antigravity.google/) | ✅ |
-| [Claude Code](https://docs.claude.ai/code/overview) | ✅ |
-| [Codex](https://github.com/openai/codex) | ✅ |
-| [OpenCode](https://opencode.ai/) | ✅ |
 
 ## Contributing
 
