@@ -9,6 +9,7 @@ Standard operating procedure for preparing, opening, and managing Pull Requests 
 
 ## Preflight
 
+- **Base Sync**: Before creating a feature branch or starting a new task, fetch and sync the default base branch (`git fetch origin && git checkout main && git pull --ff-only` or branch directly off `origin/main`).
 - **Clean Working Tree**: Verify `git status` is clean before editing or opening PRs.
 - **Verification**: Run local **tests** and **linters** before opening or updating PRs.
 
