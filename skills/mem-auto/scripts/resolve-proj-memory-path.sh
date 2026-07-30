@@ -3,7 +3,7 @@ set -euo pipefail
 
 # resolve-proj-memory-path.sh
 # Resolves global project short-term memory path (~/.agents/memories/projects/<proj-slug>/)
-# Handles Git worktrees, calculates deterministic slug, and performs one-time legacy migration.
+# Pure path resolution without side-effects (no directory creation, no legacy migration).
 
 TARGET_DIR="${1:-$PWD}"
 
@@ -57,37 +57,5 @@ fi
 
 SLUG="${PROJ_NAME}-${HASH}"
 GLOBAL_MEM_DIR="${HOME}/.agents/memories/projects/${SLUG}"
-
-mkdir -p "$GLOBAL_MEM_DIR"
-
-# One-time legacy migration & cleanup if <repo>/.memories/ exists
-LEGACY_DIR="${MAIN_REPO_ROOT}/.memories"
-if [ -d "$LEGACY_DIR" ]; then
-  # Migrate files cleanly
-  find "$LEGACY_DIR" -mindepth 1 -maxdepth 1 ! -name ".memories" | while read -r item; do
-    if [ -n "$item" ]; then
-      cp -rn "$item" "$GLOBAL_MEM_DIR/" 2>/dev/null || true
-    fi
-  done
-
-  # Remove legacy directory
-  rm -rf "$LEGACY_DIR"
-fi
-
-# Remove leftover mem-sync worktree if present
-if $GIT_CMD rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  if [ -d "${MAIN_REPO_ROOT}/.git/memories-worktree" ]; then
-    $GIT_CMD worktree remove --force "${MAIN_REPO_ROOT}/.git/memories-worktree" 2>/dev/null || rm -rf "${MAIN_REPO_ROOT}/.git/memories-worktree"
-    $GIT_CMD worktree prune 2>/dev/null || true
-  fi
-fi
-
-# Check for leftover memories/* branches in git repo
-if $GIT_CMD rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  LEGACY_BRANCHES="$($GIT_CMD branch --list "memories/*" 2>/dev/null | tr -d ' *' || true)"
-  if [ -n "$LEGACY_BRANCHES" ]; then
-    echo "[Notice] Legacy memory sync branch(es) found: ${LEGACY_BRANCHES}. You can clean up local/remote memories branches if no longer needed." >&2
-  fi
-fi
 
 echo "$GLOBAL_MEM_DIR"
