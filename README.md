@@ -74,6 +74,11 @@ Use [aube](https://aube.jdx.dev/) as the Node.js package manager, installed and
 pinned through mise. Covers `aubr`/`aube ci` workflows, lockfile policy, the
 lifecycle-script jail, and migrating from pnpm/npm/bun.
 
+### [`agentsview-extract`](skills/agentsview-extract/SKILL.md)
+
+Analyze conversation history across AI agents using `agentsview` (CLI or MCP) to extract reusable gotchas/preferences into `AGENTS.md` or construct new skills.
+
+
 ## Compatibility
 
 | AI Assistant | Supported |

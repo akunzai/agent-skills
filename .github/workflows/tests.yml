@@ -112,6 +112,15 @@ jobs:
       - name: Run aube content checks
         run: bash tests/aube-content.sh
 
+  agentsview-extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Run agentsview-extract content checks
+        run: bash tests/agentsview-extract-content.sh
+
   mem-setup:
     runs-on: ubuntu-latest
     steps:
