@@ -47,7 +47,7 @@ grep -R -q -E 'sign|signature|verified' "$SKILL_DIR" \
 grep -R -q -E 'Mixed-concern fixups guard|unrelated modules' "$SKILL_DIR" \
   || fail "mixed-concern fixups guard guidance is missing"
 
-grep -R -q -E 'per-commit file scope|git log --stat' "$SKILL_DIR" \
-  || fail "per-commit file scope inspection guidance is missing"
+grep -R -q -E 'Outdated Base & Soft-Reset Guard|diverged base' "$SKILL_DIR" \
+  || fail "outdated base soft-reset guard guidance is missing"
 
 echo "tidy-commits content checks passed"

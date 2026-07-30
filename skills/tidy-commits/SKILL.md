@@ -37,10 +37,11 @@ Classify each commit before rewriting.
 Do not blend unrelated concerns just to reduce commit count. A good stack is a readable story, not necessarily one commit.
 
 - **Mixed-concern fixups guard**: Never `fixup` or `squash` a WIP or fixup commit into a target commit if the WIP commit contains changes to files in unrelated modules. Split the WIP commit first (or perform a soft reset and stage hunk-by-hunk) so each change is merged into its corresponding feature commit.
+- **Outdated Base & Soft-Reset Guard**: Never run `git reset --soft <base>` if the feature branch was branched off an older base commit and `<base>` has moved ahead. Soft-resetting across a diverged base will stage accidental deletions of new files added in `<base>`. Always rebase onto `<base>` first (`git rebase <base>`) or checkout feature files onto a fresh `<base>`.
 
 ## Rewrite
 
-**Collapsing the whole range into one commit?** Skip the todo: `git reset --soft <base> && git commit`. This leaves the final tree staged and re-commits it as a single commit — nothing is replayed, so there are no conflicts (it signs automatically when `commit.gpgsign` is set). Use the rebase todo below only when you need selective fixup, reorder, or split.
+**Collapsing the whole range into one commit?** Skip the todo: `git rebase` or `git reset --soft <base> && git commit` (ensuring the branch is rebased onto `<base>` first so no files from `<base>` are accidentally deleted). This leaves the final tree staged and re-commits it as a single commit — nothing is replayed, so there are no conflicts (it signs automatically when `commit.gpgsign` is set). Use the rebase todo below only when you need selective fixup, reorder, or split.
 
 Otherwise prefer non-interactive rebase patterns (no editor prompts; set `GIT_EDITOR=true` to prevent launching GUI editors like Zed). Generate the todo oldest-first (the reverse of `git log`), edit the actions and order, then feed it back:
 
@@ -78,7 +79,7 @@ If the repo uses a stacked-PR tool such as `gh stack`, prefer that tool's sync/r
 After rewriting:
 
 - Compare the final tree against the backup ref unless commits were intentionally dropped: `git diff --stat <backup-ref> HEAD` and `git diff <backup-ref> HEAD`.
-- Inspect per-commit file scope: Run `git log --stat <base>..HEAD` and verify each commit contains only files belonging to its own feature/scope (no cross-module pollution).
+- Inspect per-commit file scope & file absence: Run `git diff --name-status <base>..HEAD` and verify that no unrelated files (or files not touched by the original feature branch) were accidentally deleted or added.
 - Show the new story: `git log --oneline --decorate <base>..HEAD`.
 - Run relevant tests, type checks, linters, or focused reproductions.
 - If branch protection requires verified signatures, check commit signatures with `git log --show-signature <base>..HEAD` or the repo's GitHub status. Re-sign rewritten commits before pushing when needed.

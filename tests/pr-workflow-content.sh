@@ -41,7 +41,7 @@ grep -R -q -E 'gh pr edit' "$SKILL_DIR" \
 grep -R -q -E 'platform-tools\.md' "$SKILL_DIR/SKILL.md" \
   || fail "link to references/platform-tools.md in SKILL.md is missing"
 
-grep -R -q -E 'glab mr create|tea pr create|az repos pr create' "$SKILL_DIR" \
-  || fail "non-GitHub platform CLI guidance in reference docs is missing"
+grep -R -q -E 'Base Sync|git fetch origin' "$SKILL_DIR" \
+  || fail "Base Sync preflight guidance is missing"
 
 echo "pr-workflow content checks passed"
