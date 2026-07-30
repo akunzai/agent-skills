@@ -3,6 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RESOLVER="$ROOT_DIR/skills/mem-auto/scripts/resolve-proj-memory-path.sh"
+MIGRATOR="$ROOT_DIR/skills/mem-auto/scripts/migrate-legacy-proj-memory.sh"
+ENSURER="$ROOT_DIR/skills/mem-auto/scripts/ensure-proj-memory-path.sh"
 
 fail() {
   echo "mem-proj-storage test failed: $*" >&2
@@ -13,6 +15,14 @@ if [ ! -x "$RESOLVER" ]; then
   fail "Resolver script $RESOLVER is missing or not executable"
 fi
 
+if [ ! -x "$MIGRATOR" ]; then
+  fail "Migrator script $MIGRATOR is missing or not executable"
+fi
+
+if [ ! -x "$ENSURER" ]; then
+  fail "Ensurer script $ENSURER is missing or not executable"
+fi
+
 # Isolated temporary HOME directory to avoid touching user's real ~/.agents/
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
@@ -20,7 +30,7 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 export HOME="$TMP_DIR/mock_home"
 mkdir -p "$HOME"
 
-# Test 1: Non-Git Standalone Directory
+# Test 1: Pure Resolution (Non-Git Standalone Directory)
 NON_GIT_DIR="$TMP_DIR/standalone_proj"
 mkdir -p "$NON_GIT_DIR"
 
@@ -28,9 +38,14 @@ RES_NON_GIT="$("$RESOLVER" "$NON_GIT_DIR")"
 echo "$RES_NON_GIT" | grep -q "$HOME/.agents/memories/projects/standalone_proj-" \
   || fail "Non-git directory resolution path failed: $RES_NON_GIT"
 
-[ -d "$RES_NON_GIT" ] || fail "Resolved global memory directory was not created"
+[ ! -d "$RES_NON_GIT" ] || fail "Pure resolver should not create global memory directory automatically"
 
-# Test 2 & 3: Git Repo and Git Worktree
+# Ensurer creates directory
+ENS_NON_GIT="$("$ENSURER" "$NON_GIT_DIR")"
+[ "$RES_NON_GIT" = "$ENS_NON_GIT" ] || fail "Ensurer path ($ENS_NON_GIT) does not match resolver path ($RES_NON_GIT)"
+[ -d "$ENS_NON_GIT" ] || fail "Ensurer failed to create global memory directory"
+
+# Test 2 & 3: Git Repo and Git Worktree Resolution
 GIT_REPO_DIR="$TMP_DIR/main_repo"
 mkdir -p "$GIT_REPO_DIR"
 git -C "$GIT_REPO_DIR" init -b main >/dev/null
@@ -51,7 +66,7 @@ if [ "$MAIN_MEM_PATH" != "$WORKTREE_MEM_PATH" ]; then
   fail "Git worktree memory path ($WORKTREE_MEM_PATH) does not match main repo memory path ($MAIN_MEM_PATH)"
 fi
 
-# Test 4: Legacy Migration & Cleanup
+# Test 4: Legacy Migration & Cleanup via migrate-legacy-proj-memory.sh
 LEGACY_REPO="$TMP_DIR/legacy_repo"
 mkdir -p "$LEGACY_REPO/.memories/handoffs"
 git -C "$LEGACY_REPO" init -b main >/dev/null
@@ -62,13 +77,16 @@ echo "Candidate note 1" > "$LEGACY_REPO/.memories/2026-07-30.md"
 echo "Handoff note 1" > "$LEGACY_REPO/.memories/handoffs/2026-07-30__task.md"
 
 LEGACY_MEM_PATH="$("$RESOLVER" "$LEGACY_REPO")"
+[ ! -d "$LEGACY_MEM_PATH" ] || fail "Pure resolver should not create directory or perform migration"
+
+"$MIGRATOR" "$LEGACY_REPO"
 
 [ ! -d "$LEGACY_REPO/.memories" ] || fail "Legacy .memories directory was not removed from repository"
 [ -f "$LEGACY_MEM_PATH/2026-07-30.md" ] || fail "Legacy 2026-07-30.md log was not migrated to $LEGACY_MEM_PATH"
 [ -f "$LEGACY_MEM_PATH/handoffs/2026-07-30__task.md" ] || fail "Legacy handoff file was not migrated to $LEGACY_MEM_PATH/handoffs/"
 
-# Test 5: Idempotency
-IDEMPOTENT_PATH="$("$RESOLVER" "$LEGACY_REPO")"
+# Test 5: Idempotency with Ensurer
+IDEMPOTENT_PATH="$("$ENSURER" "$LEGACY_REPO")"
 if [ "$IDEMPOTENT_PATH" != "$LEGACY_MEM_PATH" ]; then
   fail "Idempotent run returned different path: $IDEMPOTENT_PATH vs $LEGACY_MEM_PATH"
 fi

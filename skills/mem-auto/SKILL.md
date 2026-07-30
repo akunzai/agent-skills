@@ -22,7 +22,7 @@ and `/mem-clean` for destructive cleanup.
 ## Autopilot Loop
 
 - [ ] **Start / Path Resolution**
-  - Resolve the project's global short-term memory path by executing `skills/mem-auto/scripts/resolve-proj-memory-path.sh`. This returns `~/.agents/memories/projects/<proj-slug>/` and automatically migrates any legacy `<repo>/.memories/` directory on first run. The script also emits a notice to `stderr` if it detects legacy `memories/*` branches in the git repository, suggesting cleanup.
+  - Resolve the project's global short-term memory path by executing `skills/mem-auto/scripts/resolve-proj-memory-path.sh` (or `skills/mem-auto/scripts/ensure-proj-memory-path.sh` to also execute `skills/mem-auto/scripts/migrate-legacy-proj-memory.sh` for legacy `<repo>/.memories/` migration and ensure directory creation). This returns `~/.agents/memories/projects/<proj-slug>/`.
   - Treat auto-loaded `AGENTS.md` / `CLAUDE.md` as the normal source for durable instructions; use `/mem-recall` for short-term logs, and inspect durable files only when their loaded content seems incomplete or exact wording matters.
 - [ ] **Capture**
   - Before writing task state, apply [references/security.md](references/security.md).
