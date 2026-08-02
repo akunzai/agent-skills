@@ -9,7 +9,8 @@ pull requests, or a schedule.
 Each priority skill has five versioned fixtures: expected trigger, expected
 non-trigger, pre-existing user changes, missing prerequisites, and a
 representative task. The runner executes every case in three isolated
-workspaces. A hard case is accepted when at least two replicas pass its
+workspaces. It schedules up to three cases concurrently, while keeping each
+case's three replicas sequential. A hard case is accepted when at least two replicas pass its
 deterministic evidence and preservation checks; otherwise the full suite
 fails.
 
@@ -21,10 +22,13 @@ raw prompts, responses, workspaces, credentials, or authorization headers.
 and cost. GitHub Actions retains this diagnostic artifact for 30 days.
 If Claude exits unsuccessfully, the runner records only a safe error category
 (for example, rate limit, budget, authentication, or unknown) on the failed
-replica, writes partial results with an abort reason, and stops immediately.
+replica, writes partial results with an abort reason, and stops launching new
+replicas or cases immediately. Requests already sent to the provider are
+allowed to finish because the runner cannot safely cancel them.
 It also records the stderr byte count, SHA-256 fingerprint, and whether stdout
-was empty, valid JSON, or invalid JSON. It never retains raw provider stderr
-in the artifact.
+was empty, valid JSON, or invalid JSON. For valid JSON it records only the
+bounded protocol fields `type`, `subtype`, and `is_error`; it never retains
+raw provider stderr or response text in the artifact.
 
 Rubric feedback belongs in a separate, non-blocking scorecard. It can guide a
 reviewer but cannot change the full suite's exit status.

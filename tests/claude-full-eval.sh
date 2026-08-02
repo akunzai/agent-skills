@@ -98,6 +98,7 @@ jq -e '
   .suite == "full"
   and .harness == "claude-code"
   and .requested_model == "anthropic/claude-sonnet-5"
+  and .invocation.max_turns == 16
   and .invocation.effort == "medium"
   and .invocation.dynamic_system_prompt_sections_excluded == true
   and (.cases | length == 15)
@@ -130,33 +131,40 @@ jq -e '.baseline.status == "exploratory" and .baseline.profile_matched == false 
 
 PROVIDER_FAILURE_ARTIFACT_DIR="$TEMP_DIR/provider-failure-artifacts"
 PROVIDER_FAILURE_LOG="$TEMP_DIR/provider-failure-invocations.log"
+PROVIDER_FAILURE_STDERR="$TEMP_DIR/provider-failure.stderr"
 if FAKE_PROVIDER_FAILURE_CASE='agents-md/expected-non-trigger' \
   FAKE_PROVIDER_FAILURE_REPLICA=2 \
-  FAKE_PROVIDER_FAILURE_RESPONSE=false \
+  FAKE_PROVIDER_FAILURE_RESPONSE='{"type":"result","subtype":"error_during_execution","is_error":true}' \
   FAKE_INVOCATION_LOG="$PROVIDER_FAILURE_LOG" \
   CLAUDE_BIN="$FAKE_CLAUDE" "$RUNNER" \
     --fixture-root "$FIXTURES" \
     --baseline "$BASELINE" \
     --artifact-dir "$PROVIDER_FAILURE_ARTIFACT_DIR" \
     --model 'anthropic/claude-sonnet-5' \
-    --effort medium >/dev/null; then
+    --effort medium >/dev/null 2>"$PROVIDER_FAILURE_STDERR"; then
   fail "provider rate limits must fail the evaluation"
 fi
+grep -q 'response subtype: error_during_execution' "$PROVIDER_FAILURE_STDERR" \
+  || fail "structured response subtype must be reported to stderr"
 EXPECTED_STDERR_SHA256="$(printf '%s\n' 'HTTP 429' | shasum -a 256 | awk '{print $1}')"
 jq -s -e --arg expected_stderr_sha256 "$EXPECTED_STDERR_SHA256" '
-  length == 2
-  and .[1].error_category == "rate_limited"
-  and .[1].error_diagnostics.stderr_bytes == 9
-  and .[1].error_diagnostics.stderr_sha256 == $expected_stderr_sha256
-  and .[1].error_diagnostics.response_state == "valid_json"
+  [.[] | select(.case == "agents-md/expected-non-trigger")] as $failed_case
+  | ($failed_case | length) == 2
+  and $failed_case[1].error_category == "rate_limited"
+  and $failed_case[1].error_diagnostics.stderr_bytes == 9
+  and $failed_case[1].error_diagnostics.stderr_sha256 == $expected_stderr_sha256
+  and $failed_case[1].error_diagnostics.response_state == "valid_json"
+  and $failed_case[1].error_diagnostics.response.type == "result"
+  and $failed_case[1].error_diagnostics.response.subtype == "error_during_execution"
+  and $failed_case[1].error_diagnostics.response.is_error == true
 ' \
   "$PROVIDER_FAILURE_ARTIFACT_DIR/replicas.ndjson" >/dev/null \
   || fail "rate-limited replica must include redacted failure diagnostics"
-jq -e '.aborted.reason == "rate_limited" and .acceptance.passed == false and (.cases | length == 1)' \
+jq -e '.aborted.reason == "rate_limited" and .acceptance.passed == false and ([.cases[] | select(.case == "agents-md/expected-non-trigger") | .replicas | length] == [2])' \
   "$PROVIDER_FAILURE_ARTIFACT_DIR/results.json" >/dev/null \
   || fail "rate limits must retain partial results and abort the suite"
-[ "$(wc -l < "$PROVIDER_FAILURE_LOG" | tr -d ' ')" = 2 ] \
-  || fail "rate limits must stop before additional model invocations"
+! rg -q '^agents-md/expected-non-trigger/3$' "$PROVIDER_FAILURE_LOG" \
+  || fail "rate limits must stop the failed case before its third replica"
 if rg -n 'HTTP 429' "$PROVIDER_FAILURE_ARTIFACT_DIR"; then
   fail "artifacts must not retain raw provider errors"
 fi

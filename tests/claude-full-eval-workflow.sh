@@ -21,6 +21,7 @@ grep -q 'OPENROUTER_API_KEY: \${{ secrets.OPENROUTER_API_KEY }}' "$WORKFLOW" \
   || fail "workflow must read the OpenRouter key from the environment secret"
 grep -q 'evals/run-claude-full.sh' "$WORKFLOW" || fail "workflow must run the full-suite seam"
 grep -q 'default: medium' "$WORKFLOW" || fail "workflow must default to medium effort"
+grep -q "default: '16'" "$WORKFLOW" || fail "workflow must default to 16 max turns"
 # shellcheck disable=SC2016
 grep -q -- '--effort "$EFFORT"' "$WORKFLOW" || fail "workflow must pass the selected effort"
 grep -A2 'Upload evaluation artifacts' "$WORKFLOW" | grep -q 'if: always()' \

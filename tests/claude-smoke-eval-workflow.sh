@@ -12,6 +12,8 @@ fail() {
 [ -f "$WORKFLOW" ] || fail "manual workflow is missing"
 
 grep -q 'workflow_dispatch:' "$WORKFLOW" || fail "workflow must be manually dispatched"
+grep -q 'default: anthropic/claude-haiku-4.5' "$WORKFLOW" \
+  || fail "workflow must default to Claude Haiku 4.5"
 if grep -qE '^  (push|pull_request|schedule):' "$WORKFLOW"; then
   fail "workflow must not run on push, pull requests, or a schedule"
 fi
