@@ -12,6 +12,8 @@ The initial suite evaluates `agents-md` in isolated fixtures:
 
 Each run emits a redacted `results.json` artifact with the requested and resolved model identifiers, Claude Code version, case outcomes, skill-invocation hook evidence, observable fixture evidence, exit status, elapsed time, and aggregate cost. The runner judges cases from temporary-workspace evidence rather than model self-reporting, and fails a case that modifies anything beyond its permitted evidence file. It does not retain raw Claude output, credentials, authorization headers, or fixture workspaces.
 
+The missing-prerequisite case passes only when `agents-md` is invoked and the temporary workspace remains unchanged. This verifies its safe-stop behavior without asking the agent to create a blocker artifact that the skill does not prescribe.
+
 ## Running it
 
 Use the **Claude smoke evaluation** workflow from the Actions tab. It uses the protected `skills-evals` environment and requires its `OPENROUTER_API_KEY` secret. The default model is the fixed OpenRouter identifier `anthropic/claude-sonnet-5`; the result records the requested and resolved model identifiers.

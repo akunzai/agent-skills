@@ -51,7 +51,6 @@ case "$case_name" in
     ;;
   missing-prerequisite)
     mkdir -p evaluation
-    printf '%s\n' 'An explicit target is required.' > evaluation/blocker.md
     touch evaluation/skill-invoked
     printf '%s\n' '{"modelUsage":{"anthropic/claude-sonnet-5":{}},"total_cost_usd":0.01}'
     ;;
@@ -82,7 +81,7 @@ jq -e '
   and ([.cases[].status] | all(. == "pass"))
   and ([.cases[].resolved_model] | all(. == "anthropic/claude-sonnet-5"))
   and ([.cases[].elapsed_seconds] | all(. >= 0))
-  and ([.cases[].evidence.status] | sort == ["absent", "matched", "matched"])
+  and ([.cases[].evidence.status] | sort == ["absent", "absent", "matched"])
   and ([.cases[].workspace_clean] | all(. == true))
   and .aggregate_cost_usd == 0.03
 ' "$RESULTS" >/dev/null || fail "results do not satisfy the public contract"

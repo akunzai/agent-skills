@@ -2,5 +2,5 @@
   "skill_invoked": true,
   "outcome": "blocked",
   "evidence_file": "evaluation/blocker.md",
-  "required_pattern": "explicit target"
+  "evidence_absent": true
 }
