@@ -43,3 +43,7 @@ Use the repository's default canonical triage labels. See `docs/agents/triage-la
 ### Domain docs
 
 This is a single-context repository. See `docs/agents/domain.md`.
+
+### Skill evaluation
+
+When changing a skill covered by an eval, run its relevant manual smoke suite before review and link the workflow run in the PR. Real model-backed evals are manual-only; see `docs/evals/claude-smoke.md`.
