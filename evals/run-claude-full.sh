@@ -12,6 +12,7 @@ ARTIFACT_DIR="$DEFAULT_ARTIFACT_DIR"
 MODEL="anthropic/claude-sonnet-5"
 MAX_TURNS="8"
 MAX_BUDGET_USD="2"
+EFFORT="medium"
 REPLICAS="3"
 
 usage() {
@@ -27,6 +28,7 @@ Options:
   --model MODEL        Requested Claude model.
   --max-turns COUNT    Maximum Claude agent turns per fixture.
   --max-budget-usd USD Maximum Claude spend per fixture.
+  --effort LEVEL       Claude reasoning effort: low, medium, high, xhigh, or max.
   --help               Show this help.
 EOF
 }
@@ -41,6 +43,7 @@ while [ "$#" -gt 0 ]; do
     --model) MODEL="${2:-}"; shift 2 ;;
     --max-turns) MAX_TURNS="${2:-}"; shift 2 ;;
     --max-budget-usd) MAX_BUDGET_USD="${2:-}"; shift 2 ;;
+    --effort) EFFORT="${2:-}"; shift 2 ;;
     --help) usage; exit 0 ;;
     *) fail "unknown option: $1" ;;
   esac
@@ -50,6 +53,10 @@ command -v "$CLAUDE_BIN" >/dev/null 2>&1 || fail "Claude executable not found: $
 [ -d "$FIXTURE_ROOT" ] || fail "fixture root does not exist: $FIXTURE_ROOT"
 [ -f "$BASELINE" ] || fail "baseline does not exist: $BASELINE"
 [[ "$MAX_TURNS" =~ ^[1-9][0-9]*$ ]] || fail "max turns must be a positive integer"
+case "$EFFORT" in
+  low|medium|high|xhigh|max) ;;
+  *) fail "effort must be low, medium, high, xhigh, or max" ;;
+esac
 [[ "$REPLICAS" -eq 3 ]] || fail "full suite requires exactly three replicas"
 [ "$MODEL" = "anthropic/claude-sonnet-5" ] || fail "full suite baseline requires anthropic/claude-sonnet-5"
 
@@ -72,6 +79,8 @@ jq -e --argjson cases "$EXPECTED_CASES" '
   and (.cases | map(.case) | sort) == ($cases | sort)
   and .hard_check.minimum_passing_replicas == 2
   and .hard_check.all_cases_accepted == true
+  and .profile.effort == "medium"
+  and .profile.dynamic_system_prompt_sections_excluded == true
 ' "$BASELINE" >/dev/null || fail "baseline does not match versioned fixtures"
 
 mkdir -p "$ARTIFACT_DIR"
@@ -136,6 +145,7 @@ for fixture_dir in "${FIXTURES[@]}"; do
       EVAL_CASE_NAME="$case_id" EVAL_REPLICA="$replica" "$CLAUDE_BIN" \
         -p "$(<"$PROMPT_FILE")" --model "$MODEL" --plugin-dir "$plugin_dir" \
         --output-format json --max-turns "$MAX_TURNS" --max-budget-usd "$MAX_BUDGET_USD" \
+        --effort "$EFFORT" --exclude-dynamic-system-prompt-sections \
         --permission-mode acceptEdits --no-session-persistence
     ) >"$response_file" 2>"$error_file"
     exit_code=$?
@@ -175,18 +185,29 @@ for fixture_dir in "${FIXTURES[@]}"; do
   ' "$case_results" >> "$RESULTS_NDJSON"
 done
 
-jq -s --arg model "$MODEL" --arg harness_version "$HARNESS_VERSION" --arg max_turns "$MAX_TURNS" --arg max_budget_usd "$MAX_BUDGET_USD" '
-  {suite: "full", adapter: "claude-code-direct", harness: "claude-code", harness_version: $harness_version, provider: "openrouter", gateway: "anthropic-compatible", requested_model: $model, invocation: {max_turns: ($max_turns | tonumber), max_budget_usd: ($max_budget_usd | tonumber)}, cases: ., aggregate_cost_usd: ([.[].replicas[].cost_usd] | add), rubric: {blocking: false, status: "not-run"}, acceptance: {hard_checks_passed: ([.[].hard_check.accepted] | all)}}
+jq -s --arg model "$MODEL" --arg harness_version "$HARNESS_VERSION" --arg max_turns "$MAX_TURNS" --arg max_budget_usd "$MAX_BUDGET_USD" --arg effort "$EFFORT" '
+  {suite: "full", adapter: "claude-code-direct", harness: "claude-code", harness_version: $harness_version, provider: "openrouter", gateway: "anthropic-compatible", requested_model: $model, invocation: {max_turns: ($max_turns | tonumber), max_budget_usd: ($max_budget_usd | tonumber), effort: $effort, dynamic_system_prompt_sections_excluded: true}, cases: ., aggregate_cost_usd: ([.[].replicas[].cost_usd] | add), rubric: {blocking: false, status: "not-run"}, acceptance: {hard_checks_passed: ([.[].hard_check.accepted] | all)}}
 ' "$RESULTS_NDJSON" > "$ARTIFACT_DIR/results.json"
 
 BASELINE_CASES="$(jq '[.cases[] | {case: .case, fixture_hash: .fixture_hash, accepted: .hard_check.accepted}] | sort_by(.case)' "$ARTIFACT_DIR/results.json")"
 baseline_matched=false
-if jq -e --argjson cases "$BASELINE_CASES" '.cases | sort_by(.case) == $cases' "$BASELINE" >/dev/null; then
+profile_matched=false
+if jq -e --arg effort "$EFFORT" '.profile.effort == $effort and .profile.dynamic_system_prompt_sections_excluded == true' "$BASELINE" >/dev/null; then
+  profile_matched=true
+fi
+if [ "$profile_matched" = true ] && jq -e --argjson cases "$BASELINE_CASES" '.cases | sort_by(.case) == $cases' "$BASELINE" >/dev/null; then
   baseline_matched=true
 fi
-jq --arg status "$( [ "$baseline_matched" = true ] && printf matched || printf regressed )" \
+baseline_status=regressed
+if [ "$profile_matched" != true ]; then
+  baseline_status=exploratory
+elif [ "$baseline_matched" = true ]; then
+  baseline_status=matched
+fi
+jq --arg status "$baseline_status" \
   --argjson accepted "$baseline_matched" \
-  '.baseline = {status: $status, hard_check: {all_cases_accepted: $accepted}} | .acceptance.passed = (.acceptance.hard_checks_passed and $accepted)' \
+  --argjson profile_matched "$profile_matched" \
+  '.baseline = {status: $status, profile_matched: $profile_matched, hard_check: {all_cases_accepted: $accepted}} | .acceptance.passed = (.acceptance.hard_checks_passed and $accepted)' \
   "$ARTIFACT_DIR/results.json" > "$TEMP_DIR/results-with-baseline.json"
 mv "$TEMP_DIR/results-with-baseline.json" "$ARTIFACT_DIR/results.json"
 jq -n '{blocking: false, status: "not-configured", feedback: []}' > "$ARTIFACT_DIR/rubric.json"

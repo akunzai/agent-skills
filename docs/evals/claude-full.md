@@ -29,6 +29,12 @@ Use the **Claude full evaluation** workflow from the Actions tab. It uses the
 protected `skills-evals` environment and the fixed OpenRouter model identifier
 `anthropic/claude-sonnet-5` by default.
 
+The baseline profile explicitly uses Claude Code's `medium` effort and excludes
+dynamic system-prompt sections so identical fixture replicas have a better
+chance to reuse provider prompt caches. A run using another effort is recorded
+as exploratory and cannot match the approved baseline. It does not enable response caching:
+replaying a prior model response would invalidate the three-replica comparison.
+
 Run the full suite when preparing a formal comparison, changing an approved
 baseline, or upgrading Claude Code. When changing one priority skill, run its
 smoke evaluation before review and link the applicable workflow run in the
