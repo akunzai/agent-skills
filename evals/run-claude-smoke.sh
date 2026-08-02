@@ -102,7 +102,7 @@ for case_name in "${REQUIRED_CASES[@]}"; do
   PLUGIN_DIR="$WORKSPACE/.claude/eval-plugin"
   mkdir -p "$PLUGIN_DIR/skills"
   cp -R "$ROOT_DIR/skills/agents-md" "$PLUGIN_DIR/skills/agents-md"
-  mkdir -p "$PLUGIN_DIR/.claude-plugin" "$PLUGIN_DIR/hooks"
+  mkdir -p "$PLUGIN_DIR/.claude-plugin"
   cat >"$PLUGIN_DIR/.claude-plugin/plugin.json" <<'EOF'
 {
   "name": "agents-md-eval",
@@ -110,39 +110,6 @@ for case_name in "${REQUIRED_CASES[@]}"; do
   "description": "Temporary instrumentation for agents-md evaluation"
 }
 EOF
-  cat >"$PLUGIN_DIR/hooks/hooks.json" <<'EOF'
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Skill",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/record-agents-md-invocation.sh"
-          }
-        ]
-      }
-    ]
-  }
-}
-EOF
-  mkdir -p "$PLUGIN_DIR/scripts"
-  cat >"$PLUGIN_DIR/scripts/record-agents-md-invocation.sh" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-
-hook_input="$(cat)"
-skill_name="$(jq -r '.tool_input.skill // .tool_input.name // empty' <<<"$hook_input")"
-case "$skill_name" in
-  agents-md|*:agents-md)
-    mkdir -p "${CLAUDE_PROJECT_DIR}/evaluation"
-    touch "${CLAUDE_PROJECT_DIR}/evaluation/skill-invoked"
-    ;;
-esac
-EOF
-  chmod +x "$PLUGIN_DIR/scripts/record-agents-md-invocation.sh"
-
   RESPONSE_FILE="$TEMP_DIR/$case_name-response.json"
   ERROR_FILE="$TEMP_DIR/$case_name-error.txt"
   START_EPOCH="$(date +%s)"
@@ -164,12 +131,10 @@ EOF
   ELAPSED_SECONDS="$(( $(date +%s) - START_EPOCH ))"
 
   EXPECTED_OUTCOME="$(jq -r '.outcome' "$EXPECTATION_FILE")"
-  EXPECTED_SKILL="$(jq -r '.skill_invoked' "$EXPECTATION_FILE")"
   EVIDENCE_PATH="$(jq -r '.evidence_file' "$EXPECTATION_FILE")"
   REQUIRED_PATTERN="$(jq -r '.required_pattern // empty' "$EXPECTATION_FILE")"
   EVIDENCE_ABSENT="$(jq -r '.evidence_absent // false' "$EXPECTATION_FILE")"
   EVIDENCE_FILE="$WORKSPACE/$EVIDENCE_PATH"
-  SKILL_MARKER="$WORKSPACE/evaluation/skill-invoked"
   EVIDENCE_STATUS="missing"
   if [ "$EVIDENCE_ABSENT" = "true" ] && [ ! -e "$EVIDENCE_FILE" ]; then
     EVIDENCE_STATUS="absent"
@@ -182,12 +147,7 @@ EOF
     ACTUAL_OUTCOME="$EXPECTED_OUTCOME"
   fi
   SUMMARY="Observable fixture evidence: $EVIDENCE_STATUS"
-  ACTUAL_SKILL="false"
-  if [ -f "$SKILL_MARKER" ]; then
-    ACTUAL_SKILL="true"
-  fi
-
-  rm -f "$EVIDENCE_FILE" "$SKILL_MARKER"
+  rm -f "$EVIDENCE_FILE"
   rmdir "$WORKSPACE/evaluation" 2>/dev/null || true
   WORKSPACE_CLEAN="true"
   if ! diff -qr --exclude='.claude' "$ORIGINAL_PROJECT" "$WORKSPACE" >/dev/null; then
@@ -203,7 +163,7 @@ EOF
   fi
 
   STATUS="pass"
-  if [ "$EXIT_CODE" -ne 0 ] || [ "$ACTUAL_SKILL" != "$EXPECTED_SKILL" ] || [ "$ACTUAL_OUTCOME" != "$EXPECTED_OUTCOME" ] || [ "$WORKSPACE_CLEAN" != "true" ] || [ -z "$RESOLVED_MODEL" ]; then
+  if [ "$EXIT_CODE" -ne 0 ] || [ "$ACTUAL_OUTCOME" != "$EXPECTED_OUTCOME" ] || [ "$WORKSPACE_CLEAN" != "true" ] || [ -z "$RESOLVED_MODEL" ]; then
     STATUS="fail"
   fi
 
@@ -211,9 +171,7 @@ EOF
     --arg case_name "$case_name" \
     --arg status "$STATUS" \
     --arg expected_outcome "$EXPECTED_OUTCOME" \
-    --arg expected_skill "$EXPECTED_SKILL" \
     --arg actual_outcome "$ACTUAL_OUTCOME" \
-    --arg actual_skill "$ACTUAL_SKILL" \
     --arg summary "$SUMMARY" \
     --arg error_summary "$ERROR_SUMMARY" \
     --arg evidence_path "$EVIDENCE_PATH" \
@@ -226,8 +184,8 @@ EOF
     '{
       case: $case_name,
       status: $status,
-      expected: {skill_invoked: ($expected_skill == "true"), outcome: $expected_outcome},
-      actual: {skill_invoked: ($actual_skill == "true"), outcome: $actual_outcome},
+      expected: {outcome: $expected_outcome},
+      actual: {outcome: $actual_outcome},
       summary: $summary,
       evidence: {path: ($case_name + "/" + $evidence_path), status: $evidence_status},
       workspace_clean: ($workspace_clean == "true"),
