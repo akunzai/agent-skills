@@ -6,7 +6,7 @@ on:
       model:
         description: OpenRouter model identifier
         required: true
-        default: anthropic/claude-sonnet-5
+        default: anthropic/claude-haiku-4.5
         type: string
       max_turns:
         description: Maximum Claude agent turns per fixture

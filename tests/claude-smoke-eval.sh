@@ -43,13 +43,13 @@ case "$case_name" in
   expected-trigger)
     mkdir -p evaluation
     printf '%s\n' '## Micromanagement Audit' > evaluation/quality-report.md
-    printf '%s\n' '{"modelUsage":{"anthropic/claude-sonnet-5":{}},"total_cost_usd":0.01}'
+    printf '%s\n' '{"modelUsage":{"anthropic/claude-haiku-4.5":{}},"total_cost_usd":0.01}'
     ;;
   expected-non-trigger)
-    printf '%s\n' '{"modelUsage":{"anthropic/claude-sonnet-5":{}},"total_cost_usd":0.01}'
+    printf '%s\n' '{"modelUsage":{"anthropic/claude-haiku-4.5":{}},"total_cost_usd":0.01}'
     ;;
   missing-prerequisite)
-    printf '%s\n' '{"modelUsage":{"anthropic/claude-sonnet-5":{}},"total_cost_usd":0.01}'
+    printf '%s\n' '{"modelUsage":{"anthropic/claude-haiku-4.5":{}},"total_cost_usd":0.01}'
     ;;
   *)
     exit 2
@@ -64,7 +64,7 @@ ARTIFACT_DIR="$TEMP_DIR/artifacts"
 PATH="$NO_RG_DIR:$PATH" CLAUDE_BIN="$FAKE_CLAUDE" "$RUNNER" \
   --fixture-root "$FIXTURES" \
   --artifact-dir "$ARTIFACT_DIR" \
-  --model 'anthropic/claude-sonnet-5'
+  --model 'anthropic/claude-haiku-4.5'
 
 RESULTS="$ARTIFACT_DIR/results.json"
 [ -f "$RESULTS" ] || fail "normalized results were not written"
@@ -72,11 +72,11 @@ RESULTS="$ARTIFACT_DIR/results.json"
 jq -e '
   .suite == "smoke"
   and .harness == "claude-code"
-  and .requested_model == "anthropic/claude-sonnet-5"
+  and .requested_model == "anthropic/claude-haiku-4.5"
   and .harness_version == "2.1.220"
   and (.cases | length == 3)
   and ([.cases[].status] | all(. == "pass"))
-  and ([.cases[].resolved_model] | all(. == "anthropic/claude-sonnet-5"))
+  and ([.cases[].resolved_model] | all(. == "anthropic/claude-haiku-4.5"))
   and ([.cases[].elapsed_seconds] | all(. >= 0))
   and ([.cases[].evidence.status] | sort == ["absent", "absent", "matched"])
   and ([.cases[].workspace_clean] | all(. == true))

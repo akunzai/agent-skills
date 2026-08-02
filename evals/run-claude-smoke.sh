@@ -7,7 +7,7 @@ DEFAULT_ARTIFACT_DIR="${TMPDIR:-/tmp}/agent-skills-evals/claude-smoke"
 CLAUDE_BIN="${CLAUDE_BIN:-claude}"
 FIXTURE_ROOT="$DEFAULT_FIXTURE_ROOT"
 ARTIFACT_DIR="$DEFAULT_ARTIFACT_DIR"
-MODEL="anthropic/claude-sonnet-5"
+MODEL="anthropic/claude-haiku-4.5"
 MAX_TURNS="8"
 MAX_BUDGET_USD="2"
 
