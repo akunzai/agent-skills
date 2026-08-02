@@ -34,3 +34,7 @@ depends = ["lint-shell", "lint-actions"]
 [tasks.eval-claude-smoke]
 description = "Run the manual Claude Code smoke-evaluation fixtures"
 run = "evals/run-claude-smoke.sh"
+
+[tasks.eval-claude-full]
+description = "Run the manual three-replica Claude Code release baseline"
+run = "evals/run-claude-full.sh"
