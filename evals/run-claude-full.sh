@@ -78,6 +78,8 @@ mkdir -p "$ARTIFACT_DIR"
 TEMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEMP_DIR"' EXIT
 RESULTS_NDJSON="$TEMP_DIR/results.ndjson"
+REPLICA_CHECKPOINT="$ARTIFACT_DIR/replicas.ndjson"
+: > "$REPLICA_CHECKPOINT"
 HARNESS_VERSION="$("$CLAUDE_BIN" --version 2>/dev/null || printf 'unknown')"
 
 for fixture_dir in "${FIXTURES[@]}"; do
@@ -161,10 +163,11 @@ for fixture_dir in "${FIXTURES[@]}"; do
       status=fail
     fi
     echo "Finished $case_id replica $replica/3: $status (${elapsed_seconds}s)"
-    jq -n --arg replica "$replica" --arg status "$status" --arg actual_outcome "$actual_outcome" --arg evidence_status "$evidence_status" \
+    jq -n --arg case_id "$case_id" --arg skill "$SKILL" --arg fixture_hash "$FIXTURE_HASH" --arg replica "$replica" --arg status "$status" --arg actual_outcome "$actual_outcome" --arg evidence_status "$evidence_status" \
       --arg resolved_model "$resolved_model" --arg workspace_clean "$workspace_clean" \
       --argjson exit_code "$exit_code" --argjson elapsed_seconds "$elapsed_seconds" --argjson cost "$cost" \
-      '{replica: ($replica | tonumber), status: $status, actual: {outcome: $actual_outcome}, deterministic_checks: {evidence_status: $evidence_status, workspace_clean: ($workspace_clean == "true")}, resolved_model: $resolved_model, exit_code: $exit_code, elapsed_seconds: $elapsed_seconds, cost_usd: $cost}' >> "$case_results"
+      '{case: $case_id, skill: $skill, fixture_hash: $fixture_hash, replica: ($replica | tonumber), status: $status, actual: {outcome: $actual_outcome}, deterministic_checks: {evidence_status: $evidence_status, workspace_clean: ($workspace_clean == "true")}, resolved_model: $resolved_model, exit_code: $exit_code, elapsed_seconds: $elapsed_seconds, cost_usd: $cost}' \
+      | tee -a "$REPLICA_CHECKPOINT" >> "$case_results"
   done
 
   jq -s --arg case_id "$case_id" --arg skill "$SKILL" --arg fixture_hash "$FIXTURE_HASH" --arg expected_outcome "$EXPECTED_OUTCOME" '

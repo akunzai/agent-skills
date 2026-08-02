@@ -1,1 +1,1 @@
-/agents-md Audit the instruction file and write a report to evaluation/result.md. Preserve every existing user change.
+/agents-md Audit the instruction file and write a report to evaluation/result.md. Include a `Micromanagement Audit` heading and preserve every existing user change.

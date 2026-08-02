@@ -1,1 +1,1 @@
-/pr-workflow Write a pre-PR checklist to evaluation/result.md and preserve existing user changes.
+/pr-workflow Write a pre-PR checklist to evaluation/result.md with the heading `## Pull Request Checklist` and preserve existing user changes.
