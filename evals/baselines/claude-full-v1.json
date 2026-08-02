@@ -6,6 +6,10 @@
     "minimum_passing_replicas": 2,
     "all_cases_accepted": true
   },
+  "profile": {
+    "effort": "medium",
+    "dynamic_system_prompt_sections_excluded": true
+  },
   "cases": [
     {"case":"agents-md/expected-non-trigger","fixture_hash":"3f1a29927f3071cfdef7550be02880d3d5ab47062634cf58a3ff4e985926d680","accepted":true},
     {"case":"agents-md/expected-trigger","fixture_hash":"7328b8570d55bb4beda46cb1a5787a12ceea5d69af5d7d5567dba45d9a5b0f7f","accepted":true},

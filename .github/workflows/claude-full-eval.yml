@@ -18,6 +18,17 @@ on:
         required: true
         default: '2'
         type: string
+      effort:
+        description: Claude reasoning effort for each fixture replica
+        required: true
+        default: medium
+        type: choice
+        options:
+          - low
+          - medium
+          - high
+          - xhigh
+          - max
 
 permissions:
   contents: read
@@ -35,6 +46,7 @@ jobs:
       MODEL: ${{ inputs.model }}
       MAX_TURNS: ${{ inputs.max_turns }}
       MAX_BUDGET_USD: ${{ inputs.max_budget_usd }}
+      EFFORT: ${{ inputs.effort }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -54,7 +66,8 @@ jobs:
             --artifact-dir "$ARTIFACT_DIR" \
             --model "$MODEL" \
             --max-turns "$MAX_TURNS" \
-            --max-budget-usd "$MAX_BUDGET_USD"
+            --max-budget-usd "$MAX_BUDGET_USD" \
+            --effort "$EFFORT"
 
       - name: Upload evaluation artifacts
         if: always()

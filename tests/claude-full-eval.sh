@@ -27,6 +27,14 @@ case " ${*} " in
   *" --plugin-dir "*) ;;
   *) echo "missing plugin directory" >&2; exit 3 ;;
 esac
+case " ${*} " in
+  *" --effort medium "*|*" --effort high "*) ;;
+  *) echo "missing effort setting" >&2; exit 4 ;;
+esac
+case " ${*} " in
+  *" --exclude-dynamic-system-prompt-sections "*) ;;
+  *) echo "missing cache-friendly system prompt setting" >&2; exit 5 ;;
+esac
 
 case_name="${EVAL_CASE_NAME:?missing EVAL_CASE_NAME}"
 replica="${EVAL_REPLICA:?missing EVAL_REPLICA}"
@@ -57,7 +65,8 @@ RUN_OUTPUT="$(CLAUDE_BIN="$FAKE_CLAUDE" "$RUNNER" \
   --fixture-root "$FIXTURES" \
   --baseline "$BASELINE" \
   --artifact-dir "$ARTIFACT_DIR" \
-  --model 'anthropic/claude-sonnet-5')"
+  --model 'anthropic/claude-sonnet-5' \
+  --effort medium)"
 
 grep -q 'Starting agents-md/expected-non-trigger replica 1/3' <<<"$RUN_OUTPUT" \
   || fail "runner must report replica start progress"
@@ -79,11 +88,14 @@ jq -e '
   .suite == "full"
   and .harness == "claude-code"
   and .requested_model == "anthropic/claude-sonnet-5"
+  and .invocation.effort == "medium"
+  and .invocation.dynamic_system_prompt_sections_excluded == true
   and (.cases | length == 15)
   and ([.cases[].replicas | length] | all(. == 3))
   and ([.cases[].hard_check.passed_replicas] | all(. >= 2))
   and ([.cases[].hard_check.accepted] | all(. == true))
   and .baseline.status == "matched"
+  and .baseline.profile_matched == true
   and .acceptance.passed == true
   and .rubric.blocking == false
   and ((.aggregate_cost_usd - 0.45) | fabs) < 0.000001
@@ -92,5 +104,18 @@ jq -e '
 if rg -n --hidden --glob '!results.json' 'sk-[A-Za-z0-9_-]+' "$ARTIFACT_DIR"; then
   fail "artifacts must not contain credential-shaped values"
 fi
+
+EXPLORATORY_ARTIFACT_DIR="$TEMP_DIR/exploratory-artifacts"
+if CLAUDE_BIN="$FAKE_CLAUDE" "$RUNNER" \
+  --fixture-root "$FIXTURES" \
+  --baseline "$BASELINE" \
+  --artifact-dir "$EXPLORATORY_ARTIFACT_DIR" \
+  --model 'anthropic/claude-sonnet-5' \
+  --effort high >/dev/null; then
+  fail "exploratory effort must not pass the approved baseline"
+fi
+jq -e '.baseline.status == "exploratory" and .baseline.profile_matched == false and .acceptance.passed == false' \
+  "$EXPLORATORY_ARTIFACT_DIR/results.json" >/dev/null \
+  || fail "exploratory result must identify its baseline mismatch"
 
 echo "claude full eval checks passed"
