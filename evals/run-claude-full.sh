@@ -118,9 +118,12 @@ RESULTS_NDJSON="$TEMP_DIR/results.ndjson"
 REPLICA_CHECKPOINT="$ARTIFACT_DIR/replicas.ndjson"
 : > "$REPLICA_CHECKPOINT"
 HARNESS_VERSION="$("$CLAUDE_BIN" --version 2>/dev/null || printf 'unknown')"
-ABORT_REASON=""
+ABORT_REASON_FILE="$TEMP_DIR/abort-reason"
 
-for fixture_dir in "${FIXTURES[@]}"; do
+run_case() {
+  local fixture_dir="$1"
+  local worker_results="$2"
+  local abort_reason=""
   case_id="${fixture_dir#"$FIXTURE_ROOT"/}"
   EXPECTATION_FILE="$fixture_dir/expectation.json"
   PROMPT_FILE="$fixture_dir/prompt.txt"
@@ -195,7 +198,8 @@ for fixture_dir in "${FIXTURES[@]}"; do
       error_category="$(classify_provider_error "$error_file")"
       stderr_bytes="$(wc -c < "$error_file" | tr -d ' ')"
       stderr_sha256="$(shasum -a 256 "$error_file" | awk '{print $1}')"
-      ABORT_REASON="$error_category"
+      abort_reason="$error_category"
+      [ -e "$ABORT_REASON_FILE" ] || printf '%s\n' "$abort_reason" > "$ABORT_REASON_FILE"
     fi
     elapsed_seconds="$(( $(date +%s) - start_epoch ))"
     evidence_file="$workspace/$EVIDENCE_PATH"
@@ -230,19 +234,59 @@ for fixture_dir in "${FIXTURES[@]}"; do
       --argjson exit_code "$exit_code" --argjson elapsed_seconds "$elapsed_seconds" --argjson cost "$cost" --argjson stderr_bytes "$stderr_bytes" --argjson response_diagnostics "$response_diagnostics" \
       '{case: $case_id, skill: $skill, fixture_hash: $fixture_hash, replica: ($replica | tonumber), status: $status, actual: {outcome: $actual_outcome}, deterministic_checks: {evidence_status: $evidence_status, workspace_clean: ($workspace_clean == "true")}, resolved_model: $resolved_model, exit_code: $exit_code, elapsed_seconds: $elapsed_seconds, cost_usd: $cost} + (if $error_category == "" then {} else {error_category: $error_category, error_diagnostics: {stderr_bytes: $stderr_bytes, stderr_sha256: $stderr_sha256, response_state: $response_state, response: $response_diagnostics}} end)' \
       | tee -a "$REPLICA_CHECKPOINT" >> "$case_results"
-    if [ -n "$ABORT_REASON" ]; then
+    if [ -n "$abort_reason" ]; then
       [ -z "$response_subtype" ] || echo "Claude response subtype: $response_subtype" >&2
-      echo "Aborting full evaluation: $ABORT_REASON" >&2
+      echo "Aborting full evaluation: $abort_reason" >&2
       break
     fi
   done
 
   jq -s --arg case_id "$case_id" --arg skill "$SKILL" --arg fixture_hash "$FIXTURE_HASH" --arg expected_outcome "$EXPECTED_OUTCOME" '
     {case: $case_id, fixture_hash: $fixture_hash, skill: $skill, expected: {outcome: $expected_outcome}, replicas: ., hard_check: {passed_replicas: ([.[] | select(.status == "pass")] | length), accepted: (([.[] | select(.status == "pass")] | length) >= 2)}}
-  ' "$case_results" >> "$RESULTS_NDJSON"
-  if [ -n "$ABORT_REASON" ]; then
-    break
-  fi
+  ' "$case_results" >> "$worker_results"
+  [ -z "$abort_reason" ] || return 1
+  return 0
+}
+
+TASK_LOCK_DIR="$TEMP_DIR/task-locks"
+mkdir -p "$TASK_LOCK_DIR"
+
+run_worker() {
+  local worker_results="$1"
+  local fixture_dir
+  local task_lock
+  local task_id
+
+  while [ ! -e "$ABORT_REASON_FILE" ]; do
+    fixture_dir=""
+    for candidate_fixture in "${FIXTURES[@]}"; do
+      task_id="${candidate_fixture#"$FIXTURE_ROOT"/}"
+      task_lock="$TASK_LOCK_DIR/${task_id//\//-}"
+      mkdir "$task_lock" 2>/dev/null || continue
+      fixture_dir="$candidate_fixture"
+      break
+    done
+    [ -n "$fixture_dir" ] || break
+    run_case "$fixture_dir" "$worker_results" || break
+  done
+}
+
+WORKER_RESULTS=()
+WORKER_PIDS=()
+for worker_number in 1 2 3; do
+  worker_results="$TEMP_DIR/worker-$worker_number-results.ndjson"
+  run_worker "$worker_results" &
+  WORKER_PIDS+=("$!")
+  WORKER_RESULTS+=("$worker_results")
+done
+for worker_pid in "${WORKER_PIDS[@]}"; do
+  wait "$worker_pid" || true
+done
+
+ABORT_REASON=""
+[ ! -e "$ABORT_REASON_FILE" ] || ABORT_REASON="$(<"$ABORT_REASON_FILE")"
+for worker_results in "${WORKER_RESULTS[@]}"; do
+  [ ! -f "$worker_results" ] || cat "$worker_results" >> "$RESULTS_NDJSON"
 done
 
 jq -s --arg model "$MODEL" --arg harness_version "$HARNESS_VERSION" --arg max_turns "$MAX_TURNS" --arg max_budget_usd "$MAX_BUDGET_USD" --arg effort "$EFFORT" --arg abort_reason "$ABORT_REASON" '

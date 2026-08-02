@@ -9,7 +9,8 @@ pull requests, or a schedule.
 Each priority skill has five versioned fixtures: expected trigger, expected
 non-trigger, pre-existing user changes, missing prerequisites, and a
 representative task. The runner executes every case in three isolated
-workspaces. A hard case is accepted when at least two replicas pass its
+workspaces. It schedules up to three cases concurrently, while keeping each
+case's three replicas sequential. A hard case is accepted when at least two replicas pass its
 deterministic evidence and preservation checks; otherwise the full suite
 fails.
 

@@ -148,22 +148,23 @@ grep -q 'response subtype: error_during_execution' "$PROVIDER_FAILURE_STDERR" \
   || fail "structured response subtype must be reported to stderr"
 EXPECTED_STDERR_SHA256="$(printf '%s\n' 'HTTP 429' | shasum -a 256 | awk '{print $1}')"
 jq -s -e --arg expected_stderr_sha256 "$EXPECTED_STDERR_SHA256" '
-  length == 2
-  and .[1].error_category == "rate_limited"
-  and .[1].error_diagnostics.stderr_bytes == 9
-  and .[1].error_diagnostics.stderr_sha256 == $expected_stderr_sha256
-  and .[1].error_diagnostics.response_state == "valid_json"
-  and .[1].error_diagnostics.response.type == "result"
-  and .[1].error_diagnostics.response.subtype == "error_during_execution"
-  and .[1].error_diagnostics.response.is_error == true
+  [.[] | select(.case == "agents-md/expected-non-trigger")] as $failed_case
+  | ($failed_case | length) == 2
+  and $failed_case[1].error_category == "rate_limited"
+  and $failed_case[1].error_diagnostics.stderr_bytes == 9
+  and $failed_case[1].error_diagnostics.stderr_sha256 == $expected_stderr_sha256
+  and $failed_case[1].error_diagnostics.response_state == "valid_json"
+  and $failed_case[1].error_diagnostics.response.type == "result"
+  and $failed_case[1].error_diagnostics.response.subtype == "error_during_execution"
+  and $failed_case[1].error_diagnostics.response.is_error == true
 ' \
   "$PROVIDER_FAILURE_ARTIFACT_DIR/replicas.ndjson" >/dev/null \
   || fail "rate-limited replica must include redacted failure diagnostics"
-jq -e '.aborted.reason == "rate_limited" and .acceptance.passed == false and (.cases | length == 1)' \
+jq -e '.aborted.reason == "rate_limited" and .acceptance.passed == false and ([.cases[] | select(.case == "agents-md/expected-non-trigger") | .replicas | length] == [2])' \
   "$PROVIDER_FAILURE_ARTIFACT_DIR/results.json" >/dev/null \
   || fail "rate limits must retain partial results and abort the suite"
-[ "$(wc -l < "$PROVIDER_FAILURE_LOG" | tr -d ' ')" = 2 ] \
-  || fail "rate limits must stop before additional model invocations"
+! rg -q '^agents-md/expected-non-trigger/3$' "$PROVIDER_FAILURE_LOG" \
+  || fail "rate limits must stop the failed case before its third replica"
 if rg -n 'HTTP 429' "$PROVIDER_FAILURE_ARTIFACT_DIR"; then
   fail "artifacts must not retain raw provider errors"
 fi
