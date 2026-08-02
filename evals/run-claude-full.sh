@@ -126,6 +126,7 @@ for fixture_dir in "${FIXTURES[@]}"; do
     jq -n --arg skill "$SKILL" '{name: ($skill + "-eval"), version: "0.0.0", description: "Temporary evaluation plugin"}' > "$plugin_dir/.claude-plugin/plugin.json"
     response_file="$TEMP_DIR/${case_id//\//-}-$replica-response.json"
     error_file="$TEMP_DIR/${case_id//\//-}-$replica-error.txt"
+    echo "Starting $case_id replica $replica/3"
     start_epoch="$(date +%s)"
     set +e
     (
@@ -159,6 +160,7 @@ for fixture_dir in "${FIXTURES[@]}"; do
     if [ "$exit_code" -ne 0 ] || { [ "$evidence_status" != matched ] && [ "$evidence_status" != absent ]; } || [ "$workspace_clean" != true ] || [ -z "$resolved_model" ] || [ "$actual_outcome" != "$EXPECTED_OUTCOME" ]; then
       status=fail
     fi
+    echo "Finished $case_id replica $replica/3: $status (${elapsed_seconds}s)"
     jq -n --arg replica "$replica" --arg status "$status" --arg actual_outcome "$actual_outcome" --arg evidence_status "$evidence_status" \
       --arg resolved_model "$resolved_model" --arg workspace_clean "$workspace_clean" \
       --argjson exit_code "$exit_code" --argjson elapsed_seconds "$elapsed_seconds" --argjson cost "$cost" \

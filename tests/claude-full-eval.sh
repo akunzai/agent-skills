@@ -48,11 +48,16 @@ chmod +x "$FAKE_CLAUDE"
 [ -f "$BASELINE" ] || fail "approved baseline is missing"
 
 ARTIFACT_DIR="$TEMP_DIR/artifacts"
-CLAUDE_BIN="$FAKE_CLAUDE" "$RUNNER" \
+RUN_OUTPUT="$(CLAUDE_BIN="$FAKE_CLAUDE" "$RUNNER" \
   --fixture-root "$FIXTURES" \
   --baseline "$BASELINE" \
   --artifact-dir "$ARTIFACT_DIR" \
-  --model 'anthropic/claude-sonnet-5'
+  --model 'anthropic/claude-sonnet-5')"
+
+grep -q 'Starting agents-md/expected-non-trigger replica 1/3' <<<"$RUN_OUTPUT" \
+  || fail "runner must report replica start progress"
+grep -q 'Finished tidy-commits/representative-task replica 3/3' <<<"$RUN_OUTPUT" \
+  || fail "runner must report replica completion progress"
 
 RESULTS="$ARTIFACT_DIR/results.json"
 [ -f "$RESULTS" ] || fail "normalized results were not written"
