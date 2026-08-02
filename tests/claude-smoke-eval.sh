@@ -39,6 +39,10 @@ case " $* " in
 esac
 
 case_name="${EVAL_CASE_NAME:?missing EVAL_CASE_NAME}"
+if [ "${FAKE_FAILURE_CASE:-}" = "$case_name" ]; then
+  printf '%s\n' '{"type":"result","subtype":"success","is_error":true,"result":"OpenRouter insufficient credits"}'
+  exit 1
+fi
 case "$case_name" in
   expected-trigger)
     mkdir -p evaluation
@@ -85,6 +89,23 @@ jq -e '
 
 if rg -n --hidden --glob '!results.json' 'sk-[A-Za-z0-9_-]+' "$ARTIFACT_DIR"; then
   fail "artifacts must not contain credential-shaped values"
+fi
+
+FAILURE_ARTIFACT_DIR="$TEMP_DIR/failure-artifacts"
+if PATH="$NO_RG_DIR:$PATH" FAKE_FAILURE_CASE=expected-trigger CLAUDE_BIN="$FAKE_CLAUDE" "$RUNNER" \
+  --fixture-root "$FIXTURES" \
+  --artifact-dir "$FAILURE_ARTIFACT_DIR" \
+  --model 'anthropic/claude-haiku-4.5'; then
+  fail "provider failures must fail the smoke evaluation"
+fi
+jq -e '
+  (.cases | length) == 1
+  and .cases[0].error_category == "budget_exhausted"
+  and .cases[0].error_diagnostics.response_state == "valid_json"
+' "$FAILURE_ARTIFACT_DIR/results.json" >/dev/null \
+  || fail "smoke failures must classify response errors and stop immediately"
+if rg -n 'OpenRouter insufficient credits' "$FAILURE_ARTIFACT_DIR"; then
+  fail "smoke artifacts must not retain raw provider errors"
 fi
 
 # shellcheck disable=SC2016

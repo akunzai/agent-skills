@@ -32,6 +32,21 @@ fail() {
   exit 1
 }
 
+classify_provider_error() {
+  local error_file="$1"
+  local response_file="$2"
+
+  if grep -qiE 'rate limit|too many requests|status[[:space:]]*429|(^|[^[:digit:]])429([^[:digit:]]|$)' "$error_file" "$response_file"; then
+    printf '%s' rate_limited
+  elif grep -qiE 'budget|quota|insufficient (credits|funds)|credit balance|spend limit|payment required|(^|[^[:digit:]])402([^[:digit:]]|$)' "$error_file" "$response_file"; then
+    printf '%s' budget_exhausted
+  elif grep -qiE 'authentication|unauthorized|invalid api key|api key.*invalid|(^|[^[:digit:]])(401|403)([^[:digit:]]|$)' "$error_file" "$response_file"; then
+    printf '%s' authentication_failed
+  else
+    printf '%s' unknown
+  fi
+}
+
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --fixture-root)
@@ -129,6 +144,15 @@ EOF
   EXIT_CODE=$?
   set -e
   ELAPSED_SECONDS="$(( $(date +%s) - START_EPOCH ))"
+  ERROR_CATEGORY=""
+  RESPONSE_STATE="empty"
+  if [ -s "$RESPONSE_FILE" ]; then
+    jq . "$RESPONSE_FILE" >/dev/null 2>&1 || RESPONSE_STATE="invalid_json"
+    [ "$RESPONSE_STATE" = "invalid_json" ] || RESPONSE_STATE="valid_json"
+  fi
+  if [ "$EXIT_CODE" -ne 0 ]; then
+    ERROR_CATEGORY="$(classify_provider_error "$ERROR_FILE" "$RESPONSE_FILE")"
+  fi
 
   EXPECTED_OUTCOME="$(jq -r '.outcome' "$EXPECTATION_FILE")"
   EVIDENCE_PATH="$(jq -r '.evidence_file' "$EXPECTATION_FILE")"
@@ -174,6 +198,8 @@ EOF
     --arg actual_outcome "$ACTUAL_OUTCOME" \
     --arg summary "$SUMMARY" \
     --arg error_summary "$ERROR_SUMMARY" \
+    --arg error_category "$ERROR_CATEGORY" \
+    --arg response_state "$RESPONSE_STATE" \
     --arg evidence_path "$EVIDENCE_PATH" \
     --arg evidence_status "$EVIDENCE_STATUS" \
     --arg workspace_clean "$WORKSPACE_CLEAN" \
@@ -194,7 +220,11 @@ EOF
       resolved_model: $resolved_model,
       cost_usd: $cost,
       error: $error_summary
-    }' >>"$RESULTS_NDJSON"
+    } + (if $error_category == "" then {} else {error_category: $error_category, error_diagnostics: {response_state: $response_state}} end)' >>"$RESULTS_NDJSON"
+  if [ "$EXIT_CODE" -ne 0 ]; then
+    echo "Aborting Claude smoke evaluation: $ERROR_CATEGORY" >&2
+    break
+  fi
 done
 
 jq -s \
