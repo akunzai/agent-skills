@@ -1,0 +1,35 @@
+# Claude Full Evaluation
+
+The Claude full evaluation is the manual release-baseline check for
+`agents-md`, `tidy-commits`, and `pr-workflow`. It is never run on pushes,
+pull requests, or a schedule.
+
+## Coverage and acceptance
+
+Each priority skill has five versioned fixtures: expected trigger, expected
+non-trigger, pre-existing user changes, missing prerequisites, and a
+representative task. The runner executes every case in three isolated
+workspaces. A hard case is accepted when at least two replicas pass its
+deterministic evidence and preservation checks; otherwise the full suite
+fails.
+
+`evals/baselines/claude-full-v1.json` is the approved, redacted summary of
+the fixture identities used for comparison. Refresh it only with explicit
+human approval after reviewing a successful manual run. The runner retains no
+raw prompts, responses, workspaces, credentials, or authorization headers.
+`results.json` records only normalized case evidence, versions, elapsed time,
+and cost. GitHub Actions retains this diagnostic artifact for 30 days.
+
+Rubric feedback belongs in a separate, non-blocking scorecard. It can guide a
+reviewer but cannot change the full suite's exit status.
+
+## Running it
+
+Use the **Claude full evaluation** workflow from the Actions tab. It uses the
+protected `skills-evals` environment and the fixed OpenRouter model identifier
+`anthropic/claude-sonnet-5` by default.
+
+Run the full suite when preparing a formal comparison, changing an approved
+baseline, or upgrading Claude Code. When changing one priority skill, run its
+smoke evaluation before review and link the applicable workflow run in the
+pull request.
