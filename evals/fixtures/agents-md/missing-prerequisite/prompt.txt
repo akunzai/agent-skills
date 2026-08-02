@@ -1,1 +1,1 @@
-Use the `/agents-md` skill to update the governing instruction file for this repository. Two eligible AGENTS.md files exist and the request does not identify a target. Stop safely without editing files.
+/agents-md Update the governing instruction file for this repository. Two eligible AGENTS.md files exist and the request does not identify a target. Stop safely without editing files.
