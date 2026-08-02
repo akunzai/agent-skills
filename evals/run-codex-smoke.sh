@@ -7,7 +7,7 @@ DEFAULT_ARTIFACT_DIR="${TMPDIR:-/tmp}/agent-skills-evals/codex-smoke"
 CODEX_BIN="${CODEX_BIN:-codex}"
 FIXTURE_ROOT="$DEFAULT_FIXTURE_ROOT"
 ARTIFACT_DIR="$DEFAULT_ARTIFACT_DIR"
-MODEL="gpt-5.6-luna"
+MODEL="openai/gpt-5.6-luna"
 EFFORT="medium"
 
 usage() {
@@ -112,6 +112,11 @@ for case_name in "${REQUIRED_CASES[@]}"; do
       --ephemeral \
       --ignore-user-config \
       --sandbox workspace-write \
+      --config 'model_provider="openrouter"' \
+      --config 'model_providers.openrouter.name="OpenRouter"' \
+      --config 'model_providers.openrouter.base_url="https://openrouter.ai/api/v1"' \
+      --config 'model_providers.openrouter.env_key="OPENROUTER_API_KEY"' \
+      --config 'model_providers.openrouter.wire_api="responses"' \
       --model "$MODEL" \
       --config "model_reasoning_effort=\"$EFFORT\"" \
       "$(<"$PROMPT_FILE")"
@@ -217,8 +222,8 @@ jq -s \
     adapter: "codex-cli-native",
     harness: "codex-cli",
     harness_version: $harness_version,
-    provider: "openai",
-    gateway: "codex-cli",
+    provider: "openrouter",
+    gateway: "openrouter-responses",
     requested_model: $model,
     requested_effort: $effort,
     resolved_model: null,

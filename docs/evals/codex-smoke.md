@@ -23,10 +23,11 @@ reviewer but is not release-gating.
 ## Running it
 
 Use the **Codex smoke comparison** workflow from the Actions tab. It uses the
-protected `skills-evals` environment and the `OPENAI_API_KEY` secret. The
-default requested model is `gpt-5.6-luna` at `medium` reasoning effort.
+protected `skills-evals` environment and the `OPENROUTER_API_KEY` secret. The
+adapter configures Codex's OpenRouter Responses API provider for each run. The
+default requested model is `openai/gpt-5.6-luna` at `medium` reasoning effort.
 
-For local experimentation, set `CODEX_API_KEY` only for the invocation and run:
+For local experimentation, set `OPENROUTER_API_KEY` only for the invocation and run:
 
 ```bash
 mise run eval-codex-smoke

@@ -45,6 +45,22 @@ case " $* " in
   *) echo "missing workspace-write sandbox" >&2; exit 5 ;;
 esac
 case " $* " in
+  *' model_provider="openrouter" '*) ;;
+  *) echo "missing OpenRouter provider" >&2; exit 9 ;;
+esac
+case " $* " in
+  *' model_providers.openrouter.base_url="https://openrouter.ai/api/v1" '*) ;;
+  *) echo "missing OpenRouter endpoint" >&2; exit 10 ;;
+esac
+case " $* " in
+  *' model_providers.openrouter.env_key="OPENROUTER_API_KEY" '*) ;;
+  *) echo "missing OpenRouter credential source" >&2; exit 11 ;;
+esac
+case " $* " in
+  *' model_providers.openrouter.wire_api="responses" '*) ;;
+  *) echo "missing Responses API protocol" >&2; exit 12 ;;
+esac
+case " $* " in
   *" --ask-for-approval "*) echo "unsupported approval flag" >&2; exit 7 ;;
 esac
 
@@ -72,7 +88,7 @@ ARTIFACT_DIR="$TEMP_DIR/artifacts"
 PATH="$NO_RG_DIR:$PATH" CODEX_BIN="$FAKE_CODEX" "$RUNNER" \
   --fixture-root "$FIXTURES" \
   --artifact-dir "$ARTIFACT_DIR" \
-  --model 'gpt-5.6-luna' \
+  --model 'openai/gpt-5.6-luna' \
   --effort medium
 
 RESULTS="$ARTIFACT_DIR/results.json"
@@ -82,9 +98,9 @@ jq -e '
   and .adapter == "codex-cli-native"
   and .harness == "codex-cli"
   and .harness_version == "codex-cli 0.146.0"
-  and .provider == "openai"
-  and .gateway == "codex-cli"
-  and .requested_model == "gpt-5.6-luna"
+  and .provider == "openrouter"
+  and .gateway == "openrouter-responses"
+  and .requested_model == "openai/gpt-5.6-luna"
   and .requested_effort == "medium"
   and .resolved_model == null
   and .model_resolution_status == "not-reported"
