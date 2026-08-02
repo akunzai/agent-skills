@@ -10,7 +10,7 @@ FIXTURE_ROOT="$DEFAULT_FIXTURE_ROOT"
 BASELINE="$DEFAULT_BASELINE"
 ARTIFACT_DIR="$DEFAULT_ARTIFACT_DIR"
 MODEL="anthropic/claude-sonnet-5"
-MAX_TURNS="8"
+MAX_TURNS="16"
 MAX_BUDGET_USD="2"
 EFFORT="medium"
 REPLICAS="3"
@@ -184,10 +184,12 @@ for fixture_dir in "${FIXTURES[@]}"; do
     stderr_sha256=""
     response_state=empty
     response_diagnostics='{"type":null,"subtype":null,"is_error":null}'
+    response_subtype=""
     if [ -s "$response_file" ]; then
       jq . "$response_file" >/dev/null 2>&1 || response_state=invalid_json
       [ "$response_state" = invalid_json ] || response_state=valid_json
       [ "$response_state" != valid_json ] || response_diagnostics="$(summarize_response "$response_file")"
+      response_subtype="$(jq -r '.subtype // empty' <<<"$response_diagnostics")"
     fi
     if [ "$exit_code" -ne 0 ]; then
       error_category="$(classify_provider_error "$error_file")"
@@ -229,6 +231,7 @@ for fixture_dir in "${FIXTURES[@]}"; do
       '{case: $case_id, skill: $skill, fixture_hash: $fixture_hash, replica: ($replica | tonumber), status: $status, actual: {outcome: $actual_outcome}, deterministic_checks: {evidence_status: $evidence_status, workspace_clean: ($workspace_clean == "true")}, resolved_model: $resolved_model, exit_code: $exit_code, elapsed_seconds: $elapsed_seconds, cost_usd: $cost} + (if $error_category == "" then {} else {error_category: $error_category, error_diagnostics: {stderr_bytes: $stderr_bytes, stderr_sha256: $stderr_sha256, response_state: $response_state, response: $response_diagnostics}} end)' \
       | tee -a "$REPLICA_CHECKPOINT" >> "$case_results"
     if [ -n "$ABORT_REASON" ]; then
+      [ -z "$response_subtype" ] || echo "Claude response subtype: $response_subtype" >&2
       echo "Aborting full evaluation: $ABORT_REASON" >&2
       break
     fi

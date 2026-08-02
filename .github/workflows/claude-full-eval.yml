@@ -11,7 +11,7 @@ on:
       max_turns:
         description: Maximum Claude agent turns per fixture replica
         required: true
-        default: '8'
+        default: '16'
         type: string
       max_budget_usd:
         description: Maximum OpenRouter spend per fixture replica in USD

@@ -98,6 +98,7 @@ jq -e '
   .suite == "full"
   and .harness == "claude-code"
   and .requested_model == "anthropic/claude-sonnet-5"
+  and .invocation.max_turns == 16
   and .invocation.effort == "medium"
   and .invocation.dynamic_system_prompt_sections_excluded == true
   and (.cases | length == 15)
@@ -130,6 +131,7 @@ jq -e '.baseline.status == "exploratory" and .baseline.profile_matched == false 
 
 PROVIDER_FAILURE_ARTIFACT_DIR="$TEMP_DIR/provider-failure-artifacts"
 PROVIDER_FAILURE_LOG="$TEMP_DIR/provider-failure-invocations.log"
+PROVIDER_FAILURE_STDERR="$TEMP_DIR/provider-failure.stderr"
 if FAKE_PROVIDER_FAILURE_CASE='agents-md/expected-non-trigger' \
   FAKE_PROVIDER_FAILURE_REPLICA=2 \
   FAKE_PROVIDER_FAILURE_RESPONSE='{"type":"result","subtype":"error_during_execution","is_error":true}' \
@@ -139,9 +141,11 @@ if FAKE_PROVIDER_FAILURE_CASE='agents-md/expected-non-trigger' \
     --baseline "$BASELINE" \
     --artifact-dir "$PROVIDER_FAILURE_ARTIFACT_DIR" \
     --model 'anthropic/claude-sonnet-5' \
-    --effort medium >/dev/null; then
+    --effort medium >/dev/null 2>"$PROVIDER_FAILURE_STDERR"; then
   fail "provider rate limits must fail the evaluation"
 fi
+grep -q 'response subtype: error_during_execution' "$PROVIDER_FAILURE_STDERR" \
+  || fail "structured response subtype must be reported to stderr"
 EXPECTED_STDERR_SHA256="$(printf '%s\n' 'HTTP 429' | shasum -a 256 | awk '{print $1}')"
 jq -s -e --arg expected_stderr_sha256 "$EXPECTED_STDERR_SHA256" '
   length == 2
