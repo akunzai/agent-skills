@@ -166,8 +166,17 @@ for fixture_dir in "${FIXTURES[@]}"; do
     exit_code=$?
     set -e
     error_category=""
+    stderr_bytes=0
+    stderr_sha256=""
+    response_state=empty
+    if [ -s "$response_file" ]; then
+      jq . "$response_file" >/dev/null 2>&1 || response_state=invalid_json
+      [ "$response_state" = invalid_json ] || response_state=valid_json
+    fi
     if [ "$exit_code" -ne 0 ]; then
       error_category="$(classify_provider_error "$error_file")"
+      stderr_bytes="$(wc -c < "$error_file" | tr -d ' ')"
+      stderr_sha256="$(shasum -a 256 "$error_file" | awk '{print $1}')"
       ABORT_REASON="$error_category"
     fi
     elapsed_seconds="$(( $(date +%s) - start_epoch ))"
@@ -199,9 +208,9 @@ for fixture_dir in "${FIXTURES[@]}"; do
     fi
     echo "Finished $case_id replica $replica/3: $status (${elapsed_seconds}s)"
     jq -n --arg case_id "$case_id" --arg skill "$SKILL" --arg fixture_hash "$FIXTURE_HASH" --arg replica "$replica" --arg status "$status" --arg actual_outcome "$actual_outcome" --arg evidence_status "$evidence_status" \
-      --arg resolved_model "$resolved_model" --arg workspace_clean "$workspace_clean" --arg error_category "$error_category" \
-      --argjson exit_code "$exit_code" --argjson elapsed_seconds "$elapsed_seconds" --argjson cost "$cost" \
-      '{case: $case_id, skill: $skill, fixture_hash: $fixture_hash, replica: ($replica | tonumber), status: $status, actual: {outcome: $actual_outcome}, deterministic_checks: {evidence_status: $evidence_status, workspace_clean: ($workspace_clean == "true")}, resolved_model: $resolved_model, exit_code: $exit_code, elapsed_seconds: $elapsed_seconds, cost_usd: $cost} + (if $error_category == "" then {} else {error_category: $error_category} end)' \
+      --arg resolved_model "$resolved_model" --arg workspace_clean "$workspace_clean" --arg error_category "$error_category" --arg stderr_sha256 "$stderr_sha256" --arg response_state "$response_state" \
+      --argjson exit_code "$exit_code" --argjson elapsed_seconds "$elapsed_seconds" --argjson cost "$cost" --argjson stderr_bytes "$stderr_bytes" \
+      '{case: $case_id, skill: $skill, fixture_hash: $fixture_hash, replica: ($replica | tonumber), status: $status, actual: {outcome: $actual_outcome}, deterministic_checks: {evidence_status: $evidence_status, workspace_clean: ($workspace_clean == "true")}, resolved_model: $resolved_model, exit_code: $exit_code, elapsed_seconds: $elapsed_seconds, cost_usd: $cost} + (if $error_category == "" then {} else {error_category: $error_category, error_diagnostics: {stderr_bytes: $stderr_bytes, stderr_sha256: $stderr_sha256, response_state: $response_state}} end)' \
       | tee -a "$REPLICA_CHECKPOINT" >> "$case_results"
     if [ -n "$ABORT_REASON" ]; then
       echo "Aborting full evaluation: $ABORT_REASON" >&2

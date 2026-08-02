@@ -22,7 +22,9 @@ and cost. GitHub Actions retains this diagnostic artifact for 30 days.
 If Claude exits unsuccessfully, the runner records only a safe error category
 (for example, rate limit, budget, authentication, or unknown) on the failed
 replica, writes partial results with an abort reason, and stops immediately.
-It never retains raw provider stderr in the artifact.
+It also records the stderr byte count, SHA-256 fingerprint, and whether stdout
+was empty, valid JSON, or invalid JSON. It never retains raw provider stderr
+in the artifact.
 
 Rubric feedback belongs in a separate, non-blocking scorecard. It can guide a
 reviewer but cannot change the full suite's exit status.
