@@ -35,6 +35,20 @@ EOF
 
 fail() { echo "claude full eval: $*" >&2; exit 1; }
 
+classify_provider_error() {
+  local error_file="$1"
+
+  if grep -qiE 'rate limit|too many requests|status[[:space:]]*429|(^|[^[:digit:]])429([^[:digit:]]|$)' "$error_file"; then
+    printf '%s' rate_limited
+  elif grep -qiE 'budget|quota|insufficient (credits|funds)|credit balance|spend limit' "$error_file"; then
+    printf '%s' budget_exhausted
+  elif grep -qiE 'authentication|unauthorized|invalid api key|api key.*invalid|(^|[^[:digit:]])(401|403)([^[:digit:]]|$)' "$error_file"; then
+    printf '%s' authentication_failed
+  else
+    printf '%s' unknown
+  fi
+}
+
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --fixture-root) FIXTURE_ROOT="${2:-}"; shift 2 ;;
@@ -90,6 +104,7 @@ RESULTS_NDJSON="$TEMP_DIR/results.ndjson"
 REPLICA_CHECKPOINT="$ARTIFACT_DIR/replicas.ndjson"
 : > "$REPLICA_CHECKPOINT"
 HARNESS_VERSION="$("$CLAUDE_BIN" --version 2>/dev/null || printf 'unknown')"
+ABORT_REASON=""
 
 for fixture_dir in "${FIXTURES[@]}"; do
   case_id="${fixture_dir#"$FIXTURE_ROOT"/}"
@@ -150,6 +165,11 @@ for fixture_dir in "${FIXTURES[@]}"; do
     ) >"$response_file" 2>"$error_file"
     exit_code=$?
     set -e
+    error_category=""
+    if [ "$exit_code" -ne 0 ]; then
+      error_category="$(classify_provider_error "$error_file")"
+      ABORT_REASON="$error_category"
+    fi
     elapsed_seconds="$(( $(date +%s) - start_epoch ))"
     evidence_file="$workspace/$EVIDENCE_PATH"
     evidence_status="missing"
@@ -162,7 +182,12 @@ for fixture_dir in "${FIXTURES[@]}"; do
     rmdir "$(dirname "$evidence_file")" 2>/dev/null || true
     workspace_clean=true
     diff -qr --exclude='.claude' "$original_project" "$workspace" >/dev/null || workspace_clean=false
-    cost="$(jq -r '.total_cost_usd // 0' "$response_file" 2>/dev/null || printf 0)"
+    cost=0
+    if [ -s "$response_file" ]; then
+      reported_cost="$(jq -r '.total_cost_usd // empty' "$response_file" 2>/dev/null || true)"
+      [[ "$reported_cost" =~ ^[0-9]+([.][0-9]+)?$ ]] || reported_cost=0
+      cost="$reported_cost"
+    fi
     resolved_model="$(jq -r '.modelUsage // {} | keys[0] // empty' "$response_file" 2>/dev/null || true)"
     actual_outcome=pass
     if [ "$(jq -r '.case_kind' "$EXPECTATION_FILE")" = missing-prerequisite ]; then
@@ -174,19 +199,26 @@ for fixture_dir in "${FIXTURES[@]}"; do
     fi
     echo "Finished $case_id replica $replica/3: $status (${elapsed_seconds}s)"
     jq -n --arg case_id "$case_id" --arg skill "$SKILL" --arg fixture_hash "$FIXTURE_HASH" --arg replica "$replica" --arg status "$status" --arg actual_outcome "$actual_outcome" --arg evidence_status "$evidence_status" \
-      --arg resolved_model "$resolved_model" --arg workspace_clean "$workspace_clean" \
+      --arg resolved_model "$resolved_model" --arg workspace_clean "$workspace_clean" --arg error_category "$error_category" \
       --argjson exit_code "$exit_code" --argjson elapsed_seconds "$elapsed_seconds" --argjson cost "$cost" \
-      '{case: $case_id, skill: $skill, fixture_hash: $fixture_hash, replica: ($replica | tonumber), status: $status, actual: {outcome: $actual_outcome}, deterministic_checks: {evidence_status: $evidence_status, workspace_clean: ($workspace_clean == "true")}, resolved_model: $resolved_model, exit_code: $exit_code, elapsed_seconds: $elapsed_seconds, cost_usd: $cost}' \
+      '{case: $case_id, skill: $skill, fixture_hash: $fixture_hash, replica: ($replica | tonumber), status: $status, actual: {outcome: $actual_outcome}, deterministic_checks: {evidence_status: $evidence_status, workspace_clean: ($workspace_clean == "true")}, resolved_model: $resolved_model, exit_code: $exit_code, elapsed_seconds: $elapsed_seconds, cost_usd: $cost} + (if $error_category == "" then {} else {error_category: $error_category} end)' \
       | tee -a "$REPLICA_CHECKPOINT" >> "$case_results"
+    if [ -n "$ABORT_REASON" ]; then
+      echo "Aborting full evaluation: $ABORT_REASON" >&2
+      break
+    fi
   done
 
   jq -s --arg case_id "$case_id" --arg skill "$SKILL" --arg fixture_hash "$FIXTURE_HASH" --arg expected_outcome "$EXPECTED_OUTCOME" '
     {case: $case_id, fixture_hash: $fixture_hash, skill: $skill, expected: {outcome: $expected_outcome}, replicas: ., hard_check: {passed_replicas: ([.[] | select(.status == "pass")] | length), accepted: (([.[] | select(.status == "pass")] | length) >= 2)}}
   ' "$case_results" >> "$RESULTS_NDJSON"
+  if [ -n "$ABORT_REASON" ]; then
+    break
+  fi
 done
 
-jq -s --arg model "$MODEL" --arg harness_version "$HARNESS_VERSION" --arg max_turns "$MAX_TURNS" --arg max_budget_usd "$MAX_BUDGET_USD" --arg effort "$EFFORT" '
-  {suite: "full", adapter: "claude-code-direct", harness: "claude-code", harness_version: $harness_version, provider: "openrouter", gateway: "anthropic-compatible", requested_model: $model, invocation: {max_turns: ($max_turns | tonumber), max_budget_usd: ($max_budget_usd | tonumber), effort: $effort, dynamic_system_prompt_sections_excluded: true}, cases: ., aggregate_cost_usd: ([.[].replicas[].cost_usd] | add), rubric: {blocking: false, status: "not-run"}, acceptance: {hard_checks_passed: ([.[].hard_check.accepted] | all)}}
+jq -s --arg model "$MODEL" --arg harness_version "$HARNESS_VERSION" --arg max_turns "$MAX_TURNS" --arg max_budget_usd "$MAX_BUDGET_USD" --arg effort "$EFFORT" --arg abort_reason "$ABORT_REASON" '
+  {suite: "full", adapter: "claude-code-direct", harness: "claude-code", harness_version: $harness_version, provider: "openrouter", gateway: "anthropic-compatible", requested_model: $model, invocation: {max_turns: ($max_turns | tonumber), max_budget_usd: ($max_budget_usd | tonumber), effort: $effort, dynamic_system_prompt_sections_excluded: true}, cases: ., aggregate_cost_usd: ([.[].replicas[].cost_usd] | add), rubric: {blocking: false, status: "not-run"}, acceptance: {hard_checks_passed: ([.[].hard_check.accepted] | all)}} + (if $abort_reason == "" then {} else {aborted: {reason: $abort_reason}} end)
 ' "$RESULTS_NDJSON" > "$ARTIFACT_DIR/results.json"
 
 BASELINE_CASES="$(jq '[.cases[] | {case: .case, fixture_hash: .fixture_hash, accepted: .hard_check.accepted}] | sort_by(.case)' "$ARTIFACT_DIR/results.json")"
@@ -207,7 +239,7 @@ fi
 jq --arg status "$baseline_status" \
   --argjson accepted "$baseline_matched" \
   --argjson profile_matched "$profile_matched" \
-  '.baseline = {status: $status, profile_matched: $profile_matched, hard_check: {all_cases_accepted: $accepted}} | .acceptance.passed = (.acceptance.hard_checks_passed and $accepted)' \
+  '.baseline = {status: $status, profile_matched: $profile_matched, hard_check: {all_cases_accepted: $accepted}} | .acceptance.passed = (.acceptance.hard_checks_passed and $accepted and (has("aborted") | not))' \
   "$ARTIFACT_DIR/results.json" > "$TEMP_DIR/results-with-baseline.json"
 mv "$TEMP_DIR/results-with-baseline.json" "$ARTIFACT_DIR/results.json"
 jq -n '{blocking: false, status: "not-configured", feedback: []}' > "$ARTIFACT_DIR/rubric.json"

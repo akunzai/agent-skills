@@ -38,6 +38,13 @@ esac
 
 case_name="${EVAL_CASE_NAME:?missing EVAL_CASE_NAME}"
 replica="${EVAL_REPLICA:?missing EVAL_REPLICA}"
+if [ -n "${FAKE_INVOCATION_LOG:-}" ]; then
+  printf '%s/%s\n' "$case_name" "$replica" >> "$FAKE_INVOCATION_LOG"
+fi
+if [ "${FAKE_PROVIDER_FAILURE_CASE:-}" = "$case_name" ] && [ "${FAKE_PROVIDER_FAILURE_REPLICA:-}" = "$replica" ]; then
+  printf '%s\n' 'HTTP 429' >&2
+  exit 1
+fi
 case "$case_name" in
   *expected-non-trigger|*missing-prerequisite)
     ;;
@@ -117,5 +124,30 @@ fi
 jq -e '.baseline.status == "exploratory" and .baseline.profile_matched == false and .acceptance.passed == false' \
   "$EXPLORATORY_ARTIFACT_DIR/results.json" >/dev/null \
   || fail "exploratory result must identify its baseline mismatch"
+
+PROVIDER_FAILURE_ARTIFACT_DIR="$TEMP_DIR/provider-failure-artifacts"
+PROVIDER_FAILURE_LOG="$TEMP_DIR/provider-failure-invocations.log"
+if FAKE_PROVIDER_FAILURE_CASE='agents-md/expected-non-trigger' \
+  FAKE_PROVIDER_FAILURE_REPLICA=2 \
+  FAKE_INVOCATION_LOG="$PROVIDER_FAILURE_LOG" \
+  CLAUDE_BIN="$FAKE_CLAUDE" "$RUNNER" \
+    --fixture-root "$FIXTURES" \
+    --baseline "$BASELINE" \
+    --artifact-dir "$PROVIDER_FAILURE_ARTIFACT_DIR" \
+    --model 'anthropic/claude-sonnet-5' \
+    --effort medium >/dev/null; then
+  fail "provider rate limits must fail the evaluation"
+fi
+jq -s -e 'length == 2 and .[1].error_category == "rate_limited"' \
+  "$PROVIDER_FAILURE_ARTIFACT_DIR/replicas.ndjson" >/dev/null \
+  || fail "rate-limited replica must be checkpointed with a safe category"
+jq -e '.aborted.reason == "rate_limited" and .acceptance.passed == false and (.cases | length == 1)' \
+  "$PROVIDER_FAILURE_ARTIFACT_DIR/results.json" >/dev/null \
+  || fail "rate limits must retain partial results and abort the suite"
+[ "$(wc -l < "$PROVIDER_FAILURE_LOG" | tr -d ' ')" = 2 ] \
+  || fail "rate limits must stop before additional model invocations"
+if rg -n 'HTTP 429' "$PROVIDER_FAILURE_ARTIFACT_DIR"; then
+  fail "artifacts must not retain raw provider errors"
+fi
 
 echo "claude full eval checks passed"
