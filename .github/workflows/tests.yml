@@ -73,6 +73,18 @@ jobs:
       - name: Run Codex smoke workflow checks
         run: bash tests/codex-smoke-eval-workflow.sh
 
+  grok-evals:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Run Grok smoke evaluation checks
+        run: bash tests/grok-smoke-eval.sh
+
+      - name: Run Grok smoke workflow checks
+        run: bash tests/grok-smoke-eval-workflow.sh
+
   git-sync-memory:
     runs-on: ubuntu-latest
     steps:
