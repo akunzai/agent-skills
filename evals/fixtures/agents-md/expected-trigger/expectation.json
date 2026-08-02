@@ -1,5 +1,4 @@
 {
-  "skill_invoked": true,
   "outcome": "pass",
   "evidence_file": "evaluation/quality-report.md",
   "required_pattern": "Micromanagement Audit"

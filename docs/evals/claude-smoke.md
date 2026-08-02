@@ -10,9 +10,9 @@ The initial suite evaluates `agents-md` in isolated fixtures:
 - a similar request where the skill must not be invoked; and
 - a request that lacks an explicit target and must safely report a blocker.
 
-Each run emits a redacted `results.json` artifact with the requested and resolved model identifiers, Claude Code version, case outcomes, skill-invocation hook evidence, observable fixture evidence, exit status, elapsed time, and aggregate cost. The runner judges cases from temporary-workspace evidence rather than model self-reporting, and fails a case that modifies anything beyond its permitted evidence file. It does not retain raw Claude output, credentials, authorization headers, or fixture workspaces.
+Each run emits a redacted `results.json` artifact with the requested and resolved model identifiers, Claude Code version, case outcomes, observable fixture evidence, exit status, elapsed time, and aggregate cost. The runner judges cases from temporary-workspace evidence rather than model self-reporting, and fails a case that modifies anything beyond its permitted evidence file. It does not retain raw Claude output, credentials, authorization headers, or fixture workspaces.
 
-The missing-prerequisite case passes only when `agents-md` is invoked and the temporary workspace remains unchanged. This verifies its safe-stop behavior without asking the agent to create a blocker artifact that the skill does not prescribe.
+The missing-prerequisite case passes only when the temporary workspace remains unchanged. This verifies safe-stop behavior without asking the agent to create a blocker artifact that the skill does not prescribe.
 
 ## Running it
 

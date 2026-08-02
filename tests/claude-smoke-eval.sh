@@ -43,15 +43,12 @@ case "$case_name" in
   expected-trigger)
     mkdir -p evaluation
     printf '%s\n' '## Micromanagement Audit' > evaluation/quality-report.md
-    touch evaluation/skill-invoked
     printf '%s\n' '{"modelUsage":{"anthropic/claude-sonnet-5":{}},"total_cost_usd":0.01}'
     ;;
   expected-non-trigger)
     printf '%s\n' '{"modelUsage":{"anthropic/claude-sonnet-5":{}},"total_cost_usd":0.01}'
     ;;
   missing-prerequisite)
-    mkdir -p evaluation
-    touch evaluation/skill-invoked
     printf '%s\n' '{"modelUsage":{"anthropic/claude-sonnet-5":{}},"total_cost_usd":0.01}'
     ;;
   *)
