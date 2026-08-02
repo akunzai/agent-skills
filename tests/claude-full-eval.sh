@@ -36,7 +36,12 @@ case "$case_name" in
   *)
     if [ "$replica" != "3" ]; then
       mkdir -p evaluation
-      printf '%s\n' "Completed $case_name" > evaluation/result.md
+      case "$case_name" in
+        agents-md/*) printf '%s\n' 'Micromanagement Audit' > evaluation/result.md ;;
+        tidy-commits/*) printf '%s\n' '## Cleanup Plan' > evaluation/result.md ;;
+        pr-workflow/*) printf '%s\n' '## Pull Request Checklist' > evaluation/result.md ;;
+        *) printf '%s\n' "Completed $case_name" > evaluation/result.md ;;
+      esac
     fi
     ;;
 esac
@@ -61,6 +66,11 @@ grep -q 'Finished tidy-commits/representative-task replica 3/3' <<<"$RUN_OUTPUT"
 
 RESULTS="$ARTIFACT_DIR/results.json"
 [ -f "$RESULTS" ] || fail "normalized results were not written"
+[ -f "$ARTIFACT_DIR/replicas.ndjson" ] || fail "replica checkpoint was not written"
+jq -s -e 'length == 45' "$ARTIFACT_DIR/replicas.ndjson" >/dev/null \
+  || fail "replica checkpoint must contain every completed replica"
+jq -s -e 'all(has("case") and has("skill") and has("fixture_hash"))' "$ARTIFACT_DIR/replicas.ndjson" >/dev/null \
+  || fail "replica checkpoint must identify its fixture"
 [ -f "$ARTIFACT_DIR/rubric.json" ] || fail "separate rubric report was not written"
 jq -e '.blocking == false and .feedback == []' "$ARTIFACT_DIR/rubric.json" >/dev/null \
   || fail "rubric report must remain non-blocking"

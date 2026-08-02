@@ -20,6 +20,8 @@ grep -q 'environment: skills-evals' "$WORKFLOW" || fail "workflow must use the p
 grep -q 'OPENROUTER_API_KEY: \${{ secrets.OPENROUTER_API_KEY }}' "$WORKFLOW" \
   || fail "workflow must read the OpenRouter key from the environment secret"
 grep -q 'evals/run-claude-full.sh' "$WORKFLOW" || fail "workflow must run the full-suite seam"
+grep -A2 'Upload evaluation artifacts' "$WORKFLOW" | grep -q 'if: always()' \
+  || fail "workflow must upload checkpoints after cancellation"
 grep -q 'retention-days: 30' "$WORKFLOW" || fail "workflow must retain diagnostics for 30 days"
 
 echo "claude full workflow checks passed"
