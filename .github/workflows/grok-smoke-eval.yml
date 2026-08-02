@@ -1,0 +1,65 @@
+name: Grok smoke comparison
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Requested OpenRouter Grok model identifier
+        required: true
+        default: x-ai/grok-4.5
+        type: string
+      provider:
+        description: Comparison provider (routine lane is openrouter only)
+        required: true
+        default: openrouter
+        type: choice
+        options: [openrouter]
+      max_turns:
+        description: Maximum Grok agent turns per fixture
+        required: true
+        default: '8'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: skills-evals
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+
+      - name: Install pinned Grok Build
+        run: npm install --global @xai-official/grok@0.2.118
+
+      - name: Run Grok smoke comparison
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GROK_DISABLE_AUTOUPDATER: '1'
+          MODEL: ${{ inputs.model }}
+          PROVIDER: ${{ inputs.provider }}
+          MAX_TURNS: ${{ inputs.max_turns }}
+        run: |
+          ARTIFACT_DIR="$RUNNER_TEMP/grok-smoke-artifacts"
+          evals/run-grok-smoke.sh \
+            --artifact-dir "$ARTIFACT_DIR" \
+            --model "$MODEL" \
+            --provider "$PROVIDER" \
+            --max-turns "$MAX_TURNS"
+
+      - name: Upload evaluation artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: grok-smoke-comparison
+          path: ${{ runner.temp }}/grok-smoke-artifacts
+          if-no-files-found: warn
+          retention-days: 30

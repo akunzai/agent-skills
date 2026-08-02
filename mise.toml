@@ -42,3 +42,7 @@ run = "evals/run-claude-full.sh"
 [tasks.eval-codex-smoke]
 description = "Run the manual native Codex CLI smoke comparison"
 run = "evals/run-codex-smoke.sh"
+
+[tasks.eval-grok-smoke]
+description = "Run the manual native Grok Build smoke comparison"
+run = "evals/run-grok-smoke.sh"
