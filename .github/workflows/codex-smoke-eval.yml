@@ -27,6 +27,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
+      - name: Prepare Codex Linux sandbox
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes apparmor-profiles apparmor-utils bubblewrap
+          sudo install -m 0644 \
+            /usr/share/apparmor/extra-profiles/bwrap-userns-restrict \
+            /etc/apparmor.d/bwrap-userns-restrict
+          sudo apparmor_parser -r /etc/apparmor.d/bwrap-userns-restrict
+
       - name: Install Codex CLI
         run: npm install --global @openai/codex@0.146.0
 
