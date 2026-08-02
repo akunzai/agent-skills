@@ -30,6 +30,28 @@ fail() {
   exit 1
 }
 
+classify_stderr() {
+  local error_file="$1"
+
+  if [ ! -s "$error_file" ]; then
+    printf '%s\n' 'empty'
+  elif grep -Eqi \
+    'unsupported.*wire_api|wire_api.*unsupported|unknown (field|variant|config)|invalid.*(config|provider|wire_api)' \
+    "$error_file"; then
+    printf '%s\n' 'configuration_invalid'
+  elif grep -Eqi 'unauthori[sz]ed|authentication|api[ _-]?key|credential|\b401\b' "$error_file"; then
+    printf '%s\n' 'authentication_rejected'
+  elif grep -Eqi 'forbidden|permission denied|\b403\b' "$error_file"; then
+    printf '%s\n' 'authorization_rejected'
+  elif grep -Eqi 'model.*(not found|unavailable)|no endpoints|\b404\b' "$error_file"; then
+    printf '%s\n' 'model_unavailable'
+  elif grep -Eqi 'rate limit|too many requests|\b429\b' "$error_file"; then
+    printf '%s\n' 'rate_limited'
+  else
+    printf '%s\n' 'unclassified'
+  fi
+}
+
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --fixture-root)
@@ -59,6 +81,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 command -v "$CODEX_BIN" >/dev/null 2>&1 || fail "Codex executable not found: $CODEX_BIN"
+command -v git >/dev/null 2>&1 || fail "git executable not found"
 [ -n "$MODEL" ] || fail "model must not be empty"
 case "$EFFORT" in
   low|medium|high|xhigh) ;;
@@ -77,12 +100,15 @@ FIXTURE_COUNT="$(find "$FIXTURE_ROOT" -mindepth 1 -maxdepth 1 -type d | wc -l | 
 for required_case in "${REQUIRED_CASES[@]}"; do
   [ -d "$FIXTURE_ROOT/$required_case" ] || fail "required fixture is missing: $required_case"
 done
-
 mkdir -p "$ARTIFACT_DIR"
 TEMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEMP_DIR"' EXIT
 RESULTS_NDJSON="$TEMP_DIR/results.ndjson"
 HARNESS_VERSION="$("$CODEX_BIN" --version 2>/dev/null || printf 'unknown')"
+CREDENTIAL_STATE="missing"
+if [ -n "${OPENROUTER_API_KEY:-}" ]; then
+  CREDENTIAL_STATE="present"
+fi
 
 for case_name in "${REQUIRED_CASES[@]}"; do
   fixture_dir="$FIXTURE_ROOT/$case_name"
@@ -93,14 +119,21 @@ for case_name in "${REQUIRED_CASES[@]}"; do
   [ -f "$EXPECTATION_FILE" ] || fail "missing expectation for $case_name"
   [ -f "$PROMPT_FILE" ] || fail "missing prompt for $case_name"
   [ -d "$PROJECT_DIR" ] || fail "missing project fixture for $case_name"
+  PROMPT="$(<"$PROMPT_FILE")"
+  CODEX_PROMPT="${PROMPT/#\/agents-md/\$agents-md}"
 
   WORKSPACE="$TEMP_DIR/$case_name"
   cp -R "$PROJECT_DIR/." "$WORKSPACE"
+  git -C "$WORKSPACE" init --quiet
   ORIGINAL_PROJECT="$TEMP_DIR/$case_name-original"
   cp -R "$PROJECT_DIR" "$ORIGINAL_PROJECT"
   SKILL_DIR="$WORKSPACE/.agents/skills/agents-md"
   mkdir -p "$(dirname "$SKILL_DIR")"
   cp -R "$ROOT_DIR/skills/agents-md" "$SKILL_DIR"
+  mkdir -p "$WORKSPACE/evaluation"
+  if [ "$case_name" = "expected-trigger" ]; then
+    : >"$WORKSPACE/evaluation/quality-report.md"
+  fi
   RESPONSE_FILE="$TEMP_DIR/$case_name-response.jsonl"
   ERROR_FILE="$TEMP_DIR/$case_name-error.txt"
   START_EPOCH="$(date +%s)"
@@ -112,6 +145,7 @@ for case_name in "${REQUIRED_CASES[@]}"; do
       --ephemeral \
       --ignore-user-config \
       --sandbox workspace-write \
+      --skip-git-repo-check \
       --config 'model_provider="openrouter"' \
       --config 'model_providers.openrouter.name="OpenRouter"' \
       --config 'model_providers.openrouter.base_url="https://openrouter.ai/api/v1"' \
@@ -119,7 +153,7 @@ for case_name in "${REQUIRED_CASES[@]}"; do
       --config 'model_providers.openrouter.wire_api="responses"' \
       --model "$MODEL" \
       --config "model_reasoning_effort=\"$EFFORT\"" \
-      "$(<"$PROMPT_FILE")"
+      "$CODEX_PROMPT"
   ) >"$RESPONSE_FILE" 2>"$ERROR_FILE"
   EXIT_CODE=$?
   set -e
@@ -157,12 +191,20 @@ for case_name in "${REQUIRED_CASES[@]}"; do
   rm -f "$EVIDENCE_FILE"
   rmdir "$WORKSPACE/evaluation" 2>/dev/null || true
   WORKSPACE_CLEAN="true"
-  if ! diff -qr --exclude='.agents' "$ORIGINAL_PROJECT" "$WORKSPACE" >/dev/null; then
+  if ! diff -qr --exclude='.agents' --exclude='.git' "$ORIGINAL_PROJECT" "$WORKSPACE" >/dev/null; then
     WORKSPACE_CLEAN="false"
   fi
 
   ERROR_CATEGORY=""
   ERROR_SUMMARY=""
+  STDERR_STATE="empty"
+  STDERR_CATEGORY="empty"
+  STDERR_FINGERPRINT=""
+  if [ -s "$ERROR_FILE" ]; then
+    STDERR_STATE="nonempty"
+    STDERR_CATEGORY="$(classify_stderr "$ERROR_FILE")"
+    STDERR_FINGERPRINT="sha256:$(shasum -a 256 "$ERROR_FILE" | awk '{print $1}')"
+  fi
   if [ "$RESPONSE_STATE" = "invalid_jsonl" ]; then
     ERROR_CATEGORY="adapter_output_invalid"
     ERROR_SUMMARY="Codex emitted malformed JSONL"
@@ -188,6 +230,9 @@ for case_name in "${REQUIRED_CASES[@]}"; do
     --arg error_summary "$ERROR_SUMMARY" \
     --arg error_category "$ERROR_CATEGORY" \
     --arg response_state "$RESPONSE_STATE" \
+    --arg stderr_state "$STDERR_STATE" \
+    --arg stderr_category "$STDERR_CATEGORY" \
+    --arg stderr_fingerprint "$STDERR_FINGERPRINT" \
     --arg evidence_path "$EVIDENCE_PATH" \
     --arg evidence_status "$EVIDENCE_STATUS" \
     --arg workspace_clean "$WORKSPACE_CLEAN" \
@@ -210,13 +255,32 @@ for case_name in "${REQUIRED_CASES[@]}"; do
       cost_status: "not-reported",
       usage: $usage,
       error: $error_summary
-    } + (if $error_category == "" then {} else {error_category: $error_category, error_diagnostics: {response_state: $response_state}} end)' >>"$RESULTS_NDJSON"
+    } + (
+      if $error_category == "" then {}
+      else {
+        error_category: $error_category,
+        error_diagnostics: ({
+          response_state: $response_state,
+          stderr_state: $stderr_state,
+          stderr_category: $stderr_category
+        } + (
+          if $stderr_fingerprint == "" then {}
+          else {stderr_fingerprint: $stderr_fingerprint}
+          end
+        ))
+      }
+      end
+    )' >>"$RESULTS_NDJSON"
+  if [ "$ERROR_CATEGORY" != "" ]; then
+    echo "Codex diagnostic for $case_name: stderr=$STDERR_CATEGORY${STDERR_FINGERPRINT:+ ($STDERR_FINGERPRINT)}" >&2
+  fi
 done
 
 jq -s \
   --arg model "$MODEL" \
   --arg effort "$EFFORT" \
   --arg harness_version "$HARNESS_VERSION" \
+  --arg credential_state "$CREDENTIAL_STATE" \
   '{
     suite: "smoke",
     adapter: "codex-cli-native",
@@ -224,6 +288,7 @@ jq -s \
     harness_version: $harness_version,
     provider: "openrouter",
     gateway: "openrouter-responses",
+    credential_state: $credential_state,
     requested_model: $model,
     requested_effort: $effort,
     resolved_model: null,
