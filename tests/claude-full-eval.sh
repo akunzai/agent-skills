@@ -132,7 +132,7 @@ PROVIDER_FAILURE_ARTIFACT_DIR="$TEMP_DIR/provider-failure-artifacts"
 PROVIDER_FAILURE_LOG="$TEMP_DIR/provider-failure-invocations.log"
 if FAKE_PROVIDER_FAILURE_CASE='agents-md/expected-non-trigger' \
   FAKE_PROVIDER_FAILURE_REPLICA=2 \
-  FAKE_PROVIDER_FAILURE_RESPONSE=false \
+  FAKE_PROVIDER_FAILURE_RESPONSE='{"type":"result","subtype":"error_during_execution","is_error":true}' \
   FAKE_INVOCATION_LOG="$PROVIDER_FAILURE_LOG" \
   CLAUDE_BIN="$FAKE_CLAUDE" "$RUNNER" \
     --fixture-root "$FIXTURES" \
@@ -149,6 +149,9 @@ jq -s -e --arg expected_stderr_sha256 "$EXPECTED_STDERR_SHA256" '
   and .[1].error_diagnostics.stderr_bytes == 9
   and .[1].error_diagnostics.stderr_sha256 == $expected_stderr_sha256
   and .[1].error_diagnostics.response_state == "valid_json"
+  and .[1].error_diagnostics.response.type == "result"
+  and .[1].error_diagnostics.response.subtype == "error_during_execution"
+  and .[1].error_diagnostics.response.is_error == true
 ' \
   "$PROVIDER_FAILURE_ARTIFACT_DIR/replicas.ndjson" >/dev/null \
   || fail "rate-limited replica must include redacted failure diagnostics"

@@ -23,8 +23,9 @@ If Claude exits unsuccessfully, the runner records only a safe error category
 (for example, rate limit, budget, authentication, or unknown) on the failed
 replica, writes partial results with an abort reason, and stops immediately.
 It also records the stderr byte count, SHA-256 fingerprint, and whether stdout
-was empty, valid JSON, or invalid JSON. It never retains raw provider stderr
-in the artifact.
+was empty, valid JSON, or invalid JSON. For valid JSON it records only the
+bounded protocol fields `type`, `subtype`, and `is_error`; it never retains
+raw provider stderr or response text in the artifact.
 
 Rubric feedback belongs in a separate, non-blocking scorecard. It can guide a
 reviewer but cannot change the full suite's exit status.

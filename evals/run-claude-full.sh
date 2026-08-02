@@ -49,6 +49,20 @@ classify_provider_error() {
   fi
 }
 
+summarize_response() {
+  local response_file="$1"
+
+  jq -c '
+    def protocol_string:
+      if type == "string" and test("^[a-z][a-z0-9_-]{0,63}$") then . else null end;
+    if type == "object" then
+      {type: (.type | protocol_string), subtype: (.subtype | protocol_string), is_error: (if (.is_error | type) == "boolean" then .is_error else null end)}
+    else
+      {type: null, subtype: null, is_error: null}
+    end
+  ' "$response_file"
+}
+
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --fixture-root) FIXTURE_ROOT="${2:-}"; shift 2 ;;
@@ -169,9 +183,11 @@ for fixture_dir in "${FIXTURES[@]}"; do
     stderr_bytes=0
     stderr_sha256=""
     response_state=empty
+    response_diagnostics='{"type":null,"subtype":null,"is_error":null}'
     if [ -s "$response_file" ]; then
       jq . "$response_file" >/dev/null 2>&1 || response_state=invalid_json
       [ "$response_state" = invalid_json ] || response_state=valid_json
+      [ "$response_state" != valid_json ] || response_diagnostics="$(summarize_response "$response_file")"
     fi
     if [ "$exit_code" -ne 0 ]; then
       error_category="$(classify_provider_error "$error_file")"
@@ -209,8 +225,8 @@ for fixture_dir in "${FIXTURES[@]}"; do
     echo "Finished $case_id replica $replica/3: $status (${elapsed_seconds}s)"
     jq -n --arg case_id "$case_id" --arg skill "$SKILL" --arg fixture_hash "$FIXTURE_HASH" --arg replica "$replica" --arg status "$status" --arg actual_outcome "$actual_outcome" --arg evidence_status "$evidence_status" \
       --arg resolved_model "$resolved_model" --arg workspace_clean "$workspace_clean" --arg error_category "$error_category" --arg stderr_sha256 "$stderr_sha256" --arg response_state "$response_state" \
-      --argjson exit_code "$exit_code" --argjson elapsed_seconds "$elapsed_seconds" --argjson cost "$cost" --argjson stderr_bytes "$stderr_bytes" \
-      '{case: $case_id, skill: $skill, fixture_hash: $fixture_hash, replica: ($replica | tonumber), status: $status, actual: {outcome: $actual_outcome}, deterministic_checks: {evidence_status: $evidence_status, workspace_clean: ($workspace_clean == "true")}, resolved_model: $resolved_model, exit_code: $exit_code, elapsed_seconds: $elapsed_seconds, cost_usd: $cost} + (if $error_category == "" then {} else {error_category: $error_category, error_diagnostics: {stderr_bytes: $stderr_bytes, stderr_sha256: $stderr_sha256, response_state: $response_state}} end)' \
+      --argjson exit_code "$exit_code" --argjson elapsed_seconds "$elapsed_seconds" --argjson cost "$cost" --argjson stderr_bytes "$stderr_bytes" --argjson response_diagnostics "$response_diagnostics" \
+      '{case: $case_id, skill: $skill, fixture_hash: $fixture_hash, replica: ($replica | tonumber), status: $status, actual: {outcome: $actual_outcome}, deterministic_checks: {evidence_status: $evidence_status, workspace_clean: ($workspace_clean == "true")}, resolved_model: $resolved_model, exit_code: $exit_code, elapsed_seconds: $elapsed_seconds, cost_usd: $cost} + (if $error_category == "" then {} else {error_category: $error_category, error_diagnostics: {stderr_bytes: $stderr_bytes, stderr_sha256: $stderr_sha256, response_state: $response_state, response: $response_diagnostics}} end)' \
       | tee -a "$REPLICA_CHECKPOINT" >> "$case_results"
     if [ -n "$ABORT_REASON" ]; then
       echo "Aborting full evaluation: $ABORT_REASON" >&2
