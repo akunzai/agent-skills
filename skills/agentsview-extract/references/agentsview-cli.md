@@ -2,7 +2,21 @@
 
 `agentsview` is a CLI and MCP server for parsing, indexing, searching, and viewing agent transcripts (Antigravity, Claude Code, Cursor, Windsurf, etc.).
 
+- [Primary Documentation & Quickstart](https://www.agentsview.io/quickstart/)
+- [GitHub Repository](https://github.com/kenn-io/agentsview)
+
 When using `agentsview-extract`, prefer executing `agentsview` CLI commands directly via shell execution.
+
+## Installation & Verification
+
+Verify whether `agentsview` is installed before executing CLI commands:
+
+```bash
+command -v agentsview || echo "agentsview not installed"
+```
+
+If `agentsview` is not installed, refer to [AgentsView Quickstart](https://www.agentsview.io/quickstart/) for official installation options (`brew install --cask agentsview`, `pip install agentsview`, `uvx agentsview`, script, or Docker).
+
 
 ## Common CLI Commands
 

@@ -16,7 +16,8 @@ Analyze conversation history across agentic coding tools (Claude Code, Antigravi
 ## 3-Stage Pipeline Workflow
 
 ### Stage 1: Search & Retrieval
-1. **Locate & Query History**:
+1. **Verify & Locate History**:
+   - Check CLI availability (`command -v agentsview`). If missing, refer to [AgentsView Quickstart](https://www.agentsview.io/quickstart/) or [references/agentsview-cli.md](references/agentsview-cli.md).
    - Using CLI: Consult [references/agentsview-cli.md](references/agentsview-cli.md) for command examples.
      - Search sessions by keyword/topic: `agentsview search "<topic_or_error>"`
      - List recent sessions: `agentsview session list --limit 20`
