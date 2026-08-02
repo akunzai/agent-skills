@@ -21,7 +21,7 @@ exit $exit_code
 
 [tasks.lint-shell]
 description = "Lint shell scripts with ShellCheck"
-run = "find tests skills -name '*.sh' -type f -exec shellcheck {} +"
+run = "find tests skills evals -name '*.sh' -type f -exec shellcheck {} +"
 
 [tasks.lint-actions]
 description = "Lint GitHub Actions workflows with actionlint"
@@ -30,3 +30,7 @@ run = "actionlint"
 [tasks.lint]
 description = "Run all linters"
 depends = ["lint-shell", "lint-actions"]
+
+[tasks.eval-claude-smoke]
+description = "Run the manual Claude Code smoke-evaluation fixtures"
+run = "evals/run-claude-smoke.sh"
