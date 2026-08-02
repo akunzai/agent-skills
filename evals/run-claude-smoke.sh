@@ -173,7 +173,7 @@ EOF
   EVIDENCE_STATUS="missing"
   if [ "$EVIDENCE_ABSENT" = "true" ] && [ ! -e "$EVIDENCE_FILE" ]; then
     EVIDENCE_STATUS="absent"
-  elif [ -f "$EVIDENCE_FILE" ] && { [ -z "$REQUIRED_PATTERN" ] || rg -q --fixed-strings "$REQUIRED_PATTERN" "$EVIDENCE_FILE"; }; then
+  elif [ -f "$EVIDENCE_FILE" ] && { [ -z "$REQUIRED_PATTERN" ] || grep -qF -- "$REQUIRED_PATTERN" "$EVIDENCE_FILE"; }; then
     EVIDENCE_STATUS="matched"
   fi
 
@@ -229,7 +229,7 @@ EOF
       expected: {skill_invoked: ($expected_skill == "true"), outcome: $expected_outcome},
       actual: {skill_invoked: ($actual_skill == "true"), outcome: $actual_outcome},
       summary: $summary,
-      evidence: {path: $case_name + "/" + $evidence_path, status: $evidence_status},
+      evidence: {path: ($case_name + "/" + $evidence_path), status: $evidence_status},
       workspace_clean: ($workspace_clean == "true"),
       exit_code: $exit_code,
       elapsed_seconds: $elapsed_seconds,

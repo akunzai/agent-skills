@@ -13,6 +13,14 @@ fail() {
 }
 
 FAKE_CLAUDE="$TEMP_DIR/claude"
+NO_RG_DIR="$TEMP_DIR/no-rg"
+mkdir -p "$NO_RG_DIR"
+cat >"$NO_RG_DIR/rg" <<'EOF'
+#!/usr/bin/env bash
+echo "rg must not be required by the portable eval runner" >&2
+exit 99
+EOF
+chmod +x "$NO_RG_DIR/rg"
 cat >"$FAKE_CLAUDE" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -57,7 +65,7 @@ chmod +x "$FAKE_CLAUDE"
 [ -x "$RUNNER" ] || fail "runner is missing or not executable"
 
 ARTIFACT_DIR="$TEMP_DIR/artifacts"
-CLAUDE_BIN="$FAKE_CLAUDE" "$RUNNER" \
+PATH="$NO_RG_DIR:$PATH" CLAUDE_BIN="$FAKE_CLAUDE" "$RUNNER" \
   --fixture-root "$FIXTURES" \
   --artifact-dir "$ARTIFACT_DIR" \
   --model 'anthropic/claude-sonnet-5'
@@ -82,5 +90,9 @@ jq -e '
 if rg -n --hidden --glob '!results.json' 'sk-[A-Za-z0-9_-]+' "$ARTIFACT_DIR"; then
   fail "artifacts must not contain credential-shaped values"
 fi
+
+# shellcheck disable=SC2016
+grep -q 'path: (\$case_name + "/" + \$evidence_path)' "$RUNNER" \
+  || fail "runner must use jq 1.6-compatible object-value concatenation"
 
 echo "claude smoke eval checks passed"
