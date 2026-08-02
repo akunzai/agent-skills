@@ -135,8 +135,10 @@ run_case() {
   EVIDENCE_ABSENT="$(jq -r '.evidence_absent // false' "$EXPECTATION_FILE")"
   FIXTURE_HASH="$(cd "$fixture_dir" && find . -type f -print | sort | while IFS= read -r file; do shasum -a 256 "$file"; done | shasum -a 256 | awk '{print $1}')"
   case_results="$TEMP_DIR/${case_id//\//-}.ndjson"
+  : > "$case_results"
 
   for replica in 1 2 3; do
+    [ ! -e "$ABORT_REASON_FILE" ] || break
     workspace="$TEMP_DIR/workspaces/${case_id//\//-}/$replica"
     original_project="$TEMP_DIR/original/${case_id//\//-}/$replica"
     mkdir -p "$workspace" "$original_project"
@@ -169,6 +171,7 @@ run_case() {
     jq -n --arg skill "$SKILL" '{name: ($skill + "-eval"), version: "0.0.0", description: "Temporary evaluation plugin"}' > "$plugin_dir/.claude-plugin/plugin.json"
     response_file="$TEMP_DIR/${case_id//\//-}-$replica-response.json"
     error_file="$TEMP_DIR/${case_id//\//-}-$replica-error.txt"
+    [ ! -e "$ABORT_REASON_FILE" ] || break
     echo "Starting $case_id replica $replica/3"
     start_epoch="$(date +%s)"
     set +e
@@ -241,6 +244,7 @@ run_case() {
     fi
   done
 
+  [ -s "$case_results" ] || return 1
   jq -s --arg case_id "$case_id" --arg skill "$SKILL" --arg fixture_hash "$FIXTURE_HASH" --arg expected_outcome "$EXPECTED_OUTCOME" '
     {case: $case_id, fixture_hash: $fixture_hash, skill: $skill, expected: {outcome: $expected_outcome}, replicas: ., hard_check: {passed_replicas: ([.[] | select(.status == "pass")] | length), accepted: (([.[] | select(.status == "pass")] | length) >= 2)}}
   ' "$case_results" >> "$worker_results"

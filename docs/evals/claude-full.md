@@ -22,7 +22,9 @@ raw prompts, responses, workspaces, credentials, or authorization headers.
 and cost. GitHub Actions retains this diagnostic artifact for 30 days.
 If Claude exits unsuccessfully, the runner records only a safe error category
 (for example, rate limit, budget, authentication, or unknown) on the failed
-replica, writes partial results with an abort reason, and stops immediately.
+replica, writes partial results with an abort reason, and stops launching new
+replicas or cases immediately. Requests already sent to the provider are
+allowed to finish because the runner cannot safely cancel them.
 It also records the stderr byte count, SHA-256 fingerprint, and whether stdout
 was empty, valid JSON, or invalid JSON. For valid JSON it records only the
 bounded protocol fields `type`, `subtype`, and `is_error`; it never retains
