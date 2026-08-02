@@ -38,3 +38,7 @@ run = "evals/run-claude-smoke.sh"
 [tasks.eval-claude-full]
 description = "Run the manual three-replica Claude Code release baseline"
 run = "evals/run-claude-full.sh"
+
+[tasks.eval-codex-smoke]
+description = "Run the manual native Codex CLI smoke comparison"
+run = "evals/run-codex-smoke.sh"

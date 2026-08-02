@@ -61,6 +61,18 @@ jobs:
       - name: Run Claude full workflow checks
         run: bash tests/claude-full-eval-workflow.sh
 
+  codex-evals:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Run Codex smoke evaluation checks
+        run: bash tests/codex-smoke-eval.sh
+
+      - name: Run Codex smoke workflow checks
+        run: bash tests/codex-smoke-eval-workflow.sh
+
   git-sync-memory:
     runs-on: ubuntu-latest
     steps:
