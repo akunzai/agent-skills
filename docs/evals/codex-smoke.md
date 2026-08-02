@@ -24,7 +24,7 @@ reviewer but is not release-gating.
 
 Use the **Codex smoke comparison** workflow from the Actions tab. It uses the
 protected `skills-evals` environment and the `OPENAI_API_KEY` secret. The
-default requested model is `gpt-5.6-terra` at `medium` reasoning effort.
+default requested model is `gpt-5.6-luna` at `medium` reasoning effort.
 
 For local experimentation, set `CODEX_API_KEY` only for the invocation and run:
 

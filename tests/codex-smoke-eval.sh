@@ -72,7 +72,7 @@ ARTIFACT_DIR="$TEMP_DIR/artifacts"
 PATH="$NO_RG_DIR:$PATH" CODEX_BIN="$FAKE_CODEX" "$RUNNER" \
   --fixture-root "$FIXTURES" \
   --artifact-dir "$ARTIFACT_DIR" \
-  --model 'gpt-5.6-terra' \
+  --model 'gpt-5.6-luna' \
   --effort medium
 
 RESULTS="$ARTIFACT_DIR/results.json"
@@ -84,7 +84,7 @@ jq -e '
   and .harness_version == "codex-cli 0.146.0"
   and .provider == "openai"
   and .gateway == "codex-cli"
-  and .requested_model == "gpt-5.6-terra"
+  and .requested_model == "gpt-5.6-luna"
   and .requested_effort == "medium"
   and .resolved_model == null
   and .model_resolution_status == "not-reported"

@@ -7,7 +7,7 @@ DEFAULT_ARTIFACT_DIR="${TMPDIR:-/tmp}/agent-skills-evals/codex-smoke"
 CODEX_BIN="${CODEX_BIN:-codex}"
 FIXTURE_ROOT="$DEFAULT_FIXTURE_ROOT"
 ARTIFACT_DIR="$DEFAULT_ARTIFACT_DIR"
-MODEL="gpt-5.6-terra"
+MODEL="gpt-5.6-luna"
 EFFORT="medium"
 
 usage() {

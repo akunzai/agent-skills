@@ -11,7 +11,7 @@ fail() {
 
 [ -f "$WORKFLOW" ] || fail "workflow is missing"
 grep -q '^  workflow_dispatch:' "$WORKFLOW" || fail "workflow must be manually dispatched"
-grep -q 'default: gpt-5.6-terra' "$WORKFLOW" || fail "workflow must default to the Codex comparison model"
+grep -q 'default: gpt-5.6-luna' "$WORKFLOW" || fail "workflow must default to the Codex comparison model"
 grep -q 'default: medium' "$WORKFLOW" || fail "workflow must default to medium effort"
 # shellcheck disable=SC2016
 grep -q 'CODEX_API_KEY: \${{ secrets.OPENAI_API_KEY }}' "$WORKFLOW" || fail "workflow must use the protected OpenAI secret"

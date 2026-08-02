@@ -6,7 +6,7 @@ on:
       model:
         description: Requested Codex model identifier
         required: true
-        default: gpt-5.6-terra
+        default: gpt-5.6-luna
         type: string
       effort:
         description: Codex reasoning effort
