@@ -50,4 +50,13 @@ grep -R -q -E 'Mixed-concern fixups guard|unrelated modules' "$SKILL_DIR" \
 grep -R -q -E 'Outdated Base & Soft-Reset Guard|diverged base' "$SKILL_DIR" \
   || fail "outdated base soft-reset guard guidance is missing"
 
+grep -R -q -E 'Backup cleanup|backup cleanup' "$SKILL_DIR" \
+  || fail "backup cleanup guidance section is missing"
+
+grep -R -q -E 'git branch -D' "$SKILL_DIR" \
+  || fail "backup cleanup must prescribe git branch -D (not only -d)"
+
+grep -R -q -E 'do not delete|without explicit approval|explicit approval' "$SKILL_DIR" \
+  || fail "must require explicit approval before deleting backup refs"
+
 echo "tidy-commits content checks passed"
