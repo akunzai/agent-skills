@@ -8,6 +8,9 @@ The reusable/manual [`api-evaluation-profile.yml`](../../.github/workflows/api-e
 workflow passes its `target_models` and `judge_model` inputs directly to this
 profile validator. It is a configuration check only; the protected
 model-backed workflow belongs to the later evaluation workflow slice.
+The one-turn paired adapter that consumes this profile is documented in
+api-paired.md; its ordinary contract tests use a mocked transport, while real
+requests remain protected/manual.
 
 ## Defaults
 
