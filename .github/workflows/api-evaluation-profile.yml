@@ -1,0 +1,49 @@
+name: API evaluation profile
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_models:
+        description: Comma-separated OpenRouter model identifiers for the target sweep
+        required: true
+        default: openai/gpt-5.6-luna,x-ai/grok-4.5,google/gemini-3.6-flash
+        type: string
+      judge_model:
+        description: One OpenRouter model identifier used uniformly as the judge
+        required: true
+        default: anthropic/claude-sonnet-5
+        type: string
+  workflow_call:
+    inputs:
+      target_models:
+        description: Comma-separated OpenRouter model identifiers for the target sweep
+        required: false
+        default: openai/gpt-5.6-luna,x-ai/grok-4.5,google/gemini-3.6-flash
+        type: string
+      judge_model:
+        description: One OpenRouter model identifier used uniformly as the judge
+        required: false
+        default: anthropic/claude-sonnet-5
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Validate API evaluation profile
+        env:
+          TARGET_MODELS: ${{ inputs.target_models }}
+          JUDGE_MODEL: ${{ inputs.judge_model }}
+        run: |
+          profile_path="$RUNNER_TEMP/api-evaluation-profile.json"
+          evals/api-evaluation-profile.sh \
+            --target-models "$TARGET_MODELS" \
+            --judge-model "$JUDGE_MODEL" \
+            --output "$profile_path"
+          jq -e '.status == "valid" and .result_type == "profile"' "$profile_path" >/dev/null

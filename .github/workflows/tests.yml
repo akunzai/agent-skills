@@ -85,6 +85,18 @@ jobs:
       - name: Run Grok smoke workflow checks
         run: bash tests/grok-smoke-eval-workflow.sh
 
+  api-evaluation-profile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Run API evaluation profile checks
+        run: bash tests/api-evaluation-profile.sh
+
+      - name: Run API evaluation profile workflow checks
+        run: bash tests/api-evaluation-profile-workflow.sh
+
   git-sync-memory:
     runs-on: ubuntu-latest
     steps:
