@@ -11,7 +11,7 @@ Tidy an existing branch into a clear, reviewable commit story while preserving t
 
 For local branch history cleanup only — for ordinary new commits use the repo's normal commit workflow.
 
-Inspect state → refuse unclear or unrelated working-tree changes → create a backup ref → plan `base..HEAD` (keep / squash / fixup / reword / reorder / split / drop) → show the plan and exact commands → rebase non-interactively → verify the final tree and tests before any push.
+Inspect state → refuse unclear or unrelated working-tree changes → create a backup ref → plan `base..HEAD` (keep / squash / fixup / reword / reorder / split / drop) → show the plan and exact commands → rebase non-interactively → verify the final tree and tests before any push → after a successful push (or explicit local-only close-out), prompt to clean up backup refs.
 
 ## Preflight
 
@@ -95,7 +95,33 @@ git push --force-with-lease origin HEAD:<branch>
 git push --force-with-lease origin <moved-stacked-branch>
 ```
 
-Ask for confirmation before force-with-lease pushes. Report any local-only backup ref and do not delete it without explicit approval.
+Ask for confirmation before force-with-lease pushes. Never delete a backup ref without explicit approval; see **Backup cleanup** for when and how to ask.
+
+## Backup cleanup
+
+Each tidy run creates a new timestamped `backup/tidy-commits-*` ref (multi-round tidies accumulate). Do not auto-delete. Prompt only when the story is settled:
+
+**When to prompt**
+
+- After a **successful** push of the rewritten branch (and any moved stacked branches), or
+- After verification is green **and** the user **explicitly** closes out without push (e.g. "no need to push", "local only", "ok to delete backup"). Do **not** infer this from a missing upstream.
+
+**When not to prompt** (report the ref name only)
+
+- Rewrite abort/failure, verification failure, or push failure
+- User declines push / wants another tidy round ("don't push yet")
+- Ambiguous close-out language
+
+**How to ask (two steps)**
+
+1. **This run's backup** — recommend delete. Present a short table (not a bare long name alone): role (`this run`), time, tip subject (`git log -1 --oneline <ref>`), whether the tree matches `HEAD` (`git diff --quiet <ref> HEAD` → same/different). Ref names may be truncated in the table; use the full ref for any command.
+2. **Earlier `backup/tidy-commits-*`** (only if any remain) — list the same columns, newest first, role `earlier`. Do **not** recommend bulk-delete; wait for the user to name which rows/refs to remove.
+
+**Approval bar**
+
+- Consent applies only to the set named in that question; "delete this run's" must not be treated as consent for earlier backups.
+- Vague "sure" / "clean up" / "whatever" without mapping to this run or listed rows → re-confirm; do not delete.
+- On explicit approval, delete with `git branch -D <ref>…` (not `-d`; rewritten backups are usually not fully merged).
 
 ## Stop Conditions
 
