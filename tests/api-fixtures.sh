@@ -14,6 +14,19 @@ sha256_file() {
   printf 'sha256:%s' "$(shasum -a 256 "$path" | awk '{print $1}')"
 }
 
+assert_manifest_hash() {
+  local manifest="$1"
+  local manifest_key="$2"
+  local path="$3"
+  local label="$4"
+  local expected_hash
+  local actual_hash
+
+  expected_hash="$(jq -r "$manifest_key" "$manifest")"
+  actual_hash="$(sha256_file "$ROOT_DIR/$path")"
+  [ "$expected_hash" = "$actual_hash" ] || fail "$manifest $label hash is stale"
+}
+
 is_repo_relative_path() {
   case "$1" in
     ""|/*|../*|*/../*|*/..|./*|*/./*) return 1 ;;
@@ -46,6 +59,11 @@ for manifest in "${manifests[@]}"; do
     and ([.deterministic_checks[] | type == "string" and length > 0] | all)
   ' "$manifest" >/dev/null || fail "$manifest metadata is incomplete"
 
+  skill_name="$(jq -r '.skill.name' "$manifest")"
+  expected_skill_name="${expected_fixture_id%%/*}"
+  [ "$skill_name" = "$expected_skill_name" ] \
+    || fail "$manifest skill name must match its fixture directory"
+
   task_path="$(jq -r '.task.path' "$manifest")"
   skill_path="$(jq -r '.skill.path' "$manifest")"
   rubric_path="$(jq -r '.rubric.path' "$manifest")"
@@ -55,19 +73,19 @@ for manifest in "${manifests[@]}"; do
     [ -s "$ROOT_DIR/$input_path" ] || fail "$manifest points to an empty file: $input_path"
   done
 
-  [ "$(jq -r '.task.sha256' "$manifest")" = "$(sha256_file "$ROOT_DIR/$task_path")" ] \
-    || fail "$manifest task hash is stale"
-  [ "$(jq -r '.skill.sha256' "$manifest")" = "$(sha256_file "$ROOT_DIR/$skill_path")" ] \
-    || fail "$manifest skill hash is stale"
-  [ "$(jq -r '.rubric.sha256' "$manifest")" = "$(sha256_file "$ROOT_DIR/$rubric_path")" ] \
-    || fail "$manifest rubric hash is stale"
+  assert_manifest_hash "$manifest" '.task.sha256' "$task_path" task
+  assert_manifest_hash "$manifest" '.skill.sha256' "$skill_path" skill
+  assert_manifest_hash "$manifest" '.rubric.sha256' "$rubric_path" rubric
 
   jq -e \
     --arg task_path "$task_path" \
     --arg skill_path "$skill_path" \
+    --arg task_revision "$(jq -r '.task.revision' "$manifest")" \
     --arg rubric_revision "$(jq -r '.rubric.revision' "$manifest")" '
       .conditions.treatment.task_path == $task_path
       and .conditions.control.task_path == $task_path
+      and .conditions.treatment.task_revision == $task_revision
+      and .conditions.control.task_revision == $task_revision
       and .conditions.treatment.skill_path == $skill_path
       and .conditions.control.skill_path == null
       and .conditions.treatment.rubric_revision == $rubric_revision
@@ -81,6 +99,7 @@ for manifest in "${manifests[@]}"; do
 
   jq -e \
     --arg rubric_path "$rubric_path" \
+    --arg fixture_id "$fixture_id" \
     --arg rubric_revision "$(jq -r '.rubric.revision' "$manifest")" '
       .rubric.path == $rubric_path
       and .rubric.revision == $rubric_revision
@@ -88,6 +107,7 @@ for manifest in "${manifests[@]}"; do
 
   jq -e '
     .schema_version == 1
+    and (.rubric_id | type == "string" and length > 0)
     and (.revision | type == "string" and length > 0)
     and (.checks | type == "array" and length > 0)
     and ([.checks[] |
@@ -99,23 +119,27 @@ for manifest in "${manifests[@]}"; do
   ' "$ROOT_DIR/$rubric_path" >/dev/null || fail "$manifest rubric checks are invalid"
 
   jq -e \
+    --arg fixture_id "$fixture_id" \
+    ' .rubric_id == $fixture_id ' "$ROOT_DIR/$rubric_path" >/dev/null \
+    || fail "$manifest rubric_id must match fixture_id"
+
+  jq -e \
     --slurpfile rubric "$ROOT_DIR/$rubric_path" '
       ([.deterministic_checks[] as $id |
         ($rubric[0].checks | map(select(.id == $id)) | length == 1)] | all)
     ' "$manifest" >/dev/null || fail "$manifest references a missing deterministic check"
 
   jq -e '
-    ([.checks[] | select(.id == "required-response-structure")
-      | .kind == "required_headings"
-      and ([.headings[]] | index("Micromanagement Audit") != null)] | any)
-    and ([.checks[] | select(.id == "grounded-findings")
-      | .kind == "minimum_context_references"
-      and (.minimum as $minimum
-        | ($minimum | type == "number" and . >= 1)
-        and (.terms | type == "array" and length >= $minimum))] | any)
-    and ([.checks[] | select(.id == "no-invented-actions-or-state")
-      | .kind == "forbid_regex"
-      and (.patterns | type == "array" and length > 0)] | any)
+    any(.checks[];
+      .kind == "required_headings"
+      and (.headings | type == "array" and length > 0))
+    and any(.checks[];
+      .kind == "minimum_context_references"
+      and (.minimum | type == "number" and . >= 1)
+      and (.terms | type == "array" and length >= 1))
+    and any(.checks[];
+      .kind == "forbid_regex"
+      and (.patterns | type == "array" and length > 0))
   ' "$ROOT_DIR/$rubric_path" >/dev/null || fail "$manifest rubric misses required response checks"
 
   jq -e '

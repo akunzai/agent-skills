@@ -10,6 +10,11 @@ response rubric as separate inputs. A fixture lives under
 - `rubric.json`: fixed response-level checks that can be evaluated without
   claiming native filesystem, process, permission, workspace, or tool state.
 
+Rubric checks target the normalized `response_text` field. The fixture contract
+requires checks for response structure, minimum references to supplied context,
+and forbidden invention patterns, but leaves the actual headings, terms, and
+patterns to each skill's rubric.
+
 The treatment receives the selected skill from the manifest. The control must
 use the same task and rubric with an explicit `null` skill input. A task must
 not use slash invocation or harness-specific activation.

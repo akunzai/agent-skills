@@ -5,7 +5,8 @@ Use only the supplied context. Identify at least two concrete rules that are ove
 Do not claim that you inspected, edited, created, ran, verified, or changed any file, command, process, permission, repository, or workspace. The context below is illustrative text only; no action is requested.
 
 Supplied project context:
-- The `agents-md` skill says to keep `AGENTS.md` lean (< 100 lines) and offload detailed SOPs.
-- It says to avoid defensive micromanagement and redundant negative constraints.
+- The `Progressive Disclosure` principle says to keep `AGENTS.md` lean (< 100 lines) and offload detailed SOPs.
+- The `Trust Model Judgment` principle says to avoid defensive micromanagement and redundant negative constraints.
+- The `Single Source of Truth` principle says to cross-reference project rules instead of duplicating them.
+- The `Rich References` principle says to prefer pointers to schemas and gold-standard tests over long prose.
 - It also requires a `CLAUDE.md` compatibility check and gives a safe migration rule when the link is absent.
-- It says to prefer pointers to schemas and gold-standard tests over long prose.

@@ -2,12 +2,11 @@
   "schema_version": 1,
   "rubric_id": "agents-md/representative-task",
   "revision": "agents-md-micromanagement-v1",
-  "response_field": "text",
   "checks": [
     {
       "id": "required-response-structure",
       "kind": "required_headings",
-      "field": "response",
+      "field": "response_text",
       "headings": [
         "Micromanagement Audit",
         "Grounded Findings",
@@ -18,7 +17,7 @@
     {
       "id": "grounded-findings",
       "kind": "minimum_context_references",
-      "field": "response",
+      "field": "response_text",
       "terms": [
         "Progressive Disclosure",
         "Trust Model Judgment",
@@ -32,7 +31,7 @@
     {
       "id": "no-invented-actions-or-state",
       "kind": "forbid_regex",
-      "field": "response",
+      "field": "response_text",
       "patterns": [
         "\\bI (inspected|edited|created|ran|verified|changed|modified)\\b",
         "\\b(I|we) (ran|executed) (the )?(tests?|commands?|workflow)\\b",

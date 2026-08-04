@@ -5,7 +5,7 @@
   "task": {
     "path": "evals/fixtures/api/agents-md/representative-task/task.txt",
     "revision": "agents-md-task-v1",
-    "sha256": "sha256:268cf90715831587db686f0b5ae45dfcdd13dae1aeba07a715b6f587239f4191"
+    "sha256": "sha256:37277324740263ade107e8c034b910fb125e28786806618489a0f2957f098b96"
   },
   "skill": {
     "name": "agents-md",
@@ -16,16 +16,18 @@
   "rubric": {
     "path": "evals/fixtures/api/agents-md/representative-task/rubric.json",
     "revision": "agents-md-micromanagement-v1",
-    "sha256": "sha256:deb65558aedfd192bdd13afddceb93d1ac7a19c70267995c19727caf3b0a249d"
+    "sha256": "sha256:ed9a1deeaadebdbac7ab73de82e2dcee3d1a3670ce4cf32a678928d57a263dac"
   },
   "conditions": {
     "treatment": {
       "task_path": "evals/fixtures/api/agents-md/representative-task/task.txt",
+      "task_revision": "agents-md-task-v1",
       "skill_path": "skills/agents-md/SKILL.md",
       "rubric_revision": "agents-md-micromanagement-v1"
     },
     "control": {
       "task_path": "evals/fixtures/api/agents-md/representative-task/task.txt",
+      "task_revision": "agents-md-task-v1",
       "skill_path": null,
       "rubric_revision": "agents-md-micromanagement-v1"
     }
