@@ -1,1 +1,0 @@
-/pr-workflow Prepare a pull-request checklist in evaluation/result.md with the heading `## Pull Request Checklist` without opening a pull request.

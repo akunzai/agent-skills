@@ -46,6 +46,9 @@ This is a single-context repository. See `docs/agents/domain.md`.
 
 ### Skill evaluation
 
-When changing a skill covered by an eval, run its relevant manual smoke suite before review and link the workflow run in the PR. Real model-backed evals are manual-only; see `docs/evals/claude-smoke.md`.
-
-Run the three-replica Claude full suite for formal comparisons, baseline refreshes, or Claude Code upgrades; see `docs/evals/claude-full.md`.
+The API-level response evaluation is manual-only and diagnostic; see
+`docs/evals/api-paired.md`. When changing a covered skill, run the
+credential-free fixture and paired-runner contract tests locally. For
+real model-backed evidence, dispatch `.github/workflows/api-paired-eval.yml`
+from `main` after the `skills-evals` environment approval and branch
+restrictions are in place. It is not a pull-request or release gate.

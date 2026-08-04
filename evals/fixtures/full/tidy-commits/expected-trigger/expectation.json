@@ -1,1 +1,0 @@
-{"skill":"tidy-commits","case_kind":"expected-trigger","outcome":"pass","evidence_file":"evaluation/result.md","required_pattern":"## Cleanup Plan","git_history":3,"feature_branch":true}
