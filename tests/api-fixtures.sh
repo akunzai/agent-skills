@@ -230,7 +230,7 @@ for manifest in "${manifests[@]}"; do
     and (.artifact_policy.allowed_fields - .artifact_policy.forbidden_fields
       == .artifact_policy.allowed_fields)
     and ([.artifact_policy.allowed_fields[]
-      | select(test("raw|transcript|request|stderr|authorization|credential|workspace"; "i"))]
+      | select(test("raw|transcript|request_body|provider_stderr|stderr_body|authorization|credential|workspace"; "i"))]
       | length == 0)
     and ([.artifact_policy.forbidden_fields[]
       | select(test("raw_response|raw_transcript|authorization|credential|workspace"; "i"))]

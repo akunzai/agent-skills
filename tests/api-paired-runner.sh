@@ -18,6 +18,7 @@ TASK_FILE="$TEMP_DIR/task.txt"
 SKILL_FILE="$TEMP_DIR/SKILL.md"
 PROFILE_FILE="$TEMP_DIR/profile.json"
 ARTIFACT_DIR="$TEMP_DIR/artifacts"
+RUBRIC_FILE="$ROOT_DIR/evals/fixtures/api/agents-md/representative-task/rubric.json"
 
 cat >"$FAKE_CURL" <<'EOF'
 #!/usr/bin/env bash
@@ -78,8 +79,121 @@ done
 [ "$has_content_type" = "true" ] || { echo "request must declare JSON" >&2; exit 46; }
 [ -n "${OPENROUTER_API_KEY:-}" ] || { echo "missing mock credential" >&2; exit 47; }
 
-jq -c --arg url "$request_url" '
+model="$(jq -r '.model' "$request_file")"
+if jq -e '
+  any(.messages[]; .role == "system" and
+    (.content | contains("independent rubric judge")))
+' "$request_file" >/dev/null; then
+  jq -c --arg url "$request_url" --arg kind judge '
+    {
+      kind: $kind,
+      url: $url,
+      model,
+      messages,
+      temperature,
+      max_tokens,
+      stream,
+      provider
+    }
+  ' "$request_file" >>"$REQUEST_LOG"
+
+  case "${MOCK_JUDGE_MODE:-success}" in
+    success)
+      if jq -e '[.messages[].content] | any(contains("SKILL_MARKER"))' \
+        "$request_file" >/dev/null; then
+        judge_score=80
+      else
+        judge_score=60
+      fi
+      jq -n --arg model "$model" --argjson score "$judge_score" '{
+        id: "mock-judge-response",
+        model: $model,
+        choices: [{
+          index: 0,
+          message: {
+            role: "assistant",
+            content: ({
+              score: $score,
+              evidence: [
+                "The response names supplied project context.",
+                "The findings explain a rationale and offer an alternative."
+              ]
+            } | tojson)
+          },
+          finish_reason: "stop"
+        }],
+        usage: {prompt_tokens: 21, completion_tokens: 9, total_tokens: 30}
+      }' >"$output_file"
+      printf '%s' '200'
+      ;;
+    malformed)
+      jq -n --arg model "$model" '{
+        id: "mock-judge-malformed",
+        model: $model,
+        choices: [{
+          index: 0,
+          message: {role: "assistant", content: "not-json"},
+          finish_reason: "stop"
+        }]
+      }' >"$output_file"
+      printf '%s' '200'
+      ;;
+    secret)
+      jq -n --arg model "$model" '{
+        id: "mock-judge-secret",
+        model: $model,
+        choices: [{
+          index: 0,
+          message: {
+            role: "assistant",
+            content: ({score: 70, evidence: ["Bearer secret-token-value"]} | tojson)
+          },
+          finish_reason: "stop"
+        }]
+      }' >"$output_file"
+      printf '%s' '200'
+      ;;
+    empty-evidence)
+      jq -n --arg model "$model" '{
+        id: "mock-judge-empty-evidence",
+        model: $model,
+        choices: [{
+          index: 0,
+          message: {
+            role: "assistant",
+            content: ({score: 70, evidence: []} | tojson)
+          },
+          finish_reason: "stop"
+        }]
+      }' >"$output_file"
+      printf '%s' '200'
+      ;;
+    whitespace-evidence)
+      jq -n --arg model "$model" '{
+        id: "mock-judge-whitespace-evidence",
+        model: $model,
+        choices: [{
+          index: 0,
+          message: {
+            role: "assistant",
+            content: ({score: 70, evidence: ["   \n\t "]} | tojson)
+          },
+          finish_reason: "stop"
+        }]
+      }' >"$output_file"
+      printf '%s' '200'
+      ;;
+    *)
+      echo "unsupported mock judge mode" >&2
+      exit 51
+      ;;
+  esac
+  exit 0
+fi
+
+jq -c --arg url "$request_url" --arg kind candidate '
   {
+    kind: $kind,
     url: $url,
     model,
     messages,
@@ -90,7 +204,6 @@ jq -c --arg url "$request_url" '
   }
 ' "$request_file" >>"$REQUEST_LOG"
 
-model="$(jq -r '.model' "$request_file")"
 jq -e '
   .provider.allow_fallbacks == false
   and .provider.require_parameters == true
@@ -98,12 +211,26 @@ jq -e '
 
 case "$MOCK_CURL_MODE" in
   success)
-    jq -n --arg model "$model" '{
+    if jq -e '[.messages[].content] | any(contains("SKILL-CONTEXT"))' \
+      "$request_file" >/dev/null; then
+      response_marker="SKILL_MARKER"
+    else
+      response_marker="BASELINE_MARKER"
+    fi
+    jq -n --arg model "$model" --arg marker "$response_marker" '{
       id: "mock-response",
       model: $model,
       choices: [{
         index: 0,
-        message: {role: "assistant", content: "mock response"},
+        message: {role: "assistant", content: (
+          "## Micromanagement Audit\n\n" +
+          "## Grounded Findings\n\n" +
+          "- Progressive Disclosure: because a hard line is micromanagement; " +
+          "alternative: use a project-specific guideline.\n" +
+          "- Trust Model Judgment: because a duplicate constraint is prescriptive; " +
+          "alternative: rely on model judgment.\n\n" +
+          "## Recommendations\n\n" + $marker
+        )},
         finish_reason: "stop"
       }],
       usage: {prompt_tokens: 11, completion_tokens: 4, total_tokens: 15}
@@ -158,13 +285,18 @@ set +e
 OPENROUTER_API_KEY='test-api-key' \
   CURL_BIN="$FAKE_CURL" \
   MOCK_CURL_MODE='success' \
+  MOCK_JUDGE_MODE='success' \
   REQUEST_LOG="$REQUEST_LOG" \
   "$RUNNER" \
   --profile "$PROFILE_FILE" \
   --task-file "$TASK_FILE" \
+  --task-revision agents-md-task-v1 \
   --skill-file "$SKILL_FILE" \
+  --skill-revision agents-md-skill-v1 \
   --skill-name agents-md \
   --fixture-revision fixture-v1 \
+  --rubric-file "$RUBRIC_FILE" \
+  --rubric-revision agents-md-micromanagement-v1 \
   --artifact-dir "$ARTIFACT_DIR"
 runner_exit=$?
 set -e
@@ -180,16 +312,20 @@ jq -e '
   and .suite == "api-skill-utility"
   and .runner == "openrouter-one-turn-paired"
   and .status == "completed"
-  and .outcome == "not-scored"
+  and .outcome == "scored"
   and .target_models == ["openai/test-one", "google/test-two"]
   and .judge_model == "anthropic/test-judge"
   and .fixture.revision == "fixture-v1"
+  and .fixture.task_revision == "agents-md-task-v1"
+  and .fixture.skill_revision == "agents-md-skill-v1"
+  and .fixture.rubric_revision == "agents-md-micromanagement-v1"
   and .fixture.skill_name == "agents-md"
   and (.fixture.task_sha256 | startswith("sha256:"))
   and (.fixture.skill_sha256 | startswith("sha256:"))
+  and (.fixture.rubric_sha256 | startswith("sha256:"))
   and (.pairs | length == 2)
   and ([.pairs[].status] | all(. == "completed"))
-  and ([.pairs[].outcome] | all(. == "not-scored"))
+  and ([.pairs[].outcome] | all(. == "scored"))
   and ([.pairs[].treatment.condition] | unique == ["treatment"])
   and ([.pairs[].control.condition] | unique == ["control"])
   and ([.pairs[].treatment.request_count, .pairs[].control.request_count] | all(. == 1))
@@ -202,33 +338,102 @@ jq -e '
   and ([.pairs[].control.response.resolved_model] == .target_models)
   and ([.pairs[].treatment.response.usage.total_tokens] | all(. == 15))
   and ([.pairs[].control.response.usage.total_tokens] | all(. == 15))
+  and ([.pairs[].treatment.deterministic.status,
+    .pairs[].control.deterministic.status] | all(. == "passed"))
+  and ([.pairs[].treatment.judge.status, .pairs[].control.judge.status]
+    | all(. == "scored"))
+  and ([.pairs[].treatment.judge.requested_model,
+    .pairs[].control.judge.requested_model] | unique == ["anthropic/test-judge"])
+  and ([.pairs[].treatment.judge.score] | all(. == 80))
+  and ([.pairs[].control.judge.score] | all(. == 60))
+  and ([.pairs[].treatment.judge.response.resolved_model,
+    .pairs[].control.judge.response.resolved_model]
+    | unique == ["anthropic/test-judge"])
+  and ([.pairs[].treatment.judge.response.usage.total_tokens,
+    .pairs[].control.judge.response.usage.total_tokens] | all(. == 30))
+  and ([.pairs[].paired_lift.status] | all(. == "scored"))
+  and ([.pairs[].paired_lift.treatment_minus_control] | all(. == 20))
+  and ([.pairs[].treatment.timing.duration_seconds,
+    .pairs[].control.timing.duration_seconds,
+    .pairs[].treatment.judge.timing.duration_seconds,
+    .pairs[].control.judge.timing.duration_seconds] | all(type == "number"))
   and ([.pairs[].request.max_turns] | all(. == 1))
   and ([.pairs[].request.stream] | all(. == false))
   and ([.pairs[].provider_routing.gateway] | unique == ["openrouter-chat-completions"])
   and ([.pairs[].provider_routing.allow_fallbacks] | all(. == false))
   and ([.pairs[].treatment.response.content, .pairs[].control.response.content]
     | all(. == null))
+  and ((tostring | contains("SKILL_MARKER")) | not)
+  and ((tostring | contains("BASELINE_MARKER")) | not)
 ' "$RESULTS" >/dev/null || fail "paired results do not satisfy the public contract"
 
 jq -s -e '
-  length == 4
-  and ([.[].model] | sort == [
+  length == 8
+  and ([.[] | select(.kind == "candidate")] | length == 4)
+  and ([.[] | select(.kind == "judge")] | length == 4)
+  and ([.[] | select(.kind == "candidate") | .model] | sort == [
     "google/test-two", "google/test-two", "openai/test-one", "openai/test-one"
   ])
-  and ([.[].temperature] | unique == [0])
-  and ([.[].max_tokens] | unique == [2048])
+  and ([.[] | select(.kind == "judge") | .model] | unique == ["anthropic/test-judge"])
+  and ([.[] | select(.kind == "candidate") | .temperature] | unique == [0])
+  and ([.[] | select(.kind == "candidate") | .max_tokens] | unique == [2048])
+  and ([.[] | select(.kind == "judge") | .max_tokens] | unique == [512])
   and ([.[].stream] | unique == [false])
   and ([.[].provider.allow_fallbacks] | unique == [false])
   and ([.[].provider.require_parameters] | unique == [true])
   and ([.[].url] | unique == ["https://openrouter.ai/api/v1/chat/completions"])
-  and (.[0].messages[-1].content == .[1].messages[-1].content)
-  and (.[2].messages[-1].content == .[3].messages[-1].content)
-  and ([.[0].messages[], .[2].messages[]]
-    | map(select(.content | contains("SKILL-CONTEXT"))) | length == 2)
-  and ([.[1].messages[], .[3].messages[]]
-    | map(select(.content | contains("SKILL-CONTEXT"))) | length == 0)
+  and ([.[] | select(.kind == "candidate")]
+    | .[0].messages[-1].content == .[1].messages[-1].content
+      and .[2].messages[-1].content == .[3].messages[-1].content)
+  and ([.[] | select(.kind == "candidate") | .messages[]
+    | select(.content | contains("SKILL-CONTEXT"))] | length == 2)
+  and ([.[] | select(.kind == "judge") | [.messages[].content] | join("\n")
+    | select(contains("openai/test-one")
+      or contains("google/test-two")
+      or contains("treatment")
+      or contains("control"))] | length == 0)
+  and ([.[] | select(.kind == "judge") | [.messages[].content] | join("\n")
+    | select(contains("TASK:") and contains("RUBRIC:")
+      and contains("ANONYMIZED CANDIDATE RESPONSE:"))] | length == 4)
+  and ([.[] | select(.kind == "judge")
+    | [.messages[].content | select(contains("SKILL_MARKER")
+      or contains("BASELINE_MARKER"))] | length] | all(. == 1))
   and ([.[].messages[] | .content] | all(contains("/agents-md") | not))
 ' "$REQUEST_LOG" >/dev/null || fail "provider requests do not preserve treatment/control isolation"
+
+OVERLAPPING_PROFILE="$TEMP_DIR/overlapping-profile.json"
+jq '.judge_model = .target_models[0]' "$PROFILE_FILE" >"$OVERLAPPING_PROFILE"
+OVERLAPPING_ARTIFACT="$TEMP_DIR/overlapping-artifacts"
+OVERLAPPING_LOG="$TEMP_DIR/overlapping-requests.ndjson"
+: >"$OVERLAPPING_LOG"
+set +e
+OPENROUTER_API_KEY='' \
+  CURL_BIN="$FAKE_CURL" \
+  REQUEST_LOG="$OVERLAPPING_LOG" \
+  "$RUNNER" \
+  --profile "$OVERLAPPING_PROFILE" \
+  --task-file "$TASK_FILE" \
+  --task-revision agents-md-task-v1 \
+  --skill-file "$SKILL_FILE" \
+  --skill-revision agents-md-skill-v1 \
+  --skill-name agents-md \
+  --fixture-revision fixture-v1 \
+  --rubric-file "$RUBRIC_FILE" \
+  --rubric-revision agents-md-micromanagement-v1 \
+  --artifact-dir "$OVERLAPPING_ARTIFACT" \
+  >"$TEMP_DIR/overlapping.stdout" \
+  2>"$TEMP_DIR/overlapping.stderr"
+overlap_exit=$?
+set -e
+[ "$overlap_exit" -eq 2 ] || fail "a judge in the target sweep must be rejected"
+jq -e '
+  .status == "failed"
+  and .outcome == "not-scored"
+  and .error.category == "configuration"
+  and .error.code == "profile_invalid"
+' "$OVERLAPPING_ARTIFACT/results.json" >/dev/null \
+  || fail "overlapping judge profile must emit a typed configuration failure"
+[ ! -s "$OVERLAPPING_LOG" ] || fail "an overlapping judge must not call the provider"
 
 PROFILE_WITH_EXTRAS="$TEMP_DIR/profile-with-extras.json"
 jq '
@@ -241,13 +446,18 @@ set +e
 OPENROUTER_API_KEY='test-api-key' \
   CURL_BIN="$FAKE_CURL" \
   MOCK_CURL_MODE='success' \
+  MOCK_JUDGE_MODE='success' \
   REQUEST_LOG="$PROFILE_REDACTION_LOG" \
   "$RUNNER" \
   --profile "$PROFILE_WITH_EXTRAS" \
   --task-file "$TASK_FILE" \
+  --task-revision agents-md-task-v1 \
   --skill-file "$SKILL_FILE" \
+  --skill-revision agents-md-skill-v1 \
   --skill-name agents-md \
   --fixture-revision fixture-v1 \
+  --rubric-file "$RUBRIC_FILE" \
+  --rubric-revision agents-md-micromanagement-v1 \
   --artifact-dir "$PROFILE_REDACTION_ARTIFACT" \
   >"$TEMP_DIR/profile-redaction.stdout" \
   2>"$TEMP_DIR/profile-redaction.stderr"
@@ -295,9 +505,13 @@ run_provider_failure_case() {
     "$RUNNER" \
     --profile "$FAIL_PROFILE" \
     --task-file "$TASK_FILE" \
+    --task-revision agents-md-task-v1 \
     --skill-file "$SKILL_FILE" \
+    --skill-revision agents-md-skill-v1 \
     --skill-name agents-md \
     --fixture-revision fixture-v1 \
+    --rubric-file "$RUBRIC_FILE" \
+    --rubric-revision agents-md-micromanagement-v1 \
     --artifact-dir "$artifact_dir" \
     >"$stdout_file" 2>"$stderr_file"
   exit_code=$?
@@ -328,6 +542,63 @@ run_provider_failure_case() {
     || fail "$case_name must issue exactly one request per condition"
 }
 
+run_judge_failure_case() {
+  local case_name="$1"
+  local mock_judge_mode="$2"
+  local expected_code="$3"
+  local expected_category="$4"
+  local artifact_dir="$TEMP_DIR/$case_name-judge-artifacts"
+  local request_log="$TEMP_DIR/$case_name-judge-requests.ndjson"
+  local results_file="$artifact_dir/results.json"
+  local exit_code
+
+  : >"$request_log"
+  set +e
+  OPENROUTER_API_KEY='test-api-key' \
+    CURL_BIN="$FAKE_CURL" \
+    MOCK_CURL_MODE='success' \
+    MOCK_JUDGE_MODE="$mock_judge_mode" \
+    REQUEST_LOG="$request_log" \
+    "$RUNNER" \
+    --profile "$FAIL_PROFILE" \
+    --task-file "$TASK_FILE" \
+    --task-revision agents-md-task-v1 \
+    --skill-file "$SKILL_FILE" \
+    --skill-revision agents-md-skill-v1 \
+    --skill-name agents-md \
+    --fixture-revision fixture-v1 \
+    --rubric-file "$RUBRIC_FILE" \
+    --rubric-revision agents-md-micromanagement-v1 \
+    --artifact-dir "$artifact_dir" \
+    >"$TEMP_DIR/$case_name-judge.stdout" \
+    2>"$TEMP_DIR/$case_name-judge.stderr"
+  exit_code=$?
+  set -e
+
+  [ "$exit_code" -eq 1 ] || fail "$case_name must exit with task-failure status 1"
+  jq -e \
+    --arg expected_code "$expected_code" \
+    --arg expected_category "$expected_category" \
+    '
+      .status == "failed"
+      and .outcome == "not-scored"
+      and (.pairs | length == 1)
+      and ([.pairs[].status] | all(. == "failed"))
+      and ([.pairs[] | .treatment.judge.error.code,
+        .control.judge.error.code] | all(. == $expected_code))
+      and ([.pairs[] | .treatment.judge.error.category,
+        .control.judge.error.category] | all(. == $expected_category))
+      and ([.pairs[] | .treatment.judge.status, .control.judge.status]
+        | all(. == "failed"))
+      and ([.pairs[].paired_lift.status] | all(. == "not-scored"))
+      and ((tostring | contains("secret-token-value")) | not)
+      and ((tostring | contains("test-api-key")) | not)
+    ' "$results_file" >/dev/null \
+    || fail "$case_name did not emit its typed, redacted judge failure"
+  [ "$(wc -l <"$request_log" | tr -d ' ')" -eq 4 ] \
+    || fail "$case_name must issue two candidate and two judge requests"
+}
+
 run_missing_credential_case() {
   local artifact_dir="$TEMP_DIR/missing-credential-artifacts"
   local request_log="$TEMP_DIR/missing-credential-requests.ndjson"
@@ -339,13 +610,18 @@ run_missing_credential_case() {
   OPENROUTER_API_KEY='' \
     CURL_BIN="$FAKE_CURL" \
     MOCK_CURL_MODE='success' \
+    MOCK_JUDGE_MODE='success' \
     REQUEST_LOG="$request_log" \
     "$RUNNER" \
     --profile "$FAIL_PROFILE" \
     --task-file "$TASK_FILE" \
+    --task-revision agents-md-task-v1 \
     --skill-file "$SKILL_FILE" \
+    --skill-revision agents-md-skill-v1 \
     --skill-name agents-md \
     --fixture-revision fixture-v1 \
+    --rubric-file "$RUBRIC_FILE" \
+    --rubric-revision agents-md-micromanagement-v1 \
     --artifact-dir "$artifact_dir" \
     >"$TEMP_DIR/missing-credential.stdout" \
     2>"$TEMP_DIR/missing-credential.stderr"
@@ -372,5 +648,9 @@ run_provider_failure_case rate-limited rate-limited provider_rate_limited provid
 run_provider_failure_case provider-error provider-error provider_error provider
 run_provider_failure_case timeout timeout request_timeout transport
 run_provider_failure_case malformed malformed response_malformed response
+run_judge_failure_case malformed malformed judge_response_malformed response
+run_judge_failure_case secret secret judge_redaction_failure security
+run_judge_failure_case empty-evidence empty-evidence judge_score_invalid response
+run_judge_failure_case whitespace-evidence whitespace-evidence judge_score_invalid response
 
 echo "api paired runner checks passed"

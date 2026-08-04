@@ -187,6 +187,18 @@ validate_target_models() {
   done
 }
 
+validate_judge_independence() {
+  local target_model
+
+  for target_model in "${TARGET_MODELS[@]}"; do
+    if [ "$target_model" = "$JUDGE_MODEL" ]; then
+      typed_error \
+        "malformed" "judge_model_in_target_sweep" "judge_model" \
+        "judge_model must not appear in target_models; the judge must be independent of the target sweep."
+    fi
+  done
+}
+
 validate_provider() {
   case "$PROVIDER" in
     openrouter) ;;
@@ -394,4 +406,5 @@ fi
 
 validate_target_models
 validate_model_identifier "$JUDGE_MODEL" "judge_model"
+validate_judge_independence
 build_profile
