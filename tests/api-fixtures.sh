@@ -136,6 +136,40 @@ for manifest in "${manifests[@]}"; do
         ($rubric[0].checks | map(select(.id == $id)) | length == 1)] | all)
     ' "$manifest" >/dev/null || fail "$manifest references a missing deterministic check"
 
+  jq -e \
+    --slurpfile rubric "$ROOT_DIR/$rubric_path" '
+      def nonempty_strings:
+        type == "array"
+        and length > 0
+        and all(.[]; type == "string" and length > 0);
+
+      [
+        .deterministic_checks[] as $id
+        | ($rubric[0].checks[] | select(.id == $id))
+        | if (.bounded != true or .field != "response_text") then
+            false
+          elif .kind == "required_headings" then
+            (.headings | nonempty_strings)
+          elif .kind == "minimum_context_references" then
+            (.minimum as $minimum
+              | ($minimum | type == "number" and . >= 1)
+              and (.terms | nonempty_strings and length >= $minimum))
+          elif .kind == "minimum_grounded_findings" then
+            (.minimum | type == "number" and . >= 1)
+            and (.per_item == true)
+            and (.required_components | nonempty_strings)
+            and (.required_components | index("context_reference") != null)
+            and (.required_components | index("rationale") != null)
+            and (.required_components | index("alternative") != null)
+          elif .kind == "forbid_regex" then
+            (.patterns | nonempty_strings)
+          else
+            false
+          end
+      ] | all
+    ' "$manifest" >/dev/null \
+    || fail "$manifest references an incomplete deterministic check"
+
   jq -e '
     any(.checks[];
       .kind == "required_headings"
@@ -198,6 +232,22 @@ for manifest in "${manifests[@]}"; do
       | select(test("raw_response|raw_transcript|authorization|credential|workspace"; "i"))]
       | length >= 3)
   ' "$manifest" >/dev/null || fail "$manifest artifact policy is missing bounds or redaction guards"
+
+  assert_forbidden_phrase() {
+    local phrase="$1"
+    jq -e --arg phrase "$phrase" '
+      [.checks[]
+        | select(.id == "no-invented-actions-or-state")
+        | .patterns[] as $pattern
+        | ($phrase | test($pattern))]
+      | any
+    ' "$ROOT_DIR/$rubric_path" >/dev/null \
+      || fail "$manifest invention guard misses: $phrase"
+  }
+
+  assert_forbidden_phrase 'I did inspect the repository'
+  assert_forbidden_phrase 'I ran the repository tests'
+  assert_forbidden_phrase 'I executed a shell command'
 done
 
 echo "API response-level fixture checks passed"
