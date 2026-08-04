@@ -168,6 +168,21 @@ if jq -e '
       }' >"$output_file"
       printf '%s' '200'
       ;;
+    whitespace-evidence)
+      jq -n --arg model "$model" '{
+        id: "mock-judge-whitespace-evidence",
+        model: $model,
+        choices: [{
+          index: 0,
+          message: {
+            role: "assistant",
+            content: ({score: 70, evidence: ["   \n\t "]} | tojson)
+          },
+          finish_reason: "stop"
+        }]
+      }' >"$output_file"
+      printf '%s' '200'
+      ;;
     *)
       echo "unsupported mock judge mode" >&2
       exit 51
@@ -636,5 +651,6 @@ run_provider_failure_case malformed malformed response_malformed response
 run_judge_failure_case malformed malformed judge_response_malformed response
 run_judge_failure_case secret secret judge_redaction_failure security
 run_judge_failure_case empty-evidence empty-evidence judge_score_invalid response
+run_judge_failure_case whitespace-evidence whitespace-evidence judge_score_invalid response
 
 echo "api paired runner checks passed"

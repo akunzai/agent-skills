@@ -579,13 +579,23 @@ judge_candidate() {
       and (keys | sort == ["evidence", "score"])
       and (.score | type == "number" and floor == . and . >= 0 and . <= 100)
       and (.evidence | type == "array" and length >= 1 and length <= 3)
-      and ([.evidence[] | type == "string" and length > 0 and length <= 512] | all)
+      and ([.evidence[] |
+        if type != "string" then false
+        else
+          ((gsub("[[:space:]]+"; " ")
+            | gsub("^[[:space:]]+|[[:space:]]+$"; "")
+            | length) > 0)
+          and (length <= 512)
+        end
+      ] | all)
     ' <<<"$normalized_payload" >/dev/null 2>&1; then
       error_code="judge_score_invalid"
     else
       parsed_score="$(jq -c '.score' <<<"$normalized_payload")"
       parsed_evidence="$(jq -c '
-        .evidence | map(gsub("[[:space:]]+"; " "))
+        .evidence
+        | map(gsub("[[:space:]]+"; " ")
+          | gsub("^[[:space:]]+|[[:space:]]+$"; ""))
       ' <<<"$normalized_payload")"
       while IFS= read -r evidence; do
         if printf '%s' "$evidence" | grep -Eqi \
