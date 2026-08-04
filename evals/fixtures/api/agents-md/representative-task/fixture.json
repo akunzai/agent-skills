@@ -124,6 +124,6 @@
       "workspace_snapshot"
     ],
     "max_field_bytes": 4096,
-    "max_artifact_bytes": 32768
+    "max_artifact_bytes": 65536
   }
 }

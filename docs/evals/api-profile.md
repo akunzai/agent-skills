@@ -6,12 +6,12 @@ configuration; it does not make network requests or read API credentials.
 
 The reusable/manual [`api-evaluation-profile.yml`](../../.github/workflows/api-evaluation-profile.yml)
 workflow passes its `target_models` and `judge_model` inputs directly to this
-profile validator. It is a configuration check only; the protected
+profile validator. It is a configuration check only; the manual
 model-backed [`api-paired-eval.yml`](../../.github/workflows/api-paired-eval.yml)
 workflow consumes the resulting profile for a manual diagnostic run.
 The one-turn paired adapter that consumes this profile is documented in
 api-paired.md; its ordinary contract tests use a mocked transport, while real
-requests remain protected/manual.
+requests remain manual-only.
 
 ## Defaults
 
@@ -22,9 +22,13 @@ The profile uses one fixed OpenRouter route and these model selections:
 | `target_models` | `openai/gpt-5.6-luna`, `x-ai/grok-4.5`, `google/gemini-3.6-flash` |
 | `judge_model` | `anthropic/claude-sonnet-5` |
 
-The API request is a one-turn, non-streaming `POST /chat/completions` request
-with temperature `0`, `2048` maximum output tokens, and a `120` second timeout.
-Provider fallbacks are disabled, and the route is recorded as
+Candidate and blind judge requests are one-turn, non-streaming
+`POST /chat/completions` requests with `temperature` omitted. Candidates use
+`2048` maximum output tokens; the judge uses `512` maximum output tokens and
+strict `json_schema` output with low reasoning effort. Omitting `temperature`
+lets GPT-5 reasoning models and the original target set be routed with
+`require_parameters: true`; low judge effort leaves room for the required JSON
+after reasoning. Provider fallbacks are disabled, and the route is recorded as
 `openrouter-chat-completions`.
 
 ## Workflow overrides
@@ -50,12 +54,14 @@ The current profile supports the OpenRouter provider only.
 
 ## Operational boundary for live runs
 
-The profile is intended to feed a protected/manual workflow. Static validation
-and mocked contract tests must remain credential-free; real model-backed runs
-must use an explicitly approved environment with bounded request time, turn
-count, concurrency, and cost. The workflow should persist a normalized profile
-snapshot and bounded result metadata, but never raw provider transcripts,
-authorization headers, credentials, or unrestricted upstream artifacts.
+The profile is intended to feed a manual-only workflow. Static validation and
+mocked contract tests remain credential-free; real model-backed runs use the
+environment-scoped OpenRouter credential with bounded request time, turn count,
+concurrency, and normalized artifact size. Spend is governed by the OpenRouter
+account budget rather than a second workflow-local cost gate. The workflow
+persists a normalized profile snapshot and bounded result metadata, but never
+raw provider transcripts, authorization headers, credentials, or unrestricted
+upstream artifacts.
 
 This is a deliberately narrow operational borrowing from native eval harnesses:
 it informs the live-run boundary and provenance discipline, but does not import
