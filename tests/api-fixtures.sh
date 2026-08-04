@@ -237,25 +237,16 @@ for manifest in "${manifests[@]}"; do
       | length >= 3)
   ' "$manifest" >/dev/null || fail "$manifest artifact policy is missing bounds or redaction guards"
 
-  assert_forbidden_phrase() {
-    local phrase="$1"
-    jq -e --arg phrase "$phrase" '
-      [.checks[]
-        | select(.kind == "forbid_regex")
-        | .patterns[] as $pattern
-        | ($phrase | test($pattern))]
-      | any
-    ' "$ROOT_DIR/$rubric_path" >/dev/null \
-      || fail "$manifest invention guard misses: $phrase"
-  }
-
-  while IFS= read -r phrase; do
-    [ -n "$phrase" ] || continue
-    assert_forbidden_phrase "$phrase"
-  done < <(
-    jq -r '.checks[] | select(.kind == "forbid_regex") | .regression_phrases[]' \
-      "$ROOT_DIR/$rubric_path"
-  )
+  jq -e '
+    [
+      .checks[]
+      | select(.kind == "forbid_regex")
+      | . as $check
+      | $check.regression_phrases[]
+      | ([$check.patterns[] as $pattern | test($pattern)] | any)
+    ] | (length > 0 and all)
+  ' "$ROOT_DIR/$rubric_path" >/dev/null \
+    || fail "$manifest invention guard regression phrases are not covered by their own patterns"
 done
 
 echo "API response-level fixture checks passed"
