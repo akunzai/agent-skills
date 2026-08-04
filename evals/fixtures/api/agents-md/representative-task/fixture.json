@@ -10,8 +10,8 @@
   "skill": {
     "name": "agents-md",
     "path": "skills/agents-md/SKILL.md",
-    "revision": "agents-md-skill-v1",
-    "sha256": "sha256:46edff6ebccf07ad21cd820b7e20b0e17c2d334c52b32314a2e401da59dc9f87"
+    "revision": "agents-md-skill-v3",
+    "sha256": "sha256:939b44bb5e19219b85834223cb2e1824a9a34f8c3743e0c241720c689ef57e53"
   },
   "rubric": {
     "path": "evals/fixtures/api/agents-md/representative-task/rubric.json",

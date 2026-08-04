@@ -39,13 +39,13 @@ Use this starter template when creating a new `AGENTS.md` file. Prefer **Rich Re
 - **Single-Test Run**: Always target single test files during iteration for speed.
 - **Complex SOPs**: For database migration or deployment procedures, see @docs/deploy-sop.md or invoke relevant skills.
 
-## Knowledge Writeback & Active Pruning
-- **Extract Insights**: Distill non-obvious gotchas, hidden configurations, or project patterns into concise, non-derivable rules (1–2 bullets, no drifting metrics). Propose candidate additions to the user and update `AGENTS.md` (or relevant technical notes) upon explicit confirmation.
-- **Location**: Write global/project-level rules to `AGENTS.md`; offload topic-specific or multi-step details to dedicated notes.
-- **Active Pruning**: Keep `AGENTS.md` lean (< 100 lines). If `## Lessons Learned` or gotchas exceed 5 entries, prune obsolete items or promote mature patterns into types, tests, or auxiliary files.
+## Self-Reflection
+- **Candidate**: Distill non-obvious gotchas, hidden configurations, or project patterns into concise, non-derivable rules (≤ 2 bullets, context-tagged, no drifting metrics). Propose the candidate to the user before writing anything.
+- **Promote**: On confirmation, write it to a dedicated file — never inline in `AGENTS.md` itself. Merge into an existing topic doc if one covers the subject, otherwise create `docs/<topic>.md`; fall back to `docs/lessons-learned.md` for miscellaneous items. Add or update a single `@path` reference line per file under Rich References.
+- **Prune**: Drop entries once stale (obsolete version, now enforced by a linter/type/test, duplicated elsewhere, or a debugging transcript) — not by a fixed entry count.
 ```
 
-Don't include a `## Lessons Learned` section in a brand-new `AGENTS.md` — it has no history to document yet. Add it later, per Section 4 below, once real gotchas surface.
+Don't add a Rich Reference line for a lessons-learned or topic file in a brand-new `AGENTS.md` — there's no history to document yet. Add it later, per Section 4 below, once the first candidate is confirmed and promoted.
 
 ---
 
@@ -83,16 +83,22 @@ To maintain modularity and avoid overloading `AGENTS.md` with every detail, use 
 
 ---
 
-## 4. Lessons Learned & Active Pruning Section (Optional)
+## 4. Self-Reflection Reference Files (Optional)
 
-Add this section to `AGENTS.md` only when the project has accumulated non-obvious institutional knowledge discovered through problem-solving. Always include context tags (e.g. library version or OS scope).
+Create these files only once the project has accumulated non-obvious institutional knowledge discovered through problem-solving (see Section 4 of `SKILL.md`). Always include context tags (e.g. library version or OS scope).
+
+Write the entry into the relevant file — merge into an existing topic doc if one covers the subject, otherwise create `docs/<topic>.md`; use `docs/lessons-learned.md` as the fallback for miscellaneous items:
 
 ```markdown
-## Lessons Learned (Actively Pruned, max 5 entries)
 - [Node 20+] Running `npm test` without `--forceExit` hangs in CI due to an unclosed DB connection in `src/db/client.ts`.
 ```
 
+Then reference the file from `AGENTS.md`'s Rich References section — never inline the entry in `AGENTS.md` itself:
+
+```markdown
+## Rich References & Core Schemas
+- Lessons Learned: @docs/lessons-learned.md
+```
+
 > [!IMPORTANT]
-> **Active Pruning Hygiene**: Keep this section under 5 bullet points. If it exceeds 5 entries, perform a pruning check:
-> 1. Delete gotchas for obsolete package versions.
-> 2. Promote durable architectural rules into Rich References (types or static linter rules) or auxiliary notes.
+> **Pruning Hygiene**: Periodically review these files and drop entries once stale — obsolete package version, now enforced by a linter/type/test, duplicated elsewhere, or a one-off debugging transcript. There is no fixed entry-count cap; prune by relevance, not size.

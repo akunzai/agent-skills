@@ -18,7 +18,7 @@ An effective instruction file provides precise, developer-level constraints that
 | **Architecture Clarity** | High | Does the file outline the core design blocks and directory mappings? Can the agent understand module relations immediately? |
 | **Non-Obvious Patterns** | Medium | Are gotchas, environment variables, or custom configuration patterns documented with context tags? |
 | **Micromanagement Audit** | High | Is the file free from defensive boilerplate ("write clean code", "add comments") and generic negative constraints? |
-| **Currency & Pruning** | Medium | Is `## Lessons Learned` kept under 5 entries and free from stale/obsolete workarounds? |
+| **Currency & Pruning** | Medium | Are Self-Reflection reference files (topic docs / `lessons-learned.md` fallback) actively pruned and free from stale/obsolete workarounds? |
 
 ---
 
@@ -29,7 +29,7 @@ An effective instruction file provides precise, developer-level constraints that
 - Has exact command strings for building, testing, linting, and single-test execution.
 - Uses Rich References: points directly to key type definitions (`@src/types.ts`) and gold-standard tests (`@tests/feature.spec.ts`).
 - Zero micromanagement or defensive boilerplate; trusts model reasoning for standard programming.
-- `## Lessons Learned` is actively pruned and contains < 5 context-tagged entries.
+- Self-Reflection knowledge lives in dedicated topic files (or the `lessons-learned.md` fallback), referenced from `AGENTS.md` via `@path`, actively pruned and free of stale entries.
 
 ### Grade B (70-89): Minor Gaps / Slight Bloat
 - Commands and basic patterns are well-documented.
@@ -40,7 +40,7 @@ An effective instruction file provides precise, developer-level constraints that
 - Contains basic build commands.
 - Includes generic micromanagement rules ("write clean code", "always handle errors").
 - Uses long prose descriptions instead of Rich References (types/tests).
-- `## Lessons Learned` is unpruned (> 5 stale entries).
+- Self-Reflection knowledge is left inline in `AGENTS.md` (old format), or its reference files are unpruned and full of stale entries.
 
 ### Grade D (30-49): Sparse, Over-Constrained, or Drifted
 - Missing essential run or test commands.
@@ -65,6 +65,7 @@ When auditing `AGENTS.md`, look for and immediately eliminate these elements:
     Modern models handle these natively. Including them causes Attention Dilution and wastes context space.
 *   **SSOT Violations (Redundant Rules)**: Duplicate configurations already present in `package.json`, `tsconfig.json`, or linter configs.
 *   **Monolithic SOP Bloat**: Embedding 10-step deployment or migration scripts inside `AGENTS.md` instead of performing *Context Offloading* to dedicated Skills or `@docs/sop.md`.
+*   **Inline Lessons Learned**: Gotchas or insights written directly inside `AGENTS.md` instead of being promoted to a dedicated topic file (or `lessons-learned.md` fallback) referenced via `@path`. Migrate on discovery per the Self-Reflection workflow.
 *   **Derivable State / Drifting Metrics**: Hardcoded numbers that drift constantly:
     - `"The codebase has 25 unresolved issues"`
     - `"Current test coverage is 85%"`
@@ -73,11 +74,11 @@ When auditing `AGENTS.md`, look for and immediately eliminate these elements:
 
 ---
 
-## 4. Knowledge Writeback & Active Pruning Criteria
+## 4. Self-Reflection Criteria
 
-When evaluating a newly discovered insight or auditing existing memory:
+When evaluating a newly discovered insight or auditing existing reference files:
 
-### ✅ Write-back eligible (must meet ALL)
+### ✅ Candidate eligible (must meet ALL)
 | Gate | Description |
 |---|---|
 | **Non-derivable** | Cannot be inferred by reading source code or docs alone |
@@ -85,16 +86,16 @@ When evaluating a newly discovered insight or auditing existing memory:
 | **Durable & Actionable** | Constrains a concrete agent decision across sessions |
 | **Concise** | Fits in ≤ 2 bullet points |
 
-### ❌ Do NOT write back (reject at creation time)
+### ❌ Do NOT promote (reject at Candidate stage)
 - Step-by-step debugging transcripts ("First I tried X, then Y…")
 - One-off workarounds specific to a single bug instance
 - Information already derivable from `package.json`, `tsconfig.json`, etc.
 - Metrics that will drift (counts, percentages, timestamps)
 
-### ✂️ Pruning / Deletion Triggers (eliminate when ANY apply)
-- **Count Threshold**: `## Lessons Learned` exceeds 5 bullets -> propose pruning or promoting to type/test specs.
+### ✂️ Pruning Triggers (eliminate when ANY apply)
 - **Obsolete Version**: The library/framework has been upgraded past the tagged gotcha version.
 - **Derivable in Code**: The gotcha is now enforced statically by a linter rule or TypeScript type.
+- **Duplicate Coverage**: The same insight already exists in another topic file or the fallback -> merge and delete the duplicate.
 - **Transitory Transcript**: Bug-fix step-by-step logs ("First I tried X, then Y…").
 
 
