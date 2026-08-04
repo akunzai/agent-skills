@@ -33,6 +33,7 @@
       "kind": "minimum_grounded_findings",
       "field": "response_text",
       "minimum": 2,
+      "per_item": true,
       "required_components": [
         "context_reference",
         "rationale",
@@ -45,8 +46,8 @@
       "kind": "forbid_regex",
       "field": "response_text",
       "patterns": [
-        "\\b(I|we) (have |has )?(inspected|edited|created|ran|verified|changed|modified)\\b",
-        "\\b(I|we) (have |has )?(ran|run|executed) (the )?(tests?|commands?|workflow)\\b",
+        "\\b(I|we) (did |have |has )?(inspected|edited|created|ran|verified|changed|modified)\\b",
+        "\\b(I|we) (did |have |has )?(ran|run|executed) ((the |a )?(tests?|commands?|workflow))\\b",
         "\\b(the|this) (file|files|repository|workspace|process|permissions?|command|commands|test|tests|workflow) (was|were|has been|have been|is|are) (inspected|edited|created|modified|updated|verified|changed|run|executed|set|granted|available|clean|ready)\\b"
       ],
       "bounded": true

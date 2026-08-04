@@ -76,6 +76,7 @@ for manifest in "${manifests[@]}"; do
     [ -f "$ROOT_DIR/$input_path" ] || fail "$manifest points to a missing file: $input_path"
     [ -s "$ROOT_DIR/$input_path" ] || fail "$manifest points to an empty file: $input_path"
   done
+  [ "$task_path" != "$skill_path" ] || fail "$manifest must separate task and skill inputs"
 
   assert_manifest_hash "$manifest" '.task.sha256' "$task_path" task
   assert_manifest_hash "$manifest" '.skill.sha256' "$skill_path" skill
@@ -141,25 +142,33 @@ for manifest in "${manifests[@]}"; do
       and (.headings | type == "array" and length > 0))
     and any(.checks[];
       .kind == "minimum_context_references"
-      and (.minimum | type == "number" and . >= 1)
-      and (.terms | type == "array" and length >= 1))
+      and (.minimum as $minimum
+        | ($minimum | type == "number" and . >= 1)
+        and (.terms | type == "array" and length >= $minimum)
+        and ([.terms[] | type == "string" and length > 0] | all)))
     and any(.checks[];
       .kind == "minimum_grounded_findings"
       and (.minimum | type == "number" and . >= 1)
+      and (.per_item == true)
       and (.required_components | type == "array" and length >= 1)
       and (.required_components | index("context_reference") != null)
       and (.required_components | index("rationale") != null)
       and (.required_components | index("alternative") != null))
     and any(.checks[];
       .kind == "forbid_regex"
-      and (.patterns | type == "array" and length > 0))
+      and (.patterns | type == "array" and length > 0)
+      and ([.patterns[] | type == "string" and length > 0] | all))
+    and any(.checks[];
+      .kind == "required_headings"
+      and ([.headings[] | type == "string" and length > 0] | all))
   ' "$ROOT_DIR/$rubric_path" >/dev/null || fail "$manifest rubric misses required response checks"
 
   jq -e '
     ([.checks[] | keys_unsorted[]
       | select(. != "id" and . != "kind" and . != "field"
         and . != "headings" and . != "terms" and . != "minimum"
-        and . != "required_components" and . != "patterns" and . != "bounded")]
+        and . != "per_item" and . != "required_components"
+        and . != "patterns" and . != "bounded")]
       | length == 0)
     and ([.checks[].kind
       | select(. != "required_headings"
@@ -178,6 +187,10 @@ for manifest in "${manifests[@]}"; do
     and ([.artifact_policy.forbidden_fields[] | type == "string" and length > 0] | all)
     and (.artifact_policy.max_field_bytes | type == "number" and . > 0)
     and (.artifact_policy.max_artifact_bytes | type == "number" and . > 0)
+    and (.artifact_policy.max_field_bytes <= 4096)
+    and (.artifact_policy.max_artifact_bytes <= 65536)
+    and (.artifact_policy.allowed_fields - .artifact_policy.forbidden_fields
+      == .artifact_policy.allowed_fields)
     and ([.artifact_policy.allowed_fields[]
       | select(test("raw|transcript|request|stderr|authorization|credential|workspace"; "i"))]
       | length == 0)
