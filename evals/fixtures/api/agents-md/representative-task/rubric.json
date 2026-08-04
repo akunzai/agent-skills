@@ -50,6 +50,11 @@
         "\\b(I|we) (did |have |has )?(ran|run|executed) (the |a )?(repository )?(tests?|commands?|workflow|shell command)\\b",
         "\\b(the|this) (file|files|repository|workspace|process|permissions?|command|commands|test|tests|workflow) (was|were|has been|have been|is|are) (inspected|edited|created|modified|updated|verified|changed|run|executed|set|granted|available|clean|ready)\\b"
       ],
+      "regression_phrases": [
+        "I did inspect the repository",
+        "I ran the repository tests",
+        "I executed a shell command"
+      ],
       "bounded": true
     }
   ]

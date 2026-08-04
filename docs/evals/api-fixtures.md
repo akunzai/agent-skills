@@ -16,7 +16,8 @@ minimum per-item grounded findings, and forbidden invention patterns, but leaves
 actual headings, terms, components, and patterns to each skill's rubric. Static
 validation rejects check kinds or targets that assert native filesystem,
 process, permission, workspace, tool, or transcript state, and bounds artifact
-field and total sizes.
+field and total sizes. Each `forbid_regex` check also declares regression
+phrases so its patterns are exercised without hard-coding a skill-specific test.
 
 The treatment receives the selected skill from the manifest. The control must
 use the same task and rubric with an explicit `null` skill input. A task must

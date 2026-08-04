@@ -163,6 +163,7 @@ for manifest in "${manifests[@]}"; do
             and (.required_components | index("alternative") != null)
           elif .kind == "forbid_regex" then
             (.patterns | nonempty_strings)
+            and (.regression_phrases | nonempty_strings)
           else
             false
           end
@@ -191,7 +192,9 @@ for manifest in "${manifests[@]}"; do
     and any(.checks[];
       .kind == "forbid_regex"
       and (.patterns | type == "array" and length > 0)
-      and ([.patterns[] | type == "string" and length > 0] | all))
+      and ([.patterns[] | type == "string" and length > 0] | all)
+      and (.regression_phrases | type == "array" and length > 0)
+      and ([.regression_phrases[] | type == "string" and length > 0] | all))
     and any(.checks[];
       .kind == "required_headings"
       and ([.headings[] | type == "string" and length > 0] | all))
@@ -202,7 +205,8 @@ for manifest in "${manifests[@]}"; do
       | select(. != "id" and . != "kind" and . != "field"
         and . != "headings" and . != "terms" and . != "minimum"
         and . != "per_item" and . != "required_components"
-        and . != "patterns" and . != "bounded")]
+        and . != "patterns" and . != "regression_phrases"
+        and . != "bounded")]
       | length == 0)
     and ([.checks[].kind
       | select(. != "required_headings"
@@ -237,7 +241,7 @@ for manifest in "${manifests[@]}"; do
     local phrase="$1"
     jq -e --arg phrase "$phrase" '
       [.checks[]
-        | select(.id == "no-invented-actions-or-state")
+        | select(.kind == "forbid_regex")
         | .patterns[] as $pattern
         | ($phrase | test($pattern))]
       | any
@@ -245,9 +249,13 @@ for manifest in "${manifests[@]}"; do
       || fail "$manifest invention guard misses: $phrase"
   }
 
-  assert_forbidden_phrase 'I did inspect the repository'
-  assert_forbidden_phrase 'I ran the repository tests'
-  assert_forbidden_phrase 'I executed a shell command'
+  while IFS= read -r phrase; do
+    [ -n "$phrase" ] || continue
+    assert_forbidden_phrase "$phrase"
+  done < <(
+    jq -r '.checks[] | select(.kind == "forbid_regex") | .regression_phrases[]' \
+      "$ROOT_DIR/$rubric_path"
+  )
 done
 
 echo "API response-level fixture checks passed"
