@@ -1,1 +1,0 @@
-/tidy-commits Write a non-mutating history-cleanup plan to evaluation/result.md with the heading `## Cleanup Plan` and preserve existing user changes.

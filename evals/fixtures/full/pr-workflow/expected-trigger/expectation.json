@@ -1,1 +1,0 @@
-{"skill":"pr-workflow","case_kind":"expected-trigger","outcome":"pass","evidence_file":"evaluation/result.md","required_pattern":"## Pull Request Checklist","feature_branch":true,"remote_url":"https://example.invalid/upstream.git"}

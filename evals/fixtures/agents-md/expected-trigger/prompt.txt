@@ -1,1 +1,0 @@
-/agents-md Audit this repository's instruction files. Write the resulting quality report to `evaluation/quality-report.md`; it must include a `Micromanagement Audit` section. Do not modify any other file.

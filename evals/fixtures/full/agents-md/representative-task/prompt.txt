@@ -1,1 +1,0 @@
-/agents-md Create an instruction-file quality report at evaluation/result.md. Include a `Micromanagement Audit` heading. Do not modify other files.

@@ -43,48 +43,6 @@ jobs:
       - name: Run agents-md content checks
         run: bash tests/agents-md-content.sh
 
-  claude-evals:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Run Claude smoke evaluation checks
-        run: bash tests/claude-smoke-eval.sh
-
-      - name: Run Claude smoke workflow checks
-        run: bash tests/claude-smoke-eval-workflow.sh
-
-      - name: Run Claude full evaluation checks
-        run: bash tests/claude-full-eval.sh
-
-      - name: Run Claude full workflow checks
-        run: bash tests/claude-full-eval-workflow.sh
-
-  codex-evals:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Run Codex smoke evaluation checks
-        run: bash tests/codex-smoke-eval.sh
-
-      - name: Run Codex smoke workflow checks
-        run: bash tests/codex-smoke-eval-workflow.sh
-
-  grok-evals:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Run Grok smoke evaluation checks
-        run: bash tests/grok-smoke-eval.sh
-
-      - name: Run Grok smoke workflow checks
-        run: bash tests/grok-smoke-eval-workflow.sh
-
   api-evaluation-profile:
     runs-on: ubuntu-latest
     steps:
@@ -105,6 +63,9 @@ jobs:
 
       - name: Run protected API evaluation workflow checks
         run: bash tests/api-paired-eval-workflow.sh
+
+      - name: Run API evaluation cleanup checks
+        run: bash tests/api-eval-cleanup.sh
 
   git-sync-memory:
     runs-on: ubuntu-latest
