@@ -1,0 +1,360 @@
+name: API paired skill evaluation
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_models:
+        description: Comma-separated OpenRouter model identifiers for the target sweep
+        required: true
+        default: openai/gpt-5.6-luna,x-ai/grok-4.5,google/gemini-3.6-flash
+        type: string
+      judge_model:
+        description: One independent OpenRouter model identifier used as the judge
+        required: true
+        default: anthropic/claude-sonnet-5
+        type: string
+      max_budget_usd:
+        description: Maximum reported OpenRouter spend for this diagnostic run
+        required: true
+        default: '1.00'
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+  deployments: read
+
+concurrency:
+  group: api-paired-evaluation
+  cancel-in-progress: false
+
+jobs:
+  evaluate:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: skills-evals
+    env:
+      TARGET_MODELS: ${{ inputs.target_models }}
+      JUDGE_MODEL: ${{ inputs.judge_model }}
+      MAX_BUDGET_USD: ${{ inputs.max_budget_usd }}
+      MAX_TARGET_MODELS: '3'
+      MAX_REQUESTS: '12'
+      MAX_ARTIFACT_BYTES: '32768'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Validate fixture and snapshot profile
+        run: |
+          set -euo pipefail
+          artifact_dir="$RUNNER_TEMP/api-paired-artifacts"
+          profile_path="$artifact_dir/profile.json"
+          mkdir -p "$artifact_dir"
+          bash tests/api-fixtures.sh
+          evals/api-evaluation-profile.sh \
+            --target-models "$TARGET_MODELS" \
+            --judge-model "$JUDGE_MODEL" \
+            --output "$profile_path"
+          jq -e '
+            .status == "valid"
+            and .result_type == "profile"
+            and .request.max_turns == 1
+            and .request.timeout_seconds == 120
+            and .request.max_tokens == 2048
+            and .request.stream == false
+            and .provider_routing.allow_fallbacks == false
+          ' "$profile_path" >/dev/null
+
+      - name: Prepare bounded run policy
+        run: |
+          set -euo pipefail
+          artifact_dir="$RUNNER_TEMP/api-paired-artifacts"
+          profile_path="$artifact_dir/profile.json"
+          target_count="$(jq -r '.target_models | length' "$profile_path")"
+          [[ "$target_count" =~ ^[0-9]+$ ]]
+          [[ "$MAX_TARGET_MODELS" =~ ^[0-9]+$ ]]
+          [[ "$MAX_REQUESTS" =~ ^[0-9]+$ ]]
+          [ "$target_count" -ge 1 ]
+          [ "$target_count" -le "$MAX_TARGET_MODELS" ] || {
+            echo "api paired evaluation: target sweep exceeds the protected limit" >&2
+            exit 2
+          }
+          request_count=$((target_count * 4))
+          [ "$request_count" -le "$MAX_REQUESTS" ] || {
+            echo "api paired evaluation: request budget exceeds the protected limit" >&2
+            exit 2
+          }
+          jq -n --arg budget "$MAX_BUDGET_USD" '
+            ($budget | test("^[0-9]+(\\.[0-9]{1,2})?$"))
+            and (($budget | tonumber) > 0)
+            and (($budget | tonumber) <= 5)
+          ' >/dev/null || {
+            echo "api paired evaluation: max_budget_usd must be between 0 and 5" >&2
+            exit 2
+          }
+          jq -n \
+            --arg policy "api-paired-protected-v1" \
+            --arg budget "$MAX_BUDGET_USD" \
+            --argjson target_count "$target_count" \
+            --argjson request_count "$request_count" \
+            --argjson max_targets "$MAX_TARGET_MODELS" \
+            --argjson max_requests "$MAX_REQUESTS" \
+            --argjson max_artifact_bytes "$MAX_ARTIFACT_BYTES" \
+            ' {
+              schema_version: 1,
+              policy: $policy,
+              max_budget_usd: ($budget | tonumber),
+              target_count: $target_count,
+              request_count: $request_count,
+              max_target_models: $max_targets,
+              max_requests: $max_requests,
+              request: {
+                max_turns: 1,
+                timeout_seconds: 120,
+                candidate_max_tokens: 2048,
+                judge_max_tokens: 512,
+                stream: false,
+                provider_fallbacks: false
+              },
+              artifact: {
+                max_bytes: $max_artifact_bytes,
+                retention_days: 30,
+                raw_provider_material_persisted: false
+              },
+              budget_enforcement: "reported_provider_cost_post_run"
+            } ' >"$artifact_dir/run-policy.json"
+
+      - name: Verify protected environment policy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          artifact_dir="$RUNNER_TEMP/api-paired-artifacts"
+          environment_json='{}'
+          environment_read="false"
+          if environment_response="$(gh api \
+            "repos/$GITHUB_REPOSITORY/environments/skills-evals" \
+            2>/dev/null)"; then
+            environment_json="$environment_response"
+            environment_read="true"
+          fi
+          branch_policies='{"branch_policies":[]}'
+          if branch_policies_response="$(gh api \
+            "repos/$GITHUB_REPOSITORY/environments/skills-evals/deployment-branch-policies" \
+            2>/dev/null)"; then
+            branch_policies="$branch_policies_response"
+          fi
+          environment_is_protected="false"
+          if [ "$environment_read" = "true" ] \
+            && jq -e '
+            ([.protection_rules[]
+              | select(
+                  .type == "required_reviewers"
+                  or ((.type | type) == "string"
+                    and (.type | ascii_downcase | contains("review")))
+                )] | length > 0)
+            and (.deployment_branch_policy | type == "object")
+            and .deployment_branch_policy.custom_branch_policies == true
+          ' <<<"$environment_json" >/dev/null \
+            && jq -e '
+              (if type == "array" then . else (.branch_policies // []) end) as $policies
+              | any($policies[]?; .name == "main" and .type == "branch")
+            ' <<<"$branch_policies" >/dev/null; then
+            environment_is_protected="true"
+          fi
+          if [ "$environment_is_protected" != "true" ]; then
+            jq -n '
+              {
+                schema_version: 1,
+                suite: "api-skill-utility",
+                runner: "openrouter-one-turn-paired",
+                result_type: "infrastructure",
+                status: "failed",
+                outcome: "not-scored",
+                error: {
+                  type: "infrastructure",
+                  category: "security",
+                  code: "environment_unprotected",
+                  message: "The skills-evals environment lacks required review and main-branch deployment protection."
+                }
+              }
+            ' >"$artifact_dir/environment-failure.json"
+            exit 2
+          fi
+
+      - name: Run protected API paired evaluation
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          set -euo pipefail
+          artifact_dir="$RUNNER_TEMP/api-paired-artifacts"
+          profile_path="$artifact_dir/profile.json"
+          set +e
+          timeout --signal=TERM --kill-after=30s 25m \
+            evals/run-api-paired.sh \
+              --profile "$profile_path" \
+              --task-file evals/fixtures/api/agents-md/representative-task/task.txt \
+              --task-revision agents-md-task-v1 \
+              --skill-file skills/agents-md/SKILL.md \
+              --skill-revision agents-md-skill-v1 \
+              --skill-name agents-md \
+              --fixture-revision agents-md-api-v1 \
+              --rubric-file evals/fixtures/api/agents-md/representative-task/rubric.json \
+              --rubric-revision agents-md-micromanagement-v1 \
+              --artifact-dir "$artifact_dir"
+          runner_exit=$?
+          set -e
+          if [ "$runner_exit" -eq 124 ] || [ "$runner_exit" -eq 137 ]; then
+            jq -n '
+              {
+                schema_version: 1,
+                suite: "api-skill-utility",
+                runner: "openrouter-one-turn-paired",
+                result_type: "infrastructure",
+                status: "failed",
+                outcome: "not-scored",
+                error: {
+                  type: "infrastructure",
+                  category: "transport",
+                  code: "request_timeout",
+                  message: "The protected workflow timeout stopped the paired runner before completion."
+                }
+              }
+            ' >"$artifact_dir/timeout-failure.json"
+            exit 1
+          fi
+          exit "$runner_exit"
+
+      - name: Enforce reported cost budget
+        if: always()
+        run: |
+          set -euo pipefail
+          artifact_dir="$RUNNER_TEMP/api-paired-artifacts"
+          results_path="$artifact_dir/results.json"
+          [ -f "$results_path" ] || exit 0
+          if ! jq -e '.pairs | type == "array"' "$results_path" >/dev/null; then
+            jq -n \
+              --arg budget "$MAX_BUDGET_USD" \
+              ' {
+                schema_version: 1,
+                suite: "api-skill-utility",
+                runner: "openrouter-one-turn-paired",
+                result_type: "infrastructure",
+                status: "failed",
+                outcome: "not-scored",
+                error: {
+                  type: "infrastructure",
+                  category: "budget",
+                  code: "cost_unavailable",
+                  message: "No paired result was available for cost verification."
+                },
+                budget: {max_usd: ($budget | tonumber)}
+              } ' >"$artifact_dir/budget-failure.json"
+            exit 1
+          fi
+          cost_report="$(jq -c '
+            [
+              .pairs[] | .treatment.response.usage.cost_usd,
+              .control.response.usage.cost_usd,
+              .treatment.judge.response.usage.cost_usd,
+              .control.judge.response.usage.cost_usd
+            ] as $costs
+            | {
+                expected_fields: ($costs | length),
+                reported_fields: ([$costs[] | select(type == "number")] | length),
+                invalid_fields: ([$costs[] | select(type == "number" and . < 0)] | length),
+                reported_usd: ([$costs[] | select(type == "number")] | add // 0)
+              }
+          ' "$results_path")"
+          expected_cost_fields="$(jq -r '.expected_fields' <<<"$cost_report")"
+          reported_cost_fields="$(jq -r '.reported_fields' <<<"$cost_report")"
+          invalid_cost_fields="$(jq -r '.invalid_fields' <<<"$cost_report")"
+          reported_cost_usd="$(jq -r '.reported_usd' <<<"$cost_report")"
+          if [ "$invalid_cost_fields" -gt 0 ]; then
+            jq -n \
+              --arg budget "$MAX_BUDGET_USD" \
+              --argjson invalid "$invalid_cost_fields" \
+              ' {
+                schema_version: 1,
+                suite: "api-skill-utility",
+                runner: "openrouter-one-turn-paired",
+                result_type: "infrastructure",
+                status: "failed",
+                outcome: "not-scored",
+                error: {
+                  type: "infrastructure",
+                  category: "budget",
+                  code: "cost_invalid",
+                  message: "Provider reported a negative cost; the budget could not be verified."
+                },
+                budget: {
+                  max_usd: ($budget | tonumber),
+                  invalid_cost_fields: $invalid
+                }
+              } ' >"$artifact_dir/budget-failure.json"
+            exit 1
+          fi
+          if [ "$reported_cost_fields" -ne "$expected_cost_fields" ]; then
+            jq -n \
+              --arg budget "$MAX_BUDGET_USD" \
+              --argjson expected "$expected_cost_fields" \
+              --argjson reported "$reported_cost_fields" \
+              ' {
+                schema_version: 1,
+                suite: "api-skill-utility",
+                runner: "openrouter-one-turn-paired",
+                result_type: "infrastructure",
+                status: "failed",
+                outcome: "not-scored",
+                error: {
+                  type: "infrastructure",
+                  category: "budget",
+                  code: "cost_unreported",
+                  message: "Provider cost was not reported for every request; the budget could not be verified."
+                },
+                budget: {
+                  max_usd: ($budget | tonumber),
+                  expected_cost_fields: $expected,
+                  reported_cost_fields: $reported
+                }
+              } ' >"$artifact_dir/budget-failure.json"
+            exit 1
+          fi
+          if ! jq -n \
+            --arg actual "$reported_cost_usd" \
+            --arg budget "$MAX_BUDGET_USD" \
+            '($actual | tonumber) <= ($budget | tonumber)' >/dev/null; then
+            jq -n \
+              --arg budget "$MAX_BUDGET_USD" \
+              --arg actual "$reported_cost_usd" \
+              ' {
+                schema_version: 1,
+                suite: "api-skill-utility",
+                runner: "openrouter-one-turn-paired",
+                result_type: "infrastructure",
+                status: "failed",
+                outcome: "not-scored",
+                error: {
+                  type: "infrastructure",
+                  category: "budget",
+                  code: "budget_exceeded",
+                  message: "Reported provider cost exceeded the protected run budget."
+                },
+                budget: {
+                  max_usd: ($budget | tonumber),
+                  reported_usd: ($actual | tonumber)
+                }
+              } ' >"$artifact_dir/budget-failure.json"
+            exit 1
+          fi
+
+      - name: Upload protected API evaluation artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: api-paired-evaluation-${{ github.run_id }}
+          path: ${{ runner.temp }}/api-paired-artifacts
+          if-no-files-found: warn
+          retention-days: 30
