@@ -141,6 +141,8 @@ expect_invalid floating-target model_unavailable --target-models 'openrouter/aut
 expect_invalid catalog-unavailable model_unavailable \
   --model-catalog "$MODEL_CATALOG" --target-models 'x-ai/not-listed'
 expect_invalid multiple-judges judge_model_count_invalid --judge-model 'anthropic/one,anthropic/two'
+expect_invalid judge-in-target-sweep judge_model_in_target_sweep \
+  --target-models 'openai/one,google/two' --judge-model 'google/two'
 expect_invalid unsupported-provider provider_unsupported --provider direct-xai
 
 echo "api evaluation profile checks passed"

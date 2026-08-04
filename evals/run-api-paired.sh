@@ -578,7 +578,7 @@ judge_candidate() {
       type == "object"
       and (keys | sort == ["evidence", "score"])
       and (.score | type == "number" and floor == . and . >= 0 and . <= 100)
-      and (.evidence | type == "array" and length <= 3)
+      and (.evidence | type == "array" and length >= 1 and length <= 3)
       and ([.evidence[] | type == "string" and length > 0 and length <= 512] | all)
     ' <<<"$normalized_payload" >/dev/null 2>&1; then
       error_code="judge_score_invalid"
@@ -1011,12 +1011,14 @@ fi
 MAX_ARTIFACT_BYTES=32768
 
 if ! jq -e '
-  .schema_version == 1
+  . as $profile
+  | .schema_version == 1
   and
   .status == "valid"
   and .result_type == "profile"
   and (.target_models | type == "array" and length > 0 and all(.[]; type == "string" and length > 0))
   and (.judge_model | type == "string" and length > 0)
+  and (any($profile.target_models[]; . == $profile.judge_model) | not)
   and .provider_routing.provider == "openrouter"
   and .provider_routing.gateway == "openrouter-chat-completions"
   and (.provider_routing.base_url | test("^https://openrouter\\.ai/api/v1/?$"))

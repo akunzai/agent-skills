@@ -15,7 +15,7 @@ POST /chat/completions requests:
 - the fixed judge receives the task, rubric, and one candidate response at a
   time, without target model identity, condition labels, or the other response.
 
-The target model, fixed judge model, OpenRouter provider routing, fixture
+The target model, fixed independent judge model, OpenRouter provider routing, fixture
 revisions, hashes, request metadata, timing, and permitted usage/cost fields
 are recorded on each pair. Candidate content and raw judge output are never
 written to the durable artifact. The runner computes a treatment-minus-control
@@ -97,6 +97,7 @@ and use its checked-in task and skill inputs:
       --rubric-revision agents-md-micromanagement-v1 \
       --artifact-dir "$RUNNER_TEMP/api-paired"
 
+The profile must use a judge identifier that is not present in the target sweep.
 The runner requires the pinned rubric and revision metadata. Deterministic
 findings are bounded response-level checks from the rubric; the judge emits an
 integer score from `0` through `100` plus at most three short evidence strings.

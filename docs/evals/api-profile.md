@@ -32,6 +32,8 @@ Provider fallbacks are disabled, and the route is recorded as
 entire default list. It never appends to the defaults. `--judge-model` accepts
 exactly one model and replaces the default judge; the resulting judge metadata
 states that it applies uniformly to every target in the run.
+The judge identifier must not appear in `target_models`; the profile rejects
+that overlap so the judge remains independent of the target sweep.
 
 ```bash
 evals/api-evaluation-profile.sh \

@@ -153,6 +153,21 @@ if jq -e '
       }' >"$output_file"
       printf '%s' '200'
       ;;
+    empty-evidence)
+      jq -n --arg model "$model" '{
+        id: "mock-judge-empty-evidence",
+        model: $model,
+        choices: [{
+          index: 0,
+          message: {
+            role: "assistant",
+            content: ({score: 70, evidence: []} | tojson)
+          },
+          finish_reason: "stop"
+        }]
+      }' >"$output_file"
+      printf '%s' '200'
+      ;;
     *)
       echo "unsupported mock judge mode" >&2
       exit 51
@@ -371,6 +386,40 @@ jq -s -e '
   and ([.[].messages[] | .content] | all(contains("/agents-md") | not))
 ' "$REQUEST_LOG" >/dev/null || fail "provider requests do not preserve treatment/control isolation"
 
+OVERLAPPING_PROFILE="$TEMP_DIR/overlapping-profile.json"
+jq '.judge_model = .target_models[0]' "$PROFILE_FILE" >"$OVERLAPPING_PROFILE"
+OVERLAPPING_ARTIFACT="$TEMP_DIR/overlapping-artifacts"
+OVERLAPPING_LOG="$TEMP_DIR/overlapping-requests.ndjson"
+: >"$OVERLAPPING_LOG"
+set +e
+OPENROUTER_API_KEY='' \
+  CURL_BIN="$FAKE_CURL" \
+  REQUEST_LOG="$OVERLAPPING_LOG" \
+  "$RUNNER" \
+  --profile "$OVERLAPPING_PROFILE" \
+  --task-file "$TASK_FILE" \
+  --task-revision agents-md-task-v1 \
+  --skill-file "$SKILL_FILE" \
+  --skill-revision agents-md-skill-v1 \
+  --skill-name agents-md \
+  --fixture-revision fixture-v1 \
+  --rubric-file "$RUBRIC_FILE" \
+  --rubric-revision agents-md-micromanagement-v1 \
+  --artifact-dir "$OVERLAPPING_ARTIFACT" \
+  >"$TEMP_DIR/overlapping.stdout" \
+  2>"$TEMP_DIR/overlapping.stderr"
+overlap_exit=$?
+set -e
+[ "$overlap_exit" -eq 2 ] || fail "a judge in the target sweep must be rejected"
+jq -e '
+  .status == "failed"
+  and .outcome == "not-scored"
+  and .error.category == "configuration"
+  and .error.code == "profile_invalid"
+' "$OVERLAPPING_ARTIFACT/results.json" >/dev/null \
+  || fail "overlapping judge profile must emit a typed configuration failure"
+[ ! -s "$OVERLAPPING_LOG" ] || fail "an overlapping judge must not call the provider"
+
 PROFILE_WITH_EXTRAS="$TEMP_DIR/profile-with-extras.json"
 jq '
   .request += {untrusted_metadata: "profile-only-secret"}
@@ -586,5 +635,6 @@ run_provider_failure_case timeout timeout request_timeout transport
 run_provider_failure_case malformed malformed response_malformed response
 run_judge_failure_case malformed malformed judge_response_malformed response
 run_judge_failure_case secret secret judge_redaction_failure security
+run_judge_failure_case empty-evidence empty-evidence judge_score_invalid response
 
 echo "api paired runner checks passed"
