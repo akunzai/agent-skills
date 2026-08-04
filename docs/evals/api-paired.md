@@ -74,10 +74,24 @@ state. See [API response-level fixtures](api-fixtures.md) for the schema.
 ## Protected/manual run
 
 A real run must use a protected credential and an explicitly approved
-environment. Validate the pinned response-level fixture, prepare a profile,
-and use its checked-in task and skill inputs:
+environment. The repository workflow
+[`api-paired-eval.yml`](../../.github/workflows/api-paired-eval.yml) is
+manual-only, uses the protected `skills-evals` environment, and is diagnostic
+only; it is not a pull-request check or a release gate. The credentialed job
+only runs when the manual dispatch ref is `main`; the `skills-evals` GitHub
+environment must remain configured with the repository's protected secret and
+approval/branch restrictions. It caps the target sweep at three models/twelve
+requests, bounds the job and request timeouts, checks the reported provider
+cost against the selected budget, and retains only normalized artifacts for 30
+days. If any successful provider response omits its cost field, the workflow
+fails closed with `cost_unreported` because the budget cannot be verified.
+
+For local contract validation, run:
 
     bash tests/api-fixtures.sh
+
+The protected workflow prepares the same profile and checked-in task/skill
+inputs before the credentialed step. Its live command is equivalent to:
 
     evals/api-evaluation-profile.sh \
       --target-models 'openai/eval-target,x-ai/eval-target' \
