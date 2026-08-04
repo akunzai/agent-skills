@@ -13,6 +13,11 @@ on:
         required: true
         default: anthropic/claude-sonnet-5
         type: string
+      judge_max_tokens:
+        description: Judge output token budget (score + evidence, plus any reasoning tokens)
+        required: true
+        default: '4096'
+        type: string
 permissions:
   contents: read
 
@@ -28,6 +33,7 @@ jobs:
     env:
       TARGET_MODELS: ${{ inputs.target_models }}
       JUDGE_MODEL: ${{ inputs.judge_model }}
+      JUDGE_MAX_TOKENS: ${{ inputs.judge_max_tokens }}
       MAX_ARTIFACT_BYTES: '65536'
 
     steps:
@@ -63,8 +69,9 @@ jobs:
           target_count="$(jq -r '.target_models | length' "$profile_path")"
           request_count=$((target_count * 4))
           jq -n \
-            --arg policy "api-paired-manual-v2" \
+            --arg policy "api-paired-manual-v3" \
             --arg budget_policy "openrouter_account" \
+            --arg judge_max_tokens "$JUDGE_MAX_TOKENS" \
             --argjson target_count "$target_count" \
             --argjson request_count "$request_count" \
             --argjson max_artifact_bytes "$MAX_ARTIFACT_BYTES" \
@@ -78,7 +85,7 @@ jobs:
                 max_turns: 1,
                 timeout_seconds: 120,
                 candidate_max_tokens: 4096,
-                judge_max_tokens: 512,
+                judge_max_tokens: ($judge_max_tokens | tonumber),
                 judge_response_format: "json_schema",
                 stream: false,
                 provider_fallbacks: false
@@ -109,6 +116,7 @@ jobs:
               --fixture-revision agents-md-api-v1 \
               --rubric-file evals/fixtures/api/agents-md/representative-task/rubric.json \
               --rubric-revision agents-md-micromanagement-v1 \
+              --judge-max-tokens "$JUDGE_MAX_TOKENS" \
               --artifact-dir "$artifact_dir"
           runner_exit=$?
           set -e

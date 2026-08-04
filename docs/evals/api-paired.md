@@ -140,7 +140,18 @@ inputs before the credentialed step. Its live command is equivalent to:
       --fixture-revision agents-md-api-v1 \
       --rubric-file evals/fixtures/api/agents-md/representative-task/rubric.json \
       --rubric-revision agents-md-micromanagement-v1 \
+      --judge-max-tokens 4096 \
       --artifact-dir "$RUNNER_TEMP/api-paired"
+
+`--judge-max-tokens` bounds the judge's own output (structured score/evidence
+JSON plus any reasoning tokens the judge model spends scoring the candidate);
+it defaults to `4096` and is independent of the candidate-side output budget
+(the profile's `request.max_tokens`, recorded as `candidate_max_tokens` in
+the manual workflow's run-policy metadata). The manual workflow exposes
+`--judge-max-tokens` as the `judge_max_tokens` dispatch input, also
+defaulting to `4096`. Raising it does not change what the judge is asked to
+produce, only how much budget it has to produce it in before the request is
+cut off mid-response.
 
 The profile must use a judge identifier that is not present in the target sweep.
 The runner requires the pinned rubric and revision metadata. Deterministic

@@ -24,11 +24,14 @@ The profile uses one fixed OpenRouter route and these model selections:
 
 Candidate and blind judge requests are one-turn, non-streaming
 `POST /chat/completions` requests with `temperature` omitted. Candidates use
-`4096` maximum output tokens; the judge uses `512` maximum output tokens and
-strict `json_schema` output with low reasoning effort. Omitting `temperature`
-lets GPT-5 reasoning models and the original target set be routed with
+`4096` maximum output tokens; the judge uses `4096` maximum output tokens by
+default (configurable via `run-api-paired.sh --judge-max-tokens`) and strict
+`json_schema` output with low reasoning effort. Omitting `temperature` lets
+GPT-5 reasoning models and the original target set be routed with
 `require_parameters: true`; low judge effort leaves room for the required JSON
-after reasoning. Provider fallbacks are disabled, and the route is recorded as
+after reasoning, and the judge budget matches the candidate ceiling because
+the judge's reasoning scales with the length of the candidate response it is
+scoring. Provider fallbacks are disabled, and the route is recorded as
 `openrouter-chat-completions`.
 
 ## Workflow overrides
