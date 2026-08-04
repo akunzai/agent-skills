@@ -68,7 +68,7 @@ An `AGENTS.md` exists but is over-constrained with defensive micromanagement ("a
    > **Gaps & Red Flags Identified**:
    > - **Micromanagement Audit Failure**: Contains defensive generic rules ("Write clean functions", "Add JSDoc to every line") which cause attention dilution.
    > - **Prose Specs**: Contains a 30-line text tutorial on React state instead of pointing to Rich References.
-   > - **Unpruned Memory**: `## Lessons Learned` contains 8 stale entries without version scope tags.
+   > - **Legacy Inline Lessons Learned**: An inline `## Lessons Learned` section (old writeback format) holds 8 entries — several stale and missing context tags — that should be promoted to dedicated Self-Reflection reference files instead.
    > - **SOP Bloat**: Includes a 12-step DB migration script directly in root `AGENTS.md`.
 
 3. **Apply Improvements (Progressive Disclosure & Context Offloading)**
@@ -76,7 +76,7 @@ An `AGENTS.md` exists but is over-constrained with defensive micromanagement ("a
    - Removes all generic micromanagement rules (trusts model reasoning).
    - Replaces prose specs with Rich References (`Domain Schemas: @src/types/index.ts`).
    - Offloads DB Migration SOP to `@docs/db-migration.md` (*Context Offloading*).
-   - Prunes `Lessons Learned` down to 2 active, context-tagged gotchas.
+   - Migrates the inline `Lessons Learned` entries out per Self-Reflection: merges each into an existing topic doc where one covers the subject, otherwise creates `docs/<topic>.md` (or `docs/lessons-learned.md` as fallback), drops stale/duplicate entries, and replaces the section with `@path` reference line(s) under Rich References.
 
 ---
 
