@@ -50,5 +50,6 @@ The API-level response evaluation is manual-only and diagnostic; see
 `docs/evals/api-paired.md`. When changing a covered skill, run the
 credential-free fixture and paired-runner contract tests locally. For
 real model-backed evidence, dispatch `.github/workflows/api-paired-eval.yml`
-from `main` after the `skills-evals` environment approval and branch
-restrictions are in place. It is not a pull-request or release gate.
+with the `skills-evals` environment-scoped secret. Spend is governed by the
+OpenRouter account budget; the workflow does not add a local cost gate. It is
+not a pull-request or release gate.

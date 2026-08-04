@@ -61,7 +61,7 @@ jobs:
       - name: Run API paired runner checks
         run: bash tests/api-paired-runner.sh
 
-      - name: Run protected API evaluation workflow checks
+      - name: Run manual API evaluation workflow checks
         run: bash tests/api-paired-eval-workflow.sh
 
       - name: Run API evaluation cleanup checks

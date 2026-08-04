@@ -21,6 +21,34 @@ are recorded on each pair. Candidate content and raw judge output are never
 written to the durable artifact. The runner computes a treatment-minus-control
 lift independently for each target and emits no tiers, groups, rankings, or
 aggregate score.
+Judge requests use OpenRouter's strict `response_format.type=json_schema` with
+the required `score` and `evidence` fields. The local parser still enforces the
+score range and evidence length/count bounds because structured-output
+enforcement varies by provider. Candidate and judge requests intentionally omit
+`temperature`, because the GPT-5 model family advertises structured outputs but
+not temperature support in the current OpenRouter catalog. Judge requests also
+set low reasoning effort so reasoning models leave output budget for the strict
+JSON result. This lane fixes the prompt, routing policy, and request budgets
+rather than claiming exact temperature-based determinism.
+
+During execution, the runner emits safe progress lines for run start, each
+treatment/control request, each judge request or skip, each pair result, and
+the final request/pair counts. Each completed phase reports its target, phase,
+status, HTTP status, typed error code, duration, and whether a cost field was
+reported; it never prints provider response bodies, credentials, or raw logs.
+The manual workflow also writes a per-target diagnostics table to the GitHub
+Actions step summary and emits one error annotation per failed phase. The
+summary records that spend is governed by the OpenRouter account budget; it does
+not apply a second workflow-local cost gate.
+
+Each OpenRouter request also enables `X-OpenRouter-Metadata: enabled`. When the
+provider returns router metadata, the artifact keeps only a bounded projection:
+the routing attempt, strategy, total endpoint count, available endpoint count,
+and selected endpoint count. It does not retain the provider/endpoint list or
+raw response metadata.
+For malformed judge responses, it also records only bounded response shape
+metadata such as key names, JSON types, choice count, and string length; judge
+content remains excluded.
 
 ## Method references adopted
 
@@ -71,26 +99,29 @@ revisions plus hashes. The rubric describes deterministic response checks; it
 does not assert native filesystem, process, permission, workspace, or tool-call
 state. See [API response-level fixtures](api-fixtures.md) for the schema.
 
-## Protected/manual run
+## Manual run
 
-A real run must use a protected credential and an explicitly approved
-environment. The repository workflow
-[`api-paired-eval.yml`](../../.github/workflows/api-paired-eval.yml) is
-manual-only, uses the protected `skills-evals` environment, and is diagnostic
-only; it is not a pull-request check or a release gate. The credentialed job
-only runs when the manual dispatch ref is `main`; the `skills-evals` GitHub
-environment must remain configured with the repository's protected secret and
-approval/branch restrictions. It caps the target sweep at three models/twelve
-requests, bounds the job and request timeouts, checks the reported provider
-cost against the selected budget, and retains only normalized artifacts for 30
-days. If any successful provider response omits its cost field, the workflow
-fails closed with `cost_unreported` because the budget cannot be verified.
+A real run uses the environment-scoped OpenRouter credential. The repository workflow
+[`api-paired-eval.yml`](../../.github/workflows/api-paired-eval.yml) is manual-only
+and diagnostic; it is not a pull-request check or a release
+gate. The `skills-evals` GitHub environment supplies the credential but does
+not gate the job on reviewer approval or a branch restriction. Spend is
+governed by the OpenRouter account budget. The workflow keeps job and request
+timeouts, serializes live runs, and retains only normalized artifacts for 30
+days; it does not cap the target list or fail a run because a provider omits a
+cost field.
+
+Because the reviewer gate is intentionally disabled, this workflow is not a
+secret security boundary: a user who can dispatch a branch can also change the
+checked-out runner code before the credentialed step. Restrict dispatch access
+to trusted maintainers and treat the `skills-evals` environment as credential
+scoping only.
 
 For local contract validation, run:
 
     bash tests/api-fixtures.sh
 
-The protected workflow prepares the same profile and checked-in task/skill
+The manual workflow prepares the same profile and checked-in task/skill
 inputs before the credentialed step. Its live command is equivalent to:
 
     evals/api-evaluation-profile.sh \
@@ -119,6 +150,18 @@ Malformed judge JSON, invalid scores, secret-bearing evidence, missing candidate
 responses, and provider failures are typed as not-scored infrastructure results.
 The runner does not retry, follow up, resume a session, or silently substitute a
 model. Common codes include credential_missing, credentials_rejected,
-model_unavailable, provider_rate_limited, provider_error, request_timeout,
-provider_transport_error, response_malformed, judge_response_malformed,
-judge_score_invalid, and judge_redaction_failure.
+model_unavailable, request_parameters_unsupported,
+provider_endpoint_unavailable, provider_rate_limited, provider_error,
+request_timeout, provider_transport_error,
+response_malformed, judge_response_malformed, judge_score_invalid, and
+judge_redaction_failure. `request_parameters_unsupported` is distinct from
+`model_unavailable`: it means the provider response indicates that no endpoint
+supports all recorded request parameters, which can happen when
+`provider.require_parameters` is true even though the model identifier exists.
+The runner also uses the bounded router metadata: an available endpoint count
+greater than zero with zero selected endpoints is treated as parameter
+incompatibility, not as an unknown model.
+`provider_endpoint_unavailable` covers the provider's more general “no allowed
+providers” response when the response does not identify the exact filter; it
+points to the model capability, routing, or account/provider policy for
+follow-up.

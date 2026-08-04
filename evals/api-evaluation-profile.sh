@@ -21,7 +21,7 @@ DEFAULT_JUDGE_MODEL="anthropic/claude-sonnet-5"
 # model selection only. The profile records them for reproducibility.
 REQUEST_METHOD="POST"
 REQUEST_ENDPOINT="/chat/completions"
-REQUEST_TEMPERATURE="0"
+REQUEST_TEMPERATURE="null"
 REQUEST_MAX_TOKENS="2048"
 REQUEST_STREAM="false"
 REQUEST_MAX_TURNS="1"

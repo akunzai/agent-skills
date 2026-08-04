@@ -27,7 +27,7 @@ not use slash invocation or harness-specific activation.
 and rubric. Its deterministic check IDs must resolve to checks in the rubric.
 Artifact policy is part of the fixture contract: result fields are allowlisted,
 provider/session material is forbidden, and both field and artifact sizes are
-bounded (the current fixture uses 4 KiB fields and a 32 KiB artifact). A new
+bounded (the current fixture uses 4 KiB fields and a 64 KiB artifact). A new
 skill adds another `<skill>/<case>` directory without changing the runner or
 scoring semantics.
 

@@ -34,12 +34,12 @@ done
 grep -q --fixed-strings 'docs/evals/api-paired.md' "$ROOT_DIR/AGENTS.md" \
   || fail "AGENTS.md must point maintainers to the API-level evaluation lane"
 grep -q --fixed-strings '.github/workflows/api-paired-eval.yml' "$ROOT_DIR/AGENTS.md" \
-  || fail "AGENTS.md must point maintainers to the protected API workflow"
+  || fail "AGENTS.md must point maintainers to the manual API workflow"
 [ -x "$ROOT_DIR/evals/run-api-paired.sh" ] \
   || fail "the API paired runner must remain available"
 [ -d "$ROOT_DIR/evals/fixtures/api" ] \
   || fail "API response-level fixtures must remain available"
 [ -f "$ROOT_DIR/.github/workflows/api-paired-eval.yml" ] \
-  || fail "the protected API workflow must remain available"
+  || fail "the manual API workflow must remain available"
 
 echo "API evaluation cleanup checks passed"

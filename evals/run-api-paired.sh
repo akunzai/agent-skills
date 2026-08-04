@@ -29,7 +29,6 @@ ROUTING_BASE_URL=""
 REQUEST_PROVIDER_JSON=""
 REQUEST_ENDPOINT=""
 REQUEST_METHOD=""
-REQUEST_TEMPERATURE=""
 REQUEST_MAX_TOKENS=""
 REQUEST_STREAM=""
 REQUEST_MAX_TURNS=""
@@ -40,6 +39,7 @@ RUBRIC_HASH=""
 MAX_ARTIFACT_BYTES=""
 REQUEST_INDEX=0
 JUDGE_MAX_TOKENS=512
+JUDGE_REASONING_EFFORT="low"
 
 usage() {
   cat <<'EOF'
@@ -92,7 +92,9 @@ write_failure() {
         message: $message
       }
     }' >"$ARTIFACT_DIR/results.json"
-  echo "api paired evaluation: $code" >&2
+  printf '::error title=API paired evaluation configuration::code=%s category=%s field=%s message=%s\n' \
+    "$code" "$category" "$field" "$message" >&2
+  echo "api paired evaluation: code=$code category=$category field=$field message=$message" >&2
   exit 2
 }
 
@@ -103,6 +105,50 @@ sha256_file() {
 
 now_seconds() {
   date +%s
+}
+
+progress() {
+  printf 'API paired evaluation: %s\n' "$*"
+}
+
+report_result() {
+  local target_index="$1"
+  local target_count="$2"
+  local model="$3"
+  local phase="$4"
+  local result="$5"
+  local status
+  local http_status
+  local error_code
+  local duration_seconds
+  local cost_status
+  local provider_error_type
+
+  status="$(jq -r '.status // "unknown"' <<<"$result")"
+  http_status="$(jq -r '.response.http_status // "-"' <<<"$result")"
+  error_code="$(jq -r '.error.code // "none"' <<<"$result")"
+  duration_seconds="$(jq -r '.timing.duration_seconds // 0' <<<"$result")"
+  provider_error_type="$(jq -r '.error.diagnostics.provider_error_type // "none"' <<<"$result")"
+  if ! [[ "$provider_error_type" =~ ^[A-Za-z0-9._-]+$ ]]; then
+    provider_error_type="untrusted"
+  fi
+  if jq -e '(.response.usage.cost_usd | type) == "number"' \
+    <<<"$result" >/dev/null 2>&1; then
+    cost_status="reported"
+  else
+    cost_status="missing"
+  fi
+
+  progress \
+    "target=$target_index/$target_count" \
+    "model=$model" \
+    "phase=$phase" \
+    "status=$status" \
+    "http=$http_status" \
+    "error=$error_code" \
+    "provider_error_type=$provider_error_type" \
+    "duration=${duration_seconds}s" \
+    "cost=$cost_status"
 }
 
 classify_stderr() {
@@ -133,7 +179,6 @@ build_request() {
     --arg skill_name "$SKILL_NAME" \
     --rawfile task "$TASK_FILE" \
     --rawfile skill "$SKILL_FILE" \
-    --argjson temperature "$REQUEST_TEMPERATURE" \
     --argjson max_tokens "$REQUEST_MAX_TOKENS" \
     --argjson stream "$REQUEST_STREAM" \
     --argjson provider "$REQUEST_PROVIDER_JSON" \
@@ -152,16 +197,174 @@ build_request() {
           }] else [] end)
         + [{role: "user", content: $task}]
       ),
-      temperature: $temperature,
       max_tokens: $max_tokens,
       stream: $stream,
       provider: $provider
     }' >"$request_file"
 }
 
+provider_error_text() {
+  local response_file="$1"
+
+  jq -r '
+    [
+      (.error.message? // ""),
+      (.error.metadata?.message? // "")
+    ]
+    | map(select(type == "string"))
+    | join(" ")
+    | ascii_downcase
+  ' "$response_file" 2>/dev/null || true
+}
+
+response_contains_error_pattern() {
+  local response_file="$1"
+  local pattern="$2"
+  local error_text
+
+  [ -s "$response_file" ] || return 1
+  error_text="$(provider_error_text "$response_file")"
+  printf '%s\n' "$error_text" | grep -Eqi "$pattern"
+}
+
+response_indicates_parameter_mismatch() {
+  local response_file="$1"
+  local pattern
+
+  pattern='no endpoints found.*support.*parameters?'
+  pattern+='|unsupported[^[:space:]]*[[:space:]]+parameters?'
+  pattern+='|parameters?[^[:space:]]+not supported'
+  pattern+='|does not support[^[:space:]]+parameters?'
+  if response_contains_error_pattern "$response_file" "$pattern" \
+    || response_indicates_unselected_endpoints "$response_file"; then
+    return 0
+  fi
+  return 1
+}
+
+response_indicates_no_provider_endpoint() {
+  local response_file="$1"
+
+  response_contains_error_pattern \
+    "$response_file" \
+    'no allowed providers are available'
+}
+
+response_indicates_unselected_endpoints() {
+  local response_file="$1"
+
+  jq -e '
+    (.openrouter_metadata.endpoints | type) == "object"
+    and (.openrouter_metadata.endpoints.available | type) == "array"
+    and (.openrouter_metadata.endpoints.available | length) > 0
+    and ([.openrouter_metadata.endpoints.available[]
+      | select(.selected == true)] | length) == 0
+  ' "$response_file" >/dev/null 2>&1
+}
+
+extract_provider_error_type() {
+  local response_file="$1"
+  local error_type
+
+  error_type="$(jq -r '
+    if (.error.metadata.error_type | type) == "string" then .error.metadata.error_type
+    elif (.error.error_type | type) == "string" then .error.error_type
+    elif (.error_type | type) == "string" then .error_type
+    else empty
+    end
+  ' "$response_file" 2>/dev/null || true)"
+  if [[ "$error_type" =~ ^[A-Za-z0-9._-]{1,64}$ ]]; then
+    printf '%s\n' "$error_type"
+  else
+    printf '%s\n' ''
+  fi
+}
+
+extract_router_metadata() {
+  local response_file="$1"
+
+  jq -c '
+    def bounded_count:
+      if type == "number" then
+        if (floor == . and . >= 0 and . <= 100000) then . else null end
+      else null
+      end;
+    def bounded_strategy:
+      if type == "string" then
+        if test("^[A-Za-z0-9._-]{1,64}$") then . else null end
+      else null
+      end;
+
+    if (.openrouter_metadata | type) == "object" then {
+      attempt: (.openrouter_metadata.attempt | bounded_count),
+      strategy: (.openrouter_metadata.strategy | bounded_strategy),
+      endpoints: (
+        if (.openrouter_metadata.endpoints | type) == "object" then {
+          total: (.openrouter_metadata.endpoints.total | bounded_count),
+          available_count: (
+            if (.openrouter_metadata.endpoints.available | type) == "array"
+            then (.openrouter_metadata.endpoints.available | length | bounded_count)
+            else null
+            end
+          ),
+          selected_count: (
+            if (.openrouter_metadata.endpoints.available | type) == "array"
+            then ([.openrouter_metadata.endpoints.available[]?
+              | select(.selected == true)] | length | bounded_count)
+            else null
+            end
+          )
+        } else null end
+      )
+    } else null end
+  ' "$response_file" 2>/dev/null || printf '%s' 'null'
+}
+
+extract_response_shape() {
+  local response_file="$1"
+
+  jq -c '
+    def bounded_key:
+      if type == "string" and test("^[A-Za-z0-9._-]{1,64}$") then . else null end;
+    def bounded_keys:
+      if type == "object"
+      then [keys[] | bounded_key | select(. != null)] | .[:32]
+      else []
+      end;
+
+    {
+      top_level_keys: (. | bounded_keys),
+      choices_type: (.choices | type),
+      choices_count: (
+        if (.choices | type) == "array" then (.choices | length) else null end
+      ),
+      first_choice_type: (.choices[0] | type),
+      first_choice_keys: (.choices[0] | bounded_keys),
+      message_type: (.choices[0].message | type),
+      message_keys: (.choices[0].message | bounded_keys),
+      content_type: (.choices[0].message.content | type),
+      content_length: (
+        if (.choices[0].message.content | type) == "string"
+        then (.choices[0].message.content | length)
+        else null
+        end
+      )
+    }
+  ' "$response_file" 2>/dev/null || printf '%s' 'null'
+}
+
 classify_response_error() {
   local http_status="$1"
   local response_file="$2"
+
+  if response_indicates_parameter_mismatch "$response_file"; then
+    printf '%s\n' 'request_parameters_unsupported'
+    return
+  fi
+  if response_indicates_no_provider_endpoint "$response_file"; then
+    printf '%s\n' 'provider_endpoint_unavailable'
+    return
+  fi
 
   case "$http_status" in
     401|403)
@@ -186,7 +389,8 @@ classify_response_error() {
       elif ! jq -e '
         ((.choices | type) == "array")
         and ((.choices | length) > 0)
-        and ((.choices[0].message.content | type) == "string")
+        and ((.choices[0].message.content | type) == "string"
+          or (.choices[0].message.content | type) == "object")
       ' "$response_file" >/dev/null 2>&1; then
         printf '%s\n' 'response_malformed'
       else
@@ -213,6 +417,12 @@ error_category() {
     response_malformed)
       printf '%s\n' 'response'
       ;;
+    request_parameters_unsupported)
+      printf '%s\n' 'configuration'
+      ;;
+    provider_endpoint_unavailable)
+      printf '%s\n' 'provider'
+      ;;
     provider_rate_limited|provider_error)
       printf '%s\n' 'provider'
       ;;
@@ -220,6 +430,27 @@ error_category() {
       printf '%s\n' 'provider'
       ;;
   esac
+}
+
+describe_error() {
+  local message
+
+  case "$1" in
+    request_parameters_unsupported|judge_request_parameters_unsupported)
+      message='No OpenRouter endpoint supports all recorded request parameters; '
+      message+='compare the model catalog supported_parameters with the request profile.'
+      ;;
+    provider_endpoint_unavailable|judge_provider_endpoint_unavailable)
+      message='No OpenRouter provider endpoint was available; '
+      message+='check model supported_parameters, require_parameters, allow_fallbacks, '
+      message+='and provider/account filters.'
+      ;;
+    *)
+      message='The provider request did not produce a valid model response.'
+      ;;
+  esac
+
+  printf '%s\n' "$message"
 }
 
 evaluate_deterministic() {
@@ -319,6 +550,12 @@ judge_error_category() {
     judge_model_unavailable)
       printf '%s\n' 'model'
       ;;
+    judge_request_parameters_unsupported)
+      printf '%s\n' 'configuration'
+      ;;
+    judge_provider_endpoint_unavailable)
+      printf '%s\n' 'provider'
+      ;;
     judge_request_timeout|judge_provider_transport_error)
       printf '%s\n' 'transport'
       ;;
@@ -343,7 +580,7 @@ build_judge_request() {
     --rawfile task "$TASK_FILE" \
     --rawfile rubric "$RUBRIC_FILE" \
     --arg candidate "$candidate_text" \
-    --argjson temperature "$REQUEST_TEMPERATURE" \
+    --arg reasoning_effort "$JUDGE_REASONING_EFFORT" \
     --argjson max_tokens "$JUDGE_MAX_TOKENS" \
     --argjson stream "$REQUEST_STREAM" \
     --argjson provider "$REQUEST_PROVIDER_JSON" \
@@ -371,9 +608,25 @@ build_judge_request() {
           )
         }
       ],
-      temperature: $temperature,
       max_tokens: $max_tokens,
+      reasoning: {effort: $reasoning_effort},
       stream: $stream,
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "api_paired_judgment",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              score: {type: "integer"},
+              evidence: {type: "array", items: {type: "string"}}
+            },
+            required: ["score", "evidence"],
+            additionalProperties: false
+          }
+        }
+      },
       provider: $provider
     } ' >"$request_file"
 }
@@ -403,9 +656,13 @@ judge_candidate() {
   local response_fingerprint=""
   local error_code=""
   local error_category_value=""
+  local error_message_value=""
+  local provider_error_type=""
+  local response_shape_json="null"
   local resolved_model=""
   local resolution_status="not-reported"
   local usage_json="null"
+  local router_metadata_json="null"
   local finish_reason=""
   local request_hash=""
   local response_text=""
@@ -490,6 +747,7 @@ judge_candidate() {
     --max-time "$REQUEST_TIMEOUT_SECONDS" \
     --request POST \
     --header "Authorization: Bearer $OPENROUTER_API_KEY" \
+    --header 'X-OpenRouter-Metadata: enabled' \
     --header 'Content-Type: application/json' \
     --data-binary "@$request_file" \
     --output "$response_file" \
@@ -531,6 +789,8 @@ judge_candidate() {
     case "$(classify_response_error "$http_status" "$response_file")" in
       credentials_rejected) error_code="judge_credentials_rejected" ;;
       model_unavailable) error_code="judge_model_unavailable" ;;
+      request_parameters_unsupported) error_code="judge_request_parameters_unsupported" ;;
+      provider_endpoint_unavailable) error_code="judge_provider_endpoint_unavailable" ;;
       request_timeout) error_code="judge_request_timeout" ;;
       provider_rate_limited) error_code="judge_provider_rate_limited" ;;
       *) error_code="judge_provider_error" ;;
@@ -545,6 +805,7 @@ judge_candidate() {
   fi
 
   if [ "$response_state" = "valid_json" ]; then
+    provider_error_type="$(extract_provider_error_type "$response_file")"
     resolved_model="$(jq -r '
       if (.model | type) == "string" and .model != "" then .model else empty end
     ' "$response_file" 2>/dev/null || true)"
@@ -567,6 +828,8 @@ judge_candidate() {
         cost_usd: (if (.usage.cost | type) == "number" then .usage.cost else null end)
       } else null end
     ' "$response_file" 2>/dev/null || printf '%s' 'null')"
+    router_metadata_json="$(extract_router_metadata "$response_file")"
+    response_shape_json="$(extract_response_shape "$response_file")"
   fi
 
   if [ -z "$error_code" ]; then
@@ -613,6 +876,7 @@ judge_candidate() {
 
   if [ -n "$error_code" ]; then
     error_category_value="$(judge_error_category "$error_code")"
+    error_message_value="$(describe_error "$error_code")"
   else
     status="scored"
     outcome="scored"
@@ -639,9 +903,13 @@ judge_candidate() {
     --arg response_fingerprint "$response_fingerprint" \
     --arg error_code "$error_code" \
     --arg error_category "$error_category_value" \
+    --arg error_message "$error_message_value" \
+    --arg provider_error_type "$provider_error_type" \
     --argjson request "$JUDGE_REQUEST_JSON" \
     --argjson curl_exit "$curl_exit" \
     --argjson usage "$usage_json" \
+    --argjson router_metadata "$router_metadata_json" \
+    --argjson response_shape "$response_shape_json" \
     --argjson duration_seconds "$duration_seconds" \
     --argjson score "$parsed_score" \
     --argjson evidence "$parsed_evidence" \
@@ -659,6 +927,8 @@ judge_candidate() {
         resolution_status: $resolution_status,
         finish_reason: (if $finish_reason == "" then null else $finish_reason end),
         usage: $usage,
+        router_metadata: $router_metadata,
+        shape: $response_shape,
         content: null,
         response_sha256: (if $response_fingerprint == "" then null else $response_fingerprint end)
       },
@@ -672,11 +942,16 @@ judge_candidate() {
            type: "infrastructure",
            category: $error_category,
            code: $error_code,
-           message: "The judge request did not produce a bounded score.",
+           message: (if $error_message == ""
+             then "The judge request did not produce a bounded score."
+             else $error_message
+             end),
            diagnostics: {
              response_state: $response_state,
              stderr_category: $stderr_category,
-             stderr_sha256: (if $stderr_fingerprint == "" then null else $stderr_fingerprint end)
+             stderr_sha256: (if $stderr_fingerprint == "" then null else $stderr_fingerprint end),
+             provider_error_type: (if $provider_error_type == "" then null else $provider_error_type end),
+             response_shape: $response_shape
            }
          }
        }
@@ -703,9 +978,12 @@ process_condition() {
   local response_fingerprint=""
   local error_code=""
   local error_category_value=""
+  local error_message_value=""
+  local provider_error_type=""
   local resolved_model=""
   local resolution_status="not-reported"
   local usage_json="null"
+  local router_metadata_json="null"
   local finish_reason=""
   local request_hash
   local started_at
@@ -732,6 +1010,7 @@ process_condition() {
     --max-time "$REQUEST_TIMEOUT_SECONDS" \
     --request POST \
     --header "Authorization: Bearer $OPENROUTER_API_KEY" \
+    --header 'X-OpenRouter-Metadata: enabled' \
     --header 'Content-Type: application/json' \
     --data-binary "@$request_file" \
     --output "$response_file" \
@@ -778,6 +1057,7 @@ process_condition() {
   fi
 
   if [ "$response_state" = "valid_json" ]; then
+    provider_error_type="$(extract_provider_error_type "$response_file")"
     resolved_model="$(jq -r '
       if (.model | type) == "string" and .model != "" then .model else empty end
     ' "$response_file" 2>/dev/null || true)"
@@ -800,6 +1080,7 @@ process_condition() {
         cost_usd: (if (.usage.cost | type) == "number" then .usage.cost else null end)
       } else null end
     ' "$response_file" 2>/dev/null || printf '%s' 'null')"
+    router_metadata_json="$(extract_router_metadata "$response_file")"
     if [ -z "$error_code" ]; then
       CONDITION_RESPONSE_TEXT="$(jq -r '.choices[0].message.content' \
         "$response_file" 2>/dev/null || true)"
@@ -811,6 +1092,7 @@ process_condition() {
   if [ -n "$error_code" ]; then
     CONDITION_FAILED="true"
     error_category_value="$(error_category "$error_code")"
+    error_message_value="$(describe_error "$error_code")"
   fi
 
   skill_context="absent"
@@ -830,6 +1112,8 @@ process_condition() {
     --arg status "$([ -n "$error_code" ] && printf '%s' 'failed' || printf '%s' 'response_received')" \
     --arg error_code "$error_code" \
     --arg error_category "$error_category_value" \
+    --arg error_message "$error_message_value" \
+    --arg provider_error_type "$provider_error_type" \
     --arg http_status "$http_status" \
     --arg response_state "$response_state" \
     --arg resolved_model "$resolved_model" \
@@ -842,6 +1126,7 @@ process_condition() {
     --argjson duration_seconds "$duration_seconds" \
     --argjson curl_exit "$curl_exit" \
     --argjson usage "$usage_json" \
+    --argjson router_metadata "$router_metadata_json" \
     '{
       condition: $condition,
       requested_model: $model,
@@ -861,6 +1146,7 @@ process_condition() {
         resolution_status: $resolution_status,
         finish_reason: (if $finish_reason == "" then null else $finish_reason end),
         usage: $usage,
+        router_metadata: $router_metadata,
         content: null,
         response_sha256: (if $response_fingerprint == "" then null else $response_fingerprint end)
       },
@@ -872,11 +1158,15 @@ process_condition() {
            type: "infrastructure",
            category: $error_category,
            code: $error_code,
-           message: "The provider request did not produce a valid model response.",
+           message: (if $error_message == ""
+             then "The provider request did not produce a valid model response."
+             else $error_message
+             end),
            diagnostics: {
              response_state: $response_state,
              stderr_category: $stderr_category,
-             stderr_sha256: (if $stderr_fingerprint == "" then null else $stderr_fingerprint end)
+             stderr_sha256: (if $stderr_fingerprint == "" then null else $stderr_fingerprint end),
+             provider_error_type: (if $provider_error_type == "" then null else $provider_error_type end)
            }
          }
        }
@@ -1018,7 +1308,7 @@ if ! jq -e \
     "the rubric must be a fixed bounded response-level contract."
 fi
 
-MAX_ARTIFACT_BYTES=32768
+MAX_ARTIFACT_BYTES=65536
 
 if ! jq -e '
   . as $profile
@@ -1036,7 +1326,7 @@ if ! jq -e '
   and .provider_routing.require_parameters == true
   and .request.method == "POST"
   and .request.endpoint == "/chat/completions"
-  and (.request.temperature | type == "number")
+  and .request.temperature == null
   and (.request.max_tokens | type == "number" and . > 0)
   and .request.stream == false
   and .request.max_turns == 1
@@ -1073,7 +1363,6 @@ ROUTING_JSON="$(jq -c '{
 ROUTING_BASE_URL="$(jq -r '.provider_routing.base_url' "$PROFILE_PATH")"
 REQUEST_METHOD="$(jq -r '.request.method' "$PROFILE_PATH")"
 REQUEST_ENDPOINT="$(jq -r '.request.endpoint' "$PROFILE_PATH")"
-REQUEST_TEMPERATURE="$(jq -r '.request.temperature' "$PROFILE_PATH")"
 REQUEST_MAX_TOKENS="$(jq -r '.request.max_tokens' "$PROFILE_PATH")"
 REQUEST_STREAM="$(jq -r '.request.stream' "$PROFILE_PATH")"
 REQUEST_MAX_TURNS="$(jq -r '.request.max_turns' "$PROFILE_PATH")"
@@ -1085,7 +1374,7 @@ REQUEST_PROVIDER_JSON="$(jq -c '{
 JUDGE_REQUEST_JSON="$(jq -n \
   --arg method "$REQUEST_METHOD" \
   --arg endpoint "$REQUEST_ENDPOINT" \
-  --argjson temperature "$REQUEST_TEMPERATURE" \
+  --arg reasoning_effort "$JUDGE_REASONING_EFFORT" \
   --argjson max_tokens "$JUDGE_MAX_TOKENS" \
   --argjson stream "$REQUEST_STREAM" \
   --argjson max_turns "$REQUEST_MAX_TURNS" \
@@ -1093,9 +1382,26 @@ JUDGE_REQUEST_JSON="$(jq -n \
   '{
     method: $method,
     endpoint: $endpoint,
-    temperature: $temperature,
+    temperature: null,
     max_tokens: $max_tokens,
+    reasoning: {effort: $reasoning_effort},
     stream: $stream,
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "api_paired_judgment",
+        strict: true,
+        schema: {
+          type: "object",
+          properties: {
+            score: {type: "integer"},
+            evidence: {type: "array", items: {type: "string"}}
+          },
+          required: ["score", "evidence"],
+          additionalProperties: false
+        }
+      }
+    },
     max_turns: $max_turns,
     timeout_seconds: $timeout_seconds
   }')"
@@ -1111,13 +1417,38 @@ fi
 
 PAIRS_NDJSON="$TEMP_DIR/pairs.ndjson"
 OVERALL_FAILURE="false"
+TARGET_COUNT="${#TARGET_MODELS[@]}"
+TOTAL_REQUEST_COUNT=$((TARGET_COUNT * 4))
+COMPLETED_PAIR_COUNT=0
+FAILED_PAIR_COUNT=0
 
+progress \
+  "run_started targets=$TARGET_COUNT" \
+  "requests=$TOTAL_REQUEST_COUNT" \
+  "judge=$JUDGE_MODEL" \
+  "timeout=${REQUEST_TIMEOUT_SECONDS}s"
+
+target_index=0
 for model in "${TARGET_MODELS[@]}"; do
+  target_index=$((target_index + 1))
+  progress \
+    "target=$target_index/$TARGET_COUNT" \
+    "model=$model" \
+    "phase=target" \
+    "status=running"
+
+  progress \
+    "target=$target_index/$TARGET_COUNT" \
+    "model=$model" \
+    "phase=treatment" \
+    "status=running" \
+    "request=$((REQUEST_INDEX + 1))/$TOTAL_REQUEST_COUNT"
   process_condition "$model" "treatment"
   treatment_result="$CONDITION_RESULT"
   treatment_failed="$CONDITION_FAILED"
   treatment_response_text="$CONDITION_RESPONSE_TEXT"
   treatment_response_available="$CONDITION_RESPONSE_AVAILABLE"
+  report_result "$target_index" "$TARGET_COUNT" "$model" "treatment" "$treatment_result"
   if [ "$treatment_response_available" = "true" ]; then
     treatment_deterministic="$(evaluate_deterministic "$treatment_response_text")"
   else
@@ -1133,11 +1464,18 @@ for model in "${TARGET_MODELS[@]}"; do
     }')"
   fi
 
+  progress \
+    "target=$target_index/$TARGET_COUNT" \
+    "model=$model" \
+    "phase=control" \
+    "status=running" \
+    "request=$((REQUEST_INDEX + 1))/$TOTAL_REQUEST_COUNT"
   process_condition "$model" "control"
   control_result="$CONDITION_RESULT"
   control_failed="$CONDITION_FAILED"
   control_response_text="$CONDITION_RESPONSE_TEXT"
   control_response_available="$CONDITION_RESPONSE_AVAILABLE"
+  report_result "$target_index" "$TARGET_COUNT" "$model" "control" "$control_result"
   if [ "$control_response_available" = "true" ]; then
     control_deterministic="$(evaluate_deterministic "$control_response_text")"
   else
@@ -1153,15 +1491,47 @@ for model in "${TARGET_MODELS[@]}"; do
     }')"
   fi
 
+  if [ "$treatment_response_available" = "true" ]; then
+    progress \
+      "target=$target_index/$TARGET_COUNT" \
+      "model=$model" \
+      "phase=treatment-judge" \
+      "status=running" \
+      "request=$((REQUEST_INDEX + 1))/$TOTAL_REQUEST_COUNT"
+  else
+    progress \
+      "target=$target_index/$TARGET_COUNT" \
+      "model=$model" \
+      "phase=treatment-judge" \
+      "status=skipped" \
+      "reason=candidate_response_unavailable"
+  fi
   judge_candidate "$treatment_response_text" "$treatment_response_available"
   treatment_judge="$JUDGE_RESULT"
   treatment_judge_failed="$JUDGE_FAILED"
   treatment_score="$JUDGE_SCORE"
+  report_result "$target_index" "$TARGET_COUNT" "$model" "treatment-judge" "$treatment_judge"
 
+  if [ "$control_response_available" = "true" ]; then
+    progress \
+      "target=$target_index/$TARGET_COUNT" \
+      "model=$model" \
+      "phase=control-judge" \
+      "status=running" \
+      "request=$((REQUEST_INDEX + 1))/$TOTAL_REQUEST_COUNT"
+  else
+    progress \
+      "target=$target_index/$TARGET_COUNT" \
+      "model=$model" \
+      "phase=control-judge" \
+      "status=skipped" \
+      "reason=candidate_response_unavailable"
+  fi
   judge_candidate "$control_response_text" "$control_response_available"
   control_judge="$JUDGE_RESULT"
   control_judge_failed="$JUDGE_FAILED"
   control_score="$JUDGE_SCORE"
+  report_result "$target_index" "$TARGET_COUNT" "$model" "control-judge" "$control_judge"
 
   treatment_result="$(jq -n \
     --argjson candidate "$treatment_result" \
@@ -1180,6 +1550,9 @@ for model in "${TARGET_MODELS[@]}"; do
     || [ "$control_judge_failed" = "true" ]; then
     pair_status="failed"
     OVERALL_FAILURE="true"
+    FAILED_PAIR_COUNT=$((FAILED_PAIR_COUNT + 1))
+  else
+    COMPLETED_PAIR_COUNT=$((COMPLETED_PAIR_COUNT + 1))
   fi
 
   pair_outcome="scored"
@@ -1206,8 +1579,15 @@ for model in "${TARGET_MODELS[@]}"; do
         treatment_score: $treatment_score,
         control_score: $control_score,
         treatment_minus_control: ($treatment_score - $control_score)
-      }')"
+    }')"
   fi
+
+  progress \
+    "target=$target_index/$TARGET_COUNT" \
+    "model=$model" \
+    "phase=pair" \
+    "status=$pair_status" \
+    "outcome=$pair_outcome"
 
   jq -n \
     --arg model "$model" \
@@ -1302,12 +1682,30 @@ jq -n \
 artifact_bytes="$(wc -c <"$ARTIFACT_DIR/results.json" | tr -d ' ')"
 if [ "$artifact_bytes" -gt "$MAX_ARTIFACT_BYTES" ]; then
   write_failure "security" "artifact_too_large" "results.json" \
-    "the normalized result exceeded the bounded artifact policy."
+    "the normalized result exceeded the bounded artifact policy (bytes=$artifact_bytes max_bytes=$MAX_ARTIFACT_BYTES)."
 fi
 
 if [ "$OVERALL_FAILURE" = "true" ]; then
+  progress \
+    "run_finished status=$OVERALL_STATUS" \
+    "outcome=$OVERALL_OUTCOME" \
+    "targets=$TARGET_COUNT" \
+    "completed_pairs=$COMPLETED_PAIR_COUNT" \
+    "failed_pairs=$FAILED_PAIR_COUNT" \
+    "requests=$REQUEST_INDEX"
+  failure_annotation='::error title=API paired evaluation failed::'
+  failure_annotation+='inspect per-request progress and the normalized results artifact '
+  failure_annotation+='for typed failure codes.'
+  printf '%s\n' "$failure_annotation" >&2
   echo "API paired evaluation failed: $ARTIFACT_DIR/results.json" >&2
   exit 1
 fi
 
+progress \
+  "run_finished status=$OVERALL_STATUS" \
+  "outcome=$OVERALL_OUTCOME" \
+  "targets=$TARGET_COUNT" \
+  "completed_pairs=$COMPLETED_PAIR_COUNT" \
+  "failed_pairs=$FAILED_PAIR_COUNT" \
+  "requests=$REQUEST_INDEX"
 echo "API paired evaluation completed: $ARTIFACT_DIR/results.json"

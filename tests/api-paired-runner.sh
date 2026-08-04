@@ -30,6 +30,7 @@ request_method=""
 request_url=""
 has_auth_header="false"
 has_content_type="false"
+has_router_metadata_header="false"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -49,6 +50,7 @@ while [ "$#" -gt 0 ]; do
       case "$2" in
         Authorization:\ Bearer\ *) has_auth_header="true" ;;
         Content-Type:\ application/json) has_content_type="true" ;;
+        X-OpenRouter-Metadata:\ enabled) has_router_metadata_header="true" ;;
       esac
       shift 2
       ;;
@@ -77,6 +79,8 @@ done
   || { echo "request must use the OpenRouter chat endpoint" >&2; exit 44; }
 [ "$has_auth_header" = "true" ] || { echo "request must contain authorization" >&2; exit 45; }
 [ "$has_content_type" = "true" ] || { echo "request must declare JSON" >&2; exit 46; }
+[ "$has_router_metadata_header" = "true" ] \
+  || { echo "request must enable bounded router metadata" >&2; exit 52; }
 [ -n "${OPENROUTER_API_KEY:-}" ] || { echo "missing mock credential" >&2; exit 47; }
 
 model="$(jq -r '.model' "$request_file")"
@@ -90,9 +94,10 @@ if jq -e '
       url: $url,
       model,
       messages,
-      temperature,
       max_tokens,
+      reasoning,
       stream,
+      response_format,
       provider
     }
   ' "$request_file" >>"$REQUEST_LOG"
@@ -197,7 +202,6 @@ jq -c --arg url "$request_url" --arg kind candidate '
     url: $url,
     model,
     messages,
-    temperature,
     max_tokens,
     stream,
     provider
@@ -238,7 +242,40 @@ case "$MOCK_CURL_MODE" in
     printf '%s' '200'
     ;;
   model-unavailable)
-    : >"$output_file"
+    jq -n '{
+      error: {
+        code: 404,
+        message: "No endpoints found for this model.",
+        metadata: {error_type: "not_found"}
+      }
+    }' >"$output_file"
+    printf '%s' '404'
+    ;;
+  parameters-unsupported)
+    jq -n '{
+      error: {
+        code: 404,
+        message: "No endpoints found for this model that support the provided parameters.",
+        metadata: {error_type: "invalid_request"}
+      },
+      openrouter_metadata: {
+        attempt: 0,
+        strategy: "direct",
+        endpoints: {
+          total: 1,
+          available: [{provider: "OpenAI", selected: false}]
+        }
+      }
+    }' >"$output_file"
+    printf '%s' '404'
+    ;;
+  no-provider-endpoint)
+    jq -n '{
+      error: {
+        code: 404,
+        message: "No allowed providers are available for the selected model."
+      }
+    }' >"$output_file"
     printf '%s' '404'
     ;;
   redirect)
@@ -255,6 +292,16 @@ case "$MOCK_CURL_MODE" in
     ;;
   provider-error)
     printf '%s' 'provider-only-secret' >"$output_file"
+    printf '%s' '500'
+    ;;
+  provider-error-long-type)
+    jq -n '{
+      error: {
+        code: 500,
+        message: "provider failure",
+        metadata: {error_type: ("x" * 65)}
+      }
+    }' >"$output_file"
     printf '%s' '500'
     ;;
   timeout)
@@ -282,7 +329,7 @@ printf '%s\n' 'SKILL-CONTEXT: audit project instructions without inventing state
   --output "$PROFILE_FILE"
 
 set +e
-OPENROUTER_API_KEY='test-api-key' \
+RUN_OUTPUT="$(OPENROUTER_API_KEY='test-api-key' \
   CURL_BIN="$FAKE_CURL" \
   MOCK_CURL_MODE='success' \
   MOCK_JUDGE_MODE='success' \
@@ -297,13 +344,21 @@ OPENROUTER_API_KEY='test-api-key' \
   --fixture-revision fixture-v1 \
   --rubric-file "$RUBRIC_FILE" \
   --rubric-revision agents-md-micromanagement-v1 \
-  --artifact-dir "$ARTIFACT_DIR"
+  --artifact-dir "$ARTIFACT_DIR")"
 runner_exit=$?
 set -e
 [ "$runner_exit" -eq 0 ] || {
   jq . "$ARTIFACT_DIR/results.json" >&2
   fail "success mock run must exit zero"
 }
+grep -q 'run_started' <<<"$RUN_OUTPUT" \
+  || fail "runner must report run start progress"
+grep -q 'phase=treatment status=running' <<<"$RUN_OUTPUT" \
+  || fail "runner must report request start progress"
+grep -q 'phase=treatment-judge status=running' <<<"$RUN_OUTPUT" \
+  || fail "runner must report judge start progress"
+grep -q 'run_finished status=completed' <<<"$RUN_OUTPUT" \
+  || fail "runner must report run completion progress"
 
 RESULTS="$ARTIFACT_DIR/results.json"
 [ -f "$RESULTS" ] || fail "paired results were not written"
@@ -351,6 +406,8 @@ jq -e '
     | unique == ["anthropic/test-judge"])
   and ([.pairs[].treatment.judge.response.usage.total_tokens,
     .pairs[].control.judge.response.usage.total_tokens] | all(. == 30))
+  and ([.pairs[].treatment.judge.response.shape.content_type,
+    .pairs[].control.judge.response.shape.content_type] | all(. == "string"))
   and ([.pairs[].paired_lift.status] | all(. == "scored"))
   and ([.pairs[].paired_lift.treatment_minus_control] | all(. == 20))
   and ([.pairs[].treatment.timing.duration_seconds,
@@ -375,9 +432,28 @@ jq -s -e '
     "google/test-two", "google/test-two", "openai/test-one", "openai/test-one"
   ])
   and ([.[] | select(.kind == "judge") | .model] | unique == ["anthropic/test-judge"])
-  and ([.[] | select(.kind == "candidate") | .temperature] | unique == [0])
+  and ([.[] | select(.kind == "candidate") | has("temperature")] | any | not)
+  and ([.[] | select(.kind == "judge") | has("temperature")] | any | not)
+  and ([.[] | select(.kind == "judge") | .reasoning] | unique == [{effort: "low"}])
   and ([.[] | select(.kind == "candidate") | .max_tokens] | unique == [2048])
   and ([.[] | select(.kind == "judge") | .max_tokens] | unique == [512])
+  and ([.[] | select(.kind == "judge") | .response_format]
+    | unique == [{
+      type: "json_schema",
+      json_schema: {
+        name: "api_paired_judgment",
+        strict: true,
+        schema: {
+          type: "object",
+          properties: {
+            score: {type: "integer"},
+            evidence: {type: "array", items: {type: "string"}}
+          },
+          required: ["score", "evidence"],
+          additionalProperties: false
+        }
+      }
+    }])
   and ([.[].stream] | unique == [false])
   and ([.[].provider.allow_fallbacks] | unique == [false])
   and ([.[].provider.require_parameters] | unique == [true])
@@ -530,6 +606,33 @@ run_provider_failure_case() {
         | all(. == $expected_code))
       and ([.pairs[] | .treatment.error.category, .control.error.category]
         | all(. == $expected_category))
+      and (if $expected_code == "request_parameters_unsupported"
+        then ([.pairs[] | .treatment.error.message, .control.error.message]
+          | all(contains("supported_parameters")))
+          and ([.pairs[]
+            | .treatment.error.diagnostics.provider_error_type,
+              .control.error.diagnostics.provider_error_type]
+            | all(. == "invalid_request"))
+          and ([.pairs[]
+            | .treatment.response.router_metadata,
+              .control.response.router_metadata]
+            | all(
+                .attempt == 0
+                and .endpoints.available_count == 1
+                and .endpoints.selected_count == 0
+              ))
+        elif $expected_code == "model_unavailable"
+        then ([.pairs[]
+          | .treatment.error.diagnostics.provider_error_type,
+            .control.error.diagnostics.provider_error_type]
+          | all(. == "not_found"))
+        elif $expected_code == "provider_error"
+        then ([.pairs[]
+          | .treatment.error.diagnostics.provider_error_type,
+            .control.error.diagnostics.provider_error_type]
+          | all(. == null))
+        else true
+        end)
       and ([.pairs[] | .treatment.request_count, .control.request_count]
         | all(. == 1))
       and ([.pairs[] | .treatment.skill_context, .control.skill_context]
@@ -642,10 +745,16 @@ run_missing_credential_case() {
 
 run_missing_credential_case
 run_provider_failure_case model-unavailable model-unavailable model_unavailable model
+run_provider_failure_case parameters-unsupported parameters-unsupported \
+  request_parameters_unsupported configuration
+run_provider_failure_case no-provider-endpoint no-provider-endpoint \
+  provider_endpoint_unavailable provider
 run_provider_failure_case redirect redirect provider_error provider
 run_provider_failure_case credentials-rejected credentials-rejected credentials_rejected credentials
 run_provider_failure_case rate-limited rate-limited provider_rate_limited provider
 run_provider_failure_case provider-error provider-error provider_error provider
+run_provider_failure_case provider-error-long-type provider-error-long-type \
+  provider_error provider
 run_provider_failure_case timeout timeout request_timeout transport
 run_provider_failure_case malformed malformed response_malformed response
 run_judge_failure_case malformed malformed judge_response_malformed response

@@ -58,7 +58,7 @@ jq -e '
   and .provider_routing.allow_fallbacks == false
   and .request.method == "POST"
   and .request.endpoint == "/chat/completions"
-  and .request.temperature == 0
+  and .request.temperature == null
   and .request.max_tokens == 2048
   and .request.stream == false
   and .request.max_turns == 1
