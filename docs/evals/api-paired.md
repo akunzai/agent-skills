@@ -153,8 +153,13 @@ model. Common codes include credential_missing, credentials_rejected,
 model_unavailable, request_parameters_unsupported,
 provider_endpoint_unavailable, provider_rate_limited, provider_error,
 request_timeout, provider_transport_error,
-response_malformed, judge_response_malformed, judge_score_invalid, and
-judge_redaction_failure. `request_parameters_unsupported` is distinct from
+response_malformed, response_truncated, judge_response_malformed,
+judge_score_invalid, and judge_redaction_failure. A candidate response whose
+`finish_reason` is `length` is typed `response_truncated` rather than scored:
+grading a response that was cut off before it finished would conflate the
+skill's effect with running out of the token budget, so the runner excludes it
+from judging and from `paired_lift` instead of feeding a partial answer to the
+blind judge. `request_parameters_unsupported` is distinct from
 `model_unavailable`: it means the provider response indicates that no endpoint
 supports all recorded request parameters, which can happen when
 `provider.require_parameters` is true even though the model identifier exists.
