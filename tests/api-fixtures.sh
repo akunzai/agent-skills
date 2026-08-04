@@ -138,9 +138,21 @@ for manifest in "${manifests[@]}"; do
       and (.minimum | type == "number" and . >= 1)
       and (.terms | type == "array" and length >= 1))
     and any(.checks[];
+      .kind == "minimum_grounded_findings"
+      and (.minimum | type == "number" and . >= 1)
+      and (.required_components | type == "array" and length >= 1))
+    and any(.checks[];
       .kind == "forbid_regex"
       and (.patterns | type == "array" and length > 0))
   ' "$ROOT_DIR/$rubric_path" >/dev/null || fail "$manifest rubric misses required response checks"
+
+  jq -e '
+    ([.checks[] | .kind, (.field // ""), (.target // "")
+      | select(test("filesystem|process|permission|workspace|tool|transcript|native"; "i"))]
+      | length == 0)
+    and ([.checks[] | .field] | all(. == "response_text"))
+  ' "$ROOT_DIR/$rubric_path" >/dev/null \
+    || fail "$manifest rubric must remain response-level and native-state free"
 
   jq -e '
     (.artifact_policy.allowed_fields | type == "array" and length > 0)

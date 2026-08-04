@@ -29,13 +29,25 @@
       "bounded": true
     },
     {
+      "id": "minimum-grounded-findings",
+      "kind": "minimum_grounded_findings",
+      "field": "response_text",
+      "minimum": 2,
+      "required_components": [
+        "context_reference",
+        "rationale",
+        "alternative"
+      ],
+      "bounded": true
+    },
+    {
       "id": "no-invented-actions-or-state",
       "kind": "forbid_regex",
       "field": "response_text",
       "patterns": [
         "\\bI (inspected|edited|created|ran|verified|changed|modified)\\b",
         "\\b(I|we) (ran|executed) (the )?(tests?|commands?|workflow)\\b",
-        "\\b(the|this) (file|files|repository|workspace|process|permissions?) (was|were|has been|have been|is|are) (created|modified|updated|verified|changed|run)\\b"
+        "\\b(the|this) (file|files|repository|workspace|process|permissions?) (was|were|has been|have been|is|are) (inspected|edited|created|modified|updated|verified|changed|run|executed)\\b"
       ],
       "bounded": true
     }

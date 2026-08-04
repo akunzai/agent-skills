@@ -12,8 +12,10 @@ response rubric as separate inputs. A fixture lives under
 
 Rubric checks target the normalized `response_text` field. The fixture contract
 requires checks for response structure, minimum references to supplied context,
-and forbidden invention patterns, but leaves the actual headings, terms, and
-patterns to each skill's rubric.
+minimum grounded findings, and forbidden invention patterns, but leaves the
+actual headings, terms, components, and patterns to each skill's rubric. Static
+validation rejects check kinds or targets that assert native filesystem,
+process, permission, workspace, tool, or transcript state.
 
 The treatment receives the selected skill from the manifest. The control must
 use the same task and rubric with an explicit `null` skill input. A task must

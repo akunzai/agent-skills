@@ -16,7 +16,7 @@
   "rubric": {
     "path": "evals/fixtures/api/agents-md/representative-task/rubric.json",
     "revision": "agents-md-micromanagement-v1",
-    "sha256": "sha256:ed9a1deeaadebdbac7ab73de82e2dcee3d1a3670ce4cf32a678928d57a263dac"
+    "sha256": "sha256:fee0c995baee1eb9eebdbf8fc1ca970b2f5fb770df2d68bf839f8842dc5c03c9"
   },
   "conditions": {
     "treatment": {
