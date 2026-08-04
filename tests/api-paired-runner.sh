@@ -188,6 +188,22 @@ if jq -e '
       }' >"$output_file"
       printf '%s' '200'
       ;;
+    truncated)
+      jq -n --arg model "$model" '{
+        id: "mock-judge-truncated",
+        model: $model,
+        choices: [{
+          index: 0,
+          message: {
+            role: "assistant",
+            content: "{\"score\": 42, \"evidence\": [\"The response names supplied"
+          },
+          finish_reason: "length"
+        }],
+        usage: {prompt_tokens: 900, completion_tokens: 4096, total_tokens: 4996}
+      }' >"$output_file"
+      printf '%s' '200'
+      ;;
     *)
       echo "unsupported mock judge mode" >&2
       exit 51
@@ -503,7 +519,7 @@ jq -s -e '
   and ([.[] | select(.kind == "judge") | has("temperature")] | any | not)
   and ([.[] | select(.kind == "judge") | .reasoning] | unique == [{effort: "low"}])
   and ([.[] | select(.kind == "candidate") | .max_tokens] | unique == [4096])
-  and ([.[] | select(.kind == "judge") | .max_tokens] | unique == [512])
+  and ([.[] | select(.kind == "judge") | .max_tokens] | unique == [4096])
   and ([.[] | select(.kind == "judge") | .response_format]
     | unique == [{
       type: "json_schema",
@@ -769,6 +785,131 @@ run_judge_failure_case() {
     || fail "$case_name must issue two candidate and two judge requests"
 }
 
+run_judge_truncated_case() {
+  local artifact_dir="$TEMP_DIR/judge-truncated-artifacts"
+  local request_log="$TEMP_DIR/judge-truncated-requests.ndjson"
+  local results_file="$artifact_dir/results.json"
+  local exit_code
+
+  : >"$request_log"
+  set +e
+  OPENROUTER_API_KEY='test-api-key' \
+    CURL_BIN="$FAKE_CURL" \
+    MOCK_CURL_MODE='success' \
+    MOCK_JUDGE_MODE='truncated' \
+    REQUEST_LOG="$request_log" \
+    "$RUNNER" \
+    --profile "$FAIL_PROFILE" \
+    --task-file "$TASK_FILE" \
+    --task-revision agents-md-task-v1 \
+    --skill-file "$SKILL_FILE" \
+    --skill-revision agents-md-skill-v1 \
+    --skill-name agents-md \
+    --fixture-revision fixture-v1 \
+    --rubric-file "$RUBRIC_FILE" \
+    --rubric-revision agents-md-micromanagement-v1 \
+    --artifact-dir "$artifact_dir" \
+    >"$TEMP_DIR/judge-truncated.stdout" \
+    2>"$TEMP_DIR/judge-truncated.stderr"
+  exit_code=$?
+  set -e
+
+  [ "$exit_code" -eq 1 ] || fail "a truncated judge response must exit with task-failure status 1"
+  jq -e '
+    .status == "failed"
+    and .outcome == "not-scored"
+    and (.pairs | length == 1)
+    and ([.pairs[] | .treatment.judge.error.code, .control.judge.error.code]
+      | all(. == "judge_response_malformed"))
+    and ([.pairs[] | .treatment.judge.error.category, .control.judge.error.category]
+      | all(. == "response"))
+    and ([.pairs[] | .treatment.judge.response.finish_reason,
+      .control.judge.response.finish_reason] | all(. == "length"))
+    and ([.pairs[] | .treatment.judge.status, .control.judge.status]
+      | all(. == "failed"))
+    and ([.pairs[].paired_lift.status] | all(. == "not-scored"))
+  ' "$results_file" >/dev/null \
+    || fail "a truncated judge response must be typed judge_response_malformed, excluded from paired_lift, with finish_reason recorded"
+}
+
+run_judge_max_tokens_override_case() {
+  local artifact_dir="$TEMP_DIR/judge-max-tokens-override-artifacts"
+  local request_log="$TEMP_DIR/judge-max-tokens-override-requests.ndjson"
+  local exit_code
+
+  : >"$request_log"
+  set +e
+  OPENROUTER_API_KEY='test-api-key' \
+    CURL_BIN="$FAKE_CURL" \
+    MOCK_CURL_MODE='success' \
+    MOCK_JUDGE_MODE='success' \
+    REQUEST_LOG="$request_log" \
+    "$RUNNER" \
+    --profile "$FAIL_PROFILE" \
+    --task-file "$TASK_FILE" \
+    --task-revision agents-md-task-v1 \
+    --skill-file "$SKILL_FILE" \
+    --skill-revision agents-md-skill-v1 \
+    --skill-name agents-md \
+    --fixture-revision fixture-v1 \
+    --rubric-file "$RUBRIC_FILE" \
+    --rubric-revision agents-md-micromanagement-v1 \
+    --judge-max-tokens 1234 \
+    --artifact-dir "$artifact_dir" \
+    >"$TEMP_DIR/judge-max-tokens-override.stdout" \
+    2>"$TEMP_DIR/judge-max-tokens-override.stderr"
+  exit_code=$?
+  set -e
+
+  [ "$exit_code" -eq 0 ] || fail "--judge-max-tokens override case must exit zero"
+  jq -s -e '
+    [.[] | select(.kind == "judge") | .max_tokens] | length == 2 and unique == [1234]
+  ' "$request_log" >/dev/null \
+    || fail "--judge-max-tokens must override the judge request max_tokens"
+}
+
+run_judge_max_tokens_invalid_case() {
+  local artifact_dir="$TEMP_DIR/judge-max-tokens-invalid-artifacts"
+  local request_log="$TEMP_DIR/judge-max-tokens-invalid-requests.ndjson"
+  local results_file="$artifact_dir/results.json"
+  local exit_code
+
+  : >"$request_log"
+  set +e
+  OPENROUTER_API_KEY='test-api-key' \
+    CURL_BIN="$FAKE_CURL" \
+    MOCK_CURL_MODE='success' \
+    MOCK_JUDGE_MODE='success' \
+    REQUEST_LOG="$request_log" \
+    "$RUNNER" \
+    --profile "$FAIL_PROFILE" \
+    --task-file "$TASK_FILE" \
+    --task-revision agents-md-task-v1 \
+    --skill-file "$SKILL_FILE" \
+    --skill-revision agents-md-skill-v1 \
+    --skill-name agents-md \
+    --fixture-revision fixture-v1 \
+    --rubric-file "$RUBRIC_FILE" \
+    --rubric-revision agents-md-micromanagement-v1 \
+    --judge-max-tokens 0 \
+    --artifact-dir "$artifact_dir" \
+    >"$TEMP_DIR/judge-max-tokens-invalid.stdout" \
+    2>"$TEMP_DIR/judge-max-tokens-invalid.stderr"
+  exit_code=$?
+  set -e
+
+  [ "$exit_code" -eq 2 ] || fail "an invalid --judge-max-tokens value must exit with configuration status 2"
+  jq -e '
+    .result_type == "infrastructure"
+    and .status == "failed"
+    and .outcome == "not-scored"
+    and .error.category == "configuration"
+    and .error.code == "judge_max_tokens_invalid"
+  ' "$results_file" >/dev/null \
+    || fail "an invalid --judge-max-tokens value must be a typed configuration failure"
+  [ ! -s "$request_log" ] || fail "an invalid --judge-max-tokens value must not call the provider"
+}
+
 run_missing_credential_case() {
   local artifact_dir="$TEMP_DIR/missing-credential-artifacts"
   local request_log="$TEMP_DIR/missing-credential-requests.ndjson"
@@ -957,5 +1098,8 @@ run_judge_failure_case malformed malformed judge_response_malformed response
 run_judge_failure_case secret secret judge_redaction_failure security
 run_judge_failure_case empty-evidence empty-evidence judge_score_invalid response
 run_judge_failure_case whitespace-evidence whitespace-evidence judge_score_invalid response
+run_judge_truncated_case
+run_judge_max_tokens_override_case
+run_judge_max_tokens_invalid_case
 
 echo "api paired runner checks passed"

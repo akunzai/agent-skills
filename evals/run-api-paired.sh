@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEFAULT_ARTIFACT_DIR="${TMPDIR:-/tmp}/agent-skills-evals/api-paired"
+DEFAULT_JUDGE_MAX_TOKENS=4096
 PROFILE_RUNNER="$ROOT_DIR/evals/api-evaluation-profile.sh"
 CURL_BIN="${CURL_BIN:-curl}"
 
@@ -38,11 +39,11 @@ SKILL_HASH=""
 RUBRIC_HASH=""
 MAX_ARTIFACT_BYTES=""
 REQUEST_INDEX=0
-JUDGE_MAX_TOKENS=512
+JUDGE_MAX_TOKENS="$DEFAULT_JUDGE_MAX_TOKENS"
 JUDGE_REASONING_EFFORT="low"
 
 usage() {
-  cat <<'EOF'
+  cat <<EOF
 Usage: run-api-paired.sh [options]
 
 Run one-turn treatment/control requests for every target in an API profile.
@@ -58,6 +59,7 @@ Options:
   --rubric-file PATH      Fixed response rubric supplied to the judge.
   --rubric-revision REV   Pinned rubric fixture revision.
   --artifact-dir PATH     Directory for normalized, redacted results.
+  --judge-max-tokens N    Judge output token budget (default: $DEFAULT_JUDGE_MAX_TOKENS).
   --help                  Show this help.
 EOF
 }
@@ -1248,6 +1250,11 @@ while [ "$#" -gt 0 ]; do
       ARTIFACT_DIR="$2"
       shift 2
       ;;
+    --judge-max-tokens)
+      [ "$#" -ge 2 ] || { echo "api paired evaluation: --judge-max-tokens requires a value" >&2; exit 2; }
+      JUDGE_MAX_TOKENS="$2"
+      shift 2
+      ;;
     --help)
       usage
       exit 0
@@ -1300,6 +1307,9 @@ fi
 [ -n "$SKILL_NAME" ] || SKILL_NAME="$(basename "$(dirname "$SKILL_FILE")")"
 [ -n "$SKILL_NAME" ] || write_failure "configuration" "skill_name_missing" "skill_name" \
   "the selected skill must have a stable name."
+[[ "$JUDGE_MAX_TOKENS" =~ ^[1-9][0-9]*$ ]] \
+  || write_failure "configuration" "judge_max_tokens_invalid" "judge_max_tokens" \
+    "--judge-max-tokens must be a positive integer."
 
 if ! jq -e \
   --arg rubric_revision "$RUBRIC_REVISION" '
