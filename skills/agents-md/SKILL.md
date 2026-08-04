@@ -58,7 +58,7 @@ When solving a problem reveals non-obvious knowledge (e.g., a gotcha, hidden con
    - If the insight doesn't fit any topic, fall back to `docs/lessons-learned.md`.
    - Add or update a single `@path` reference line per file under `AGENTS.md`'s Rich References section — never a standalone "Lessons Learned" heading.
 3. **Prune**: Periodically review the referenced files and drop entries once stale (library/version upgraded past the tagged context, now enforced by a linter/type/test, duplicated across files, or a one-off debugging transcript). Propose deletions to the user rather than applying a fixed entry-count cap.
-4. **Legacy migration**: If `AGENTS.md` already contains an inline `## Lessons Learned` section from the old writeback format, propose migrating its entries out to the appropriate topic/fallback file(s) and replacing the section with reference line(s), pending user confirmation.
+4. **Legacy migration**: If `AGENTS.md` still carries an old-format `Knowledge Writeback` (or similarly named) rule bullet, or an inline `## Lessons Learned` section, propose updating the rule bullet to this Self-Reflection wording and migrating any inline entries out to the appropriate topic/fallback file(s), replacing the section with reference line(s) — pending user confirmation.
 
 ## Advanced features
 
