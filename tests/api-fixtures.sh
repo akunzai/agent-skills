@@ -53,8 +53,12 @@ for manifest in "${manifests[@]}"; do
     and (.skill.name | type == "string" and test("^[a-z0-9][a-z0-9-]*$"))
     and (.skill.revision | type == "string" and length > 0)
     and (.rubric.revision | type == "string" and length > 0)
-    and (.conditions.treatment | type == "object")
-    and (.conditions.control | type == "object")
+    and (.conditions.treatment | type == "object"
+      and has("task_path") and has("task_revision")
+      and has("skill_path") and has("rubric_revision"))
+    and (.conditions.control | type == "object"
+      and has("task_path") and has("task_revision")
+      and has("skill_path") and has("rubric_revision"))
     and (.deterministic_checks | type == "array" and length > 0)
     and ([.deterministic_checks[] | type == "string" and length > 0] | all)
   ' "$manifest" >/dev/null || fail "$manifest metadata is incomplete"
@@ -120,8 +124,10 @@ for manifest in "${manifests[@]}"; do
 
   jq -e \
     --arg fixture_id "$fixture_id" \
-    ' .rubric_id == $fixture_id ' "$ROOT_DIR/$rubric_path" >/dev/null \
-    || fail "$manifest rubric_id must match fixture_id"
+    --arg rubric_revision "$(jq -r '.rubric.revision' "$manifest")" \
+    ' .rubric_id == $fixture_id and .revision == $rubric_revision ' \
+    "$ROOT_DIR/$rubric_path" >/dev/null \
+    || fail "$manifest rubric identity or revision does not match its manifest"
 
   jq -e \
     --slurpfile rubric "$ROOT_DIR/$rubric_path" '
@@ -140,15 +146,26 @@ for manifest in "${manifests[@]}"; do
     and any(.checks[];
       .kind == "minimum_grounded_findings"
       and (.minimum | type == "number" and . >= 1)
-      and (.required_components | type == "array" and length >= 1))
+      and (.required_components | type == "array" and length >= 1)
+      and (.required_components | index("context_reference") != null)
+      and (.required_components | index("rationale") != null)
+      and (.required_components | index("alternative") != null))
     and any(.checks[];
       .kind == "forbid_regex"
       and (.patterns | type == "array" and length > 0))
   ' "$ROOT_DIR/$rubric_path" >/dev/null || fail "$manifest rubric misses required response checks"
 
   jq -e '
-    ([.checks[] | .kind, (.field // ""), (.target // "")
-      | select(test("filesystem|process|permission|workspace|tool|transcript|native"; "i"))]
+    ([.checks[] | keys_unsorted[]
+      | select(. != "id" and . != "kind" and . != "field"
+        and . != "headings" and . != "terms" and . != "minimum"
+        and . != "required_components" and . != "patterns" and . != "bounded")]
+      | length == 0)
+    and ([.checks[].kind
+      | select(. != "required_headings"
+        and . != "minimum_context_references"
+        and . != "minimum_grounded_findings"
+        and . != "forbid_regex")]
       | length == 0)
     and ([.checks[] | .field] | all(. == "response_text"))
   ' "$ROOT_DIR/$rubric_path" >/dev/null \

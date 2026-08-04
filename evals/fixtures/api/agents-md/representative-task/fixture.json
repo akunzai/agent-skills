@@ -16,7 +16,7 @@
   "rubric": {
     "path": "evals/fixtures/api/agents-md/representative-task/rubric.json",
     "revision": "agents-md-micromanagement-v1",
-    "sha256": "sha256:fee0c995baee1eb9eebdbf8fc1ca970b2f5fb770df2d68bf839f8842dc5c03c9"
+    "sha256": "sha256:63719b8d6c1186bc6b6250efb6b91fb00598e4cf69c2f9e0b471b352741b6a93"
   },
   "conditions": {
     "treatment": {
@@ -35,6 +35,7 @@
   "deterministic_checks": [
     "required-response-structure",
     "grounded-findings",
+    "minimum-grounded-findings",
     "no-invented-actions-or-state"
   ],
   "artifact_policy": {
