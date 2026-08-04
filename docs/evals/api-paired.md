@@ -2,21 +2,25 @@
 
 evals/run-api-paired.sh is the repository-owned one-turn adapter for the
 OpenRouter API evaluation lane. It consumes the validated profile from #84 and
-emits one matched treatment/control pair for every target model.
+emits one matched treatment/control pair for every target model and scores each
+candidate with one fixed blind judge model.
 
-For each target, the runner sends exactly two non-streaming
+For each target, the runner sends up to four non-streaming
 POST /chat/completions requests:
 
 - treatment receives the task plus one selected skill in a controlled
   SKILL-CONTEXT message.
 - control receives the identical task and request settings without that
   selected skill.
+- the fixed judge receives the task, rubric, and one candidate response at a
+  time, without target model identity, condition labels, or the other response.
 
-The target model, OpenRouter provider routing, fixture revision, task hash, and
-skill hash are recorded on each pair. The runner records the provider-reported
-resolved model when available, but it does not score responses or aggregate
-models. judge_model is preserved for the later judge slice; this runner does
-not call the judge.
+The target model, fixed judge model, OpenRouter provider routing, fixture
+revisions, hashes, request metadata, timing, and permitted usage/cost fields
+are recorded on each pair. Candidate content and raw judge output are never
+written to the durable artifact. The runner computes a treatment-minus-control
+lift independently for each target and emits no tiers, groups, rankings, or
+aggregate score.
 
 ## Method references adopted
 
@@ -50,10 +54,11 @@ Ordinary tests do not need an OpenRouter credential or network access:
 
 The test injects a temporary fake curl through CURL_BIN. That transport checks
 the real request shape and returns deterministic mock responses. It verifies
-treatment/control pairing, skill isolation, model propagation,
-one-request-per-condition behavior, provider routing, typed failures, and
-redaction. No response body, stderr, or authorization header is written to the
-durable result.
+treatment/control pairing, skill isolation, model propagation, blind judge
+inputs, bounded score parsing, per-target paired lift, deterministic findings
+separate from judge findings, typed failures, and redaction. No response body,
+judge transcript, stderr, or authorization header is written to the durable
+result.
 
 Response-level task and rubric fixtures live under
 [`evals/fixtures/api/`](../../evals/fixtures/api/) and are validated by:
@@ -83,15 +88,22 @@ and use its checked-in task and skill inputs:
     evals/run-api-paired.sh \
       --profile "$RUNNER_TEMP/api-profile.json" \
       --task-file evals/fixtures/api/agents-md/representative-task/task.txt \
+      --task-revision agents-md-task-v1 \
       --skill-file skills/agents-md/SKILL.md \
+      --skill-revision agents-md-skill-v1 \
       --skill-name agents-md \
       --fixture-revision agents-md-api-v1 \
+      --rubric-file evals/fixtures/api/agents-md/representative-task/rubric.json \
+      --rubric-revision agents-md-micromanagement-v1 \
       --artifact-dir "$RUNNER_TEMP/api-paired"
 
-The runner does not yet load the rubric or score responses; that belongs to
-the later judge slice. It also does not retry, follow up, resume a session, or
-silently substitute a model. Missing credentials and provider-side failures produce
-status: failed, outcome: not-scored, and a typed error code; they are never
-treated as task passes. Common codes include credential_missing,
-credentials_rejected, model_unavailable, provider_rate_limited, provider_error,
-request_timeout, provider_transport_error, and response_malformed.
+The runner requires the pinned rubric and revision metadata. Deterministic
+findings are bounded response-level checks from the rubric; the judge emits an
+integer score from `0` through `100` plus at most three short evidence strings.
+Malformed judge JSON, invalid scores, secret-bearing evidence, missing candidate
+responses, and provider failures are typed as not-scored infrastructure results.
+The runner does not retry, follow up, resume a session, or silently substitute a
+model. Common codes include credential_missing, credentials_rejected,
+model_unavailable, provider_rate_limited, provider_error, request_timeout,
+provider_transport_error, response_malformed, judge_response_malformed,
+judge_score_invalid, and judge_redaction_failure.
