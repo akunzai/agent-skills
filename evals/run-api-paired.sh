@@ -414,7 +414,7 @@ error_category() {
     request_timeout|provider_transport_error)
       printf '%s\n' 'transport'
       ;;
-    response_malformed)
+    response_malformed|response_truncated)
       printf '%s\n' 'response'
       ;;
     request_parameters_unsupported)
@@ -436,6 +436,11 @@ describe_error() {
   local message
 
   case "$1" in
+    response_truncated)
+      message='The candidate response was truncated by the token budget before it '
+      message+='finished; it was excluded from judging and the paired lift instead of '
+      message+='scoring an incomplete answer.'
+      ;;
     request_parameters_unsupported|judge_request_parameters_unsupported)
       message='No OpenRouter endpoint supports all recorded request parameters; '
       message+='compare the model catalog supported_parameters with the request profile.'
@@ -460,10 +465,25 @@ evaluate_deterministic() {
     --arg response "$response_text" \
     --slurpfile rubric "$RUBRIC_FILE" '
       def pass_if($value): if $value then "passed" else "failed" end;
-      def bullet_lines:
-        $response
-        | split("\n")
-        | map(select(test("^\\s*([-*+] |[0-9]+[.)] )")));
+      def is_top_level_bullet:
+        test("^([-*+] |[0-9]+[.)] )");
+      def is_heading:
+        test("^#{1,6}[[:space:]]");
+      def bullet_blocks:
+        ($response | split("\n")) as $lines
+        | (reduce $lines[] as $line
+            ([];
+              if ($line | is_top_level_bullet) then
+                . + [$line]
+              elif ($line | is_heading) then
+                . + [null]
+              elif length > 0 and .[-1] != null then
+                .[0:-1] + [(.[-1] + "\n" + $line)]
+              else
+                .
+              end
+            ))
+          | map(select(. != null));
       def has_context($terms):
         ([$terms[] as $term | select(contains($term))] | length) > 0;
 
@@ -495,7 +515,7 @@ evaluate_deterministic() {
                 matched_terms: $matched
               }
           elif $check.kind == "minimum_grounded_findings" then
-            ([bullet_lines[]
+            ([bullet_blocks[]
               | select(
                   has_context($context_terms)
                   and test("(?i)\\b(because|why|rationale|reason)\\b")
@@ -1067,6 +1087,9 @@ process_condition() {
     finish_reason="$(jq -r '
       if (.choices[0].finish_reason | type) == "string" then .choices[0].finish_reason else empty end
     ' "$response_file" 2>/dev/null || true)"
+    if [ -z "$error_code" ] && [ "$finish_reason" = "length" ]; then
+      error_code="response_truncated"
+    fi
     usage_json="$(jq -c '
       if (.usage | type) == "object" then {
         prompt_tokens: (if (.usage.prompt_tokens | type) == "number" then .usage.prompt_tokens else null end),

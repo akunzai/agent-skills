@@ -241,6 +241,73 @@ case "$MOCK_CURL_MODE" in
     }' >"$output_file"
     printf '%s' '200'
     ;;
+  truncated)
+    jq -n --arg model "$model" '{
+      id: "mock-response-truncated",
+      model: $model,
+      choices: [{
+        index: 0,
+        message: {role: "assistant", content: (
+          "## Micromanagement Audit\n\n## Grounded Findings\n\n" +
+          "- Progressive Disclosure: because a hard line is micromanagement; " +
+          "this response never reaches the Recommendations heading"
+        )},
+        finish_reason: "length"
+      }],
+      usage: {prompt_tokens: 1200, completion_tokens: 2044, total_tokens: 3244}
+    }' >"$output_file"
+    printf '%s' '200'
+    ;;
+  multiline-findings)
+    jq -n --arg model "$model" '{
+      id: "mock-response-multiline",
+      model: $model,
+      choices: [{
+        index: 0,
+        message: {role: "assistant", content: (
+          "## Micromanagement Audit\n\n" +
+          "## Grounded Findings\n\n" +
+          "- Progressive Disclosure\n" +
+          "  This rule is too rigid, because it forces a hard line that reads " +
+          "as micromanagement.\n" +
+          "  Alternative: use a project-specific guideline instead.\n" +
+          "- Trust Model Judgment\n" +
+          "  This duplicates a constraint the model already infers, because it is " +
+          "prescriptive.\n" +
+          "  Alternative: recommend trusting model judgment.\n\n" +
+          "## Recommendations\n\nDone."
+        )},
+        finish_reason: "stop"
+      }],
+      usage: {prompt_tokens: 11, completion_tokens: 4, total_tokens: 15}
+    }' >"$output_file"
+    printf '%s' '200'
+    ;;
+  finding-then-heading)
+    jq -n --arg model "$model" '{
+      id: "mock-response-finding-then-heading",
+      model: $model,
+      choices: [{
+        index: 0,
+        message: {role: "assistant", content: (
+          "## Micromanagement Audit\n\n" +
+          "## Grounded Findings\n\n" +
+          "- Progressive Disclosure\n" +
+          "  This rule is too rigid, because it forces a hard line that reads " +
+          "as micromanagement.\n" +
+          "  Alternative: use a project-specific guideline instead.\n" +
+          "- Trust Model Judgment\n" +
+          "  This is short.\n\n" +
+          "## Recommendations\n\n" +
+          "We recommend this because it offers a good alternative to the earlier " +
+          "constraint."
+        )},
+        finish_reason: "stop"
+      }],
+      usage: {prompt_tokens: 11, completion_tokens: 4, total_tokens: 15}
+    }' >"$output_file"
+    printf '%s' '200'
+    ;;
   model-unavailable)
     jq -n '{
       error: {
@@ -435,7 +502,7 @@ jq -s -e '
   and ([.[] | select(.kind == "candidate") | has("temperature")] | any | not)
   and ([.[] | select(.kind == "judge") | has("temperature")] | any | not)
   and ([.[] | select(.kind == "judge") | .reasoning] | unique == [{effort: "low"}])
-  and ([.[] | select(.kind == "candidate") | .max_tokens] | unique == [2048])
+  and ([.[] | select(.kind == "candidate") | .max_tokens] | unique == [4096])
   and ([.[] | select(.kind == "judge") | .max_tokens] | unique == [512])
   and ([.[] | select(.kind == "judge") | .response_format]
     | unique == [{
@@ -743,6 +810,135 @@ run_missing_credential_case() {
   [ ! -s "$request_log" ] || fail "missing credentials must not call the provider"
 }
 
+run_multiline_grounded_findings_case() {
+  local artifact_dir="$TEMP_DIR/multiline-findings-artifacts"
+  local request_log="$TEMP_DIR/multiline-findings-requests.ndjson"
+  local exit_code
+
+  : >"$request_log"
+  set +e
+  OPENROUTER_API_KEY='test-api-key' \
+    CURL_BIN="$FAKE_CURL" \
+    MOCK_CURL_MODE='multiline-findings' \
+    MOCK_JUDGE_MODE='success' \
+    REQUEST_LOG="$request_log" \
+    "$RUNNER" \
+    --profile "$FAIL_PROFILE" \
+    --task-file "$TASK_FILE" \
+    --task-revision agents-md-task-v1 \
+    --skill-file "$SKILL_FILE" \
+    --skill-revision agents-md-skill-v1 \
+    --skill-name agents-md \
+    --fixture-revision fixture-v1 \
+    --rubric-file "$RUBRIC_FILE" \
+    --rubric-revision agents-md-micromanagement-v1 \
+    --artifact-dir "$artifact_dir" \
+    >"$TEMP_DIR/multiline-findings.stdout" \
+    2>"$TEMP_DIR/multiline-findings.stderr"
+  exit_code=$?
+  set -e
+
+  [ "$exit_code" -eq 0 ] || fail "multiline grounded-findings case must exit zero"
+  jq -e '
+    ([.pairs[].treatment.deterministic.checks[],
+      .pairs[].control.deterministic.checks[]]
+      | map(select(.id == "minimum-grounded-findings"))) as $checks
+    | ($checks | length) == 2
+    and ($checks | all(.status == "passed" and .observed_count == 2))
+  ' "$artifact_dir/results.json" >/dev/null \
+    || fail "multi-line/sub-bullet grounded findings must be matched as blocks, not single lines"
+}
+
+run_truncated_response_case() {
+  local artifact_dir="$TEMP_DIR/truncated-artifacts"
+  local request_log="$TEMP_DIR/truncated-requests.ndjson"
+  local exit_code
+
+  : >"$request_log"
+  set +e
+  OPENROUTER_API_KEY='test-api-key' \
+    CURL_BIN="$FAKE_CURL" \
+    MOCK_CURL_MODE='truncated' \
+    MOCK_JUDGE_MODE='success' \
+    REQUEST_LOG="$request_log" \
+    "$RUNNER" \
+    --profile "$FAIL_PROFILE" \
+    --task-file "$TASK_FILE" \
+    --task-revision agents-md-task-v1 \
+    --skill-file "$SKILL_FILE" \
+    --skill-revision agents-md-skill-v1 \
+    --skill-name agents-md \
+    --fixture-revision fixture-v1 \
+    --rubric-file "$RUBRIC_FILE" \
+    --rubric-revision agents-md-micromanagement-v1 \
+    --artifact-dir "$artifact_dir" \
+    >"$TEMP_DIR/truncated.stdout" \
+    2>"$TEMP_DIR/truncated.stderr"
+  exit_code=$?
+  set -e
+
+  [ "$exit_code" -eq 1 ] || fail "truncated response case must exit with task-failure status 1"
+  jq -e '
+    (.pairs | length == 1)
+    and ([.pairs[] | .treatment.error.code, .control.error.code]
+      | all(. == "response_truncated"))
+    and ([.pairs[] | .treatment.error.category, .control.error.category]
+      | all(. == "response"))
+    and ([.pairs[] | .treatment.judge.status, .control.judge.status]
+      | all(. == "not_run"))
+    and ([.pairs[] | .treatment.judge.error.code, .control.judge.error.code]
+      | all(. == "candidate_response_unavailable"))
+    and ([.pairs[].paired_lift.status] | all(. == "not-scored"))
+    and ([.pairs[] | .treatment.deterministic.status, .control.deterministic.status]
+      | all(. == "not_run"))
+  ' "$artifact_dir/results.json" >/dev/null \
+    || fail "a truncated candidate response must be typed response_truncated and excluded from judging/paired_lift"
+  [ "$(wc -l <"$request_log" | tr -d ' ')" -eq 2 ] \
+    || fail "a truncated response must not trigger a judge request"
+}
+
+run_finding_then_heading_case() {
+  local artifact_dir="$TEMP_DIR/finding-then-heading-artifacts"
+  local request_log="$TEMP_DIR/finding-then-heading-requests.ndjson"
+  local exit_code
+
+  : >"$request_log"
+  set +e
+  OPENROUTER_API_KEY='test-api-key' \
+    CURL_BIN="$FAKE_CURL" \
+    MOCK_CURL_MODE='finding-then-heading' \
+    MOCK_JUDGE_MODE='success' \
+    REQUEST_LOG="$request_log" \
+    "$RUNNER" \
+    --profile "$FAIL_PROFILE" \
+    --task-file "$TASK_FILE" \
+    --task-revision agents-md-task-v1 \
+    --skill-file "$SKILL_FILE" \
+    --skill-revision agents-md-skill-v1 \
+    --skill-name agents-md \
+    --fixture-revision fixture-v1 \
+    --rubric-file "$RUBRIC_FILE" \
+    --rubric-revision agents-md-micromanagement-v1 \
+    --artifact-dir "$artifact_dir" \
+    >"$TEMP_DIR/finding-then-heading.stdout" \
+    2>"$TEMP_DIR/finding-then-heading.stderr"
+  exit_code=$?
+  set -e
+
+  [ "$exit_code" -eq 0 ] || fail "finding-then-heading case must exit zero"
+  jq -e '
+    ([.pairs[].treatment.deterministic.checks[],
+      .pairs[].control.deterministic.checks[]]
+      | map(select(.id == "minimum-grounded-findings"))) as $checks
+    | ($checks | length) == 2
+    and ($checks | all(.status == "failed" and .observed_count == 1))
+  ' "$artifact_dir/results.json" >/dev/null \
+    || fail "a finding block must stop at the next markdown heading instead of absorbing trailing prose"
+}
+
+run_multiline_grounded_findings_case
+run_truncated_response_case
+run_finding_then_heading_case
 run_missing_credential_case
 run_provider_failure_case model-unavailable model-unavailable model_unavailable model
 run_provider_failure_case parameters-unsupported parameters-unsupported \

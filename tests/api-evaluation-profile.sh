@@ -59,7 +59,7 @@ jq -e '
   and .request.method == "POST"
   and .request.endpoint == "/chat/completions"
   and .request.temperature == null
-  and .request.max_tokens == 2048
+  and .request.max_tokens == 4096
   and .request.stream == false
   and .request.max_turns == 1
   and .request.timeout_seconds == 120
