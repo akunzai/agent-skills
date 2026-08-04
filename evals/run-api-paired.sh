@@ -8,9 +8,13 @@ CURL_BIN="${CURL_BIN:-curl}"
 
 PROFILE_PATH=""
 TASK_FILE=""
+TASK_REVISION=""
 SKILL_FILE=""
+SKILL_REVISION=""
 SKILL_NAME=""
 FIXTURE_REVISION=""
+RUBRIC_FILE=""
+RUBRIC_REVISION=""
 ARTIFACT_DIR="$DEFAULT_ARTIFACT_DIR"
 
 TEMP_DIR=""
@@ -24,13 +28,18 @@ ROUTING_JSON=""
 ROUTING_BASE_URL=""
 REQUEST_PROVIDER_JSON=""
 REQUEST_ENDPOINT=""
+REQUEST_METHOD=""
 REQUEST_TEMPERATURE=""
 REQUEST_MAX_TOKENS=""
 REQUEST_STREAM=""
+REQUEST_MAX_TURNS=""
 REQUEST_TIMEOUT_SECONDS=""
 TASK_HASH=""
 SKILL_HASH=""
+RUBRIC_HASH=""
+MAX_ARTIFACT_BYTES=""
 REQUEST_INDEX=0
+JUDGE_MAX_TOKENS=512
 
 usage() {
   cat <<'EOF'
@@ -41,9 +50,13 @@ Run one-turn treatment/control requests for every target in an API profile.
 Options:
   --profile PATH          Validated API evaluation profile JSON.
   --task-file PATH        Natural-language task sent to both conditions.
+  --task-revision REV     Pinned task fixture revision.
   --skill-file PATH       One selected skill supplied only to treatment.
+  --skill-revision REV    Pinned skill fixture revision.
   --skill-name NAME       Stable name recorded for the selected skill.
-  --fixture-revision REV  Pinned task/skill fixture revision.
+  --fixture-revision REV  Pinned API fixture revision.
+  --rubric-file PATH      Fixed response rubric supplied to the judge.
+  --rubric-revision REV   Pinned rubric fixture revision.
   --artifact-dir PATH     Directory for normalized, redacted results.
   --help                  Show this help.
 EOF
@@ -86,6 +99,10 @@ write_failure() {
 sha256_file() {
   local path="$1"
   printf 'sha256:%s' "$(shasum -a 256 "$path" | awk '{print $1}')"
+}
+
+now_seconds() {
+  date +%s
 }
 
 classify_stderr() {
@@ -205,8 +222,461 @@ error_category() {
   esac
 }
 
+evaluate_deterministic() {
+  local response_text="$1"
+
+  jq -n \
+    --arg response "$response_text" \
+    --slurpfile rubric "$RUBRIC_FILE" '
+      def pass_if($value): if $value then "passed" else "failed" end;
+      def bullet_lines:
+        $response
+        | split("\n")
+        | map(select(test("^\\s*([-*+] |[0-9]+[.)] )")));
+      def has_context($terms):
+        ([$terms[] as $term | select(contains($term))] | length) > 0;
+
+      ([$rubric[0].checks[]
+        | select(.kind == "minimum_context_references")
+        | .terms[]] | unique) as $context_terms
+      | ([$rubric[0].checks[] as $check
+        | if $check.kind == "required_headings" then
+            ([$check.headings[]
+              | select($response | contains(.))]) as $matched
+            | {
+                id: $check.id,
+                kind: $check.kind,
+                status: pass_if(($matched | length) == ($check.headings | length)),
+                observed_count: ($matched | length),
+                expected_count: ($check.headings | length),
+                missing: [$check.headings[]
+                  | select(($response | contains(.)) | not)]
+              }
+          elif $check.kind == "minimum_context_references" then
+            ([$check.terms[]
+              | select($response | contains(.))]) as $matched
+            | {
+                id: $check.id,
+                kind: $check.kind,
+                status: pass_if(($matched | length) >= $check.minimum),
+                observed_count: ($matched | length),
+                expected_count: $check.minimum,
+                matched_terms: $matched
+              }
+          elif $check.kind == "minimum_grounded_findings" then
+            ([bullet_lines[]
+              | select(
+                  has_context($context_terms)
+                  and test("(?i)\\b(because|why|rationale|reason)\\b")
+                  and test("(?i)\\b(alternative|instead|recommend|should)\\b")
+                )]) as $matched
+            | {
+                id: $check.id,
+                kind: $check.kind,
+                status: pass_if(($matched | length) >= $check.minimum),
+                observed_count: ($matched | length),
+                expected_count: $check.minimum,
+                required_components: $check.required_components
+              }
+          elif $check.kind == "forbid_regex" then
+            ([$check.patterns[] as $pattern
+              | select(try ($response | test($pattern)) catch false)
+              | $pattern]) as $matched
+            | {
+                id: $check.id,
+                kind: $check.kind,
+                status: pass_if(($matched | length) == 0),
+                observed_count: ($matched | length),
+                expected_count: 0,
+                matched_pattern_count: ($matched | length)
+              }
+          else
+            {
+              id: $check.id,
+              kind: $check.kind,
+              status: "failed",
+              observed_count: 0,
+              expected_count: 0
+            }
+          end
+      ]) as $checks
+      | {
+          status: (if all($checks[]; .status == "passed")
+            then "passed" else "failed" end),
+          checks: $checks
+        }
+    '
+}
+
+judge_error_category() {
+  case "$1" in
+    candidate_response_unavailable|candidate_response_too_large|judge_response_malformed|judge_score_invalid)
+      printf '%s\n' 'response'
+      ;;
+    judge_credentials_rejected)
+      printf '%s\n' 'credentials'
+      ;;
+    judge_model_unavailable)
+      printf '%s\n' 'model'
+      ;;
+    judge_request_timeout|judge_provider_transport_error)
+      printf '%s\n' 'transport'
+      ;;
+    judge_redaction_failure)
+      printf '%s\n' 'security'
+      ;;
+    judge_provider_rate_limited|judge_provider_error)
+      printf '%s\n' 'provider'
+      ;;
+    *)
+      printf '%s\n' 'provider'
+      ;;
+  esac
+}
+
+build_judge_request() {
+  local candidate_text="$1"
+  local request_file="$2"
+
+  jq -n \
+    --arg model "$JUDGE_MODEL" \
+    --rawfile task "$TASK_FILE" \
+    --rawfile rubric "$RUBRIC_FILE" \
+    --arg candidate "$candidate_text" \
+    --argjson temperature "$REQUEST_TEMPERATURE" \
+    --argjson max_tokens "$JUDGE_MAX_TOKENS" \
+    --argjson stream "$REQUEST_STREAM" \
+    --argjson provider "$REQUEST_PROVIDER_JSON" \
+    ' {
+      model: $model,
+      messages: [
+        {
+          role: "system",
+          content: (
+            "You are an independent rubric judge. Score one anonymized candidate " +
+            "response against the supplied task and fixed rubric. Do not infer or " +
+            "mention the target model, condition, or any other response. Return " +
+            "only a JSON object with exactly score and evidence. score must be an " +
+            "integer from 0 through 100. evidence must contain at most three " +
+            "short strings of at most 512 characters and must not contain secrets, " +
+            "authorization headers, or raw provider logs."
+          )
+        },
+        {
+          role: "user",
+          content: (
+            "TASK:\n" + $task +
+            "\n\nRUBRIC:\n" + $rubric +
+            "\n\nANONYMIZED CANDIDATE RESPONSE:\n" + $candidate
+          )
+        }
+      ],
+      temperature: $temperature,
+      max_tokens: $max_tokens,
+      stream: $stream,
+      provider: $provider
+    } ' >"$request_file"
+}
+
+normalize_judge_payload() {
+  sed \
+    -e '1{/^[[:space:]]*```json[[:space:]]*$/d;}' \
+    -e '${/^[[:space:]]*```[[:space:]]*$/d;}'
+}
+
+JUDGE_RESULT=""
+JUDGE_FAILED="false"
+JUDGE_SCORE=""
+
+judge_candidate() {
+  local candidate_text="$1"
+  local candidate_available="$2"
+  local request_file
+  local response_file
+  local stderr_file
+  local http_status_file
+  local curl_exit
+  local http_status
+  local response_state="empty"
+  local stderr_category
+  local stderr_fingerprint=""
+  local response_fingerprint=""
+  local error_code=""
+  local error_category_value=""
+  local resolved_model=""
+  local resolution_status="not-reported"
+  local usage_json="null"
+  local finish_reason=""
+  local request_hash=""
+  local response_text=""
+  local normalized_payload=""
+  local parsed_score="null"
+  local parsed_evidence='[]'
+  local status="failed"
+  local outcome="not-scored"
+  local started_at
+  local ended_at
+  local duration_seconds
+  local candidate_bytes=""
+  local evidence
+  local secret_evidence="false"
+
+  JUDGE_RESULT=""
+  JUDGE_FAILED="false"
+  JUDGE_SCORE=""
+
+  if [ "$candidate_available" != "true" ]; then
+    JUDGE_FAILED="true"
+    JUDGE_RESULT="$(jq -n \
+      --arg model "$JUDGE_MODEL" \
+      --argjson request "$JUDGE_REQUEST_JSON" \
+      ' {
+        status: "not_run",
+        outcome: "not-scored",
+        requested_model: $model,
+        request: $request,
+        score: null,
+        evidence: [],
+        timing: {duration_seconds: 0},
+        error: {
+          type: "infrastructure",
+          category: "response",
+          code: "candidate_response_unavailable",
+          message: "The candidate response was not available for blind judging."
+        }
+      } ')"
+    return
+  fi
+
+  candidate_bytes="$(printf '%s' "$candidate_text" | wc -c | tr -d ' ')"
+  if [ "$candidate_bytes" -gt 16384 ]; then
+    JUDGE_FAILED="true"
+    JUDGE_RESULT="$(jq -n \
+      --arg model "$JUDGE_MODEL" \
+      --argjson request "$JUDGE_REQUEST_JSON" \
+      ' {
+        status: "failed",
+        outcome: "not-scored",
+        requested_model: $model,
+        request: $request,
+        score: null,
+        evidence: [],
+        timing: {duration_seconds: 0},
+        error: {
+          type: "infrastructure",
+          category: "response",
+          code: "candidate_response_too_large",
+          message: "The candidate response exceeded the bounded judge input."
+        }
+      } ')"
+    return
+  fi
+
+  REQUEST_INDEX=$((REQUEST_INDEX + 1))
+  request_file="$TEMP_DIR/request-$REQUEST_INDEX.json"
+  response_file="$TEMP_DIR/response-$REQUEST_INDEX.json"
+  stderr_file="$TEMP_DIR/stderr-$REQUEST_INDEX.txt"
+  http_status_file="$TEMP_DIR/status-$REQUEST_INDEX.txt"
+  started_at="$(now_seconds)"
+
+  build_judge_request "$candidate_text" "$request_file"
+  request_hash="$(sha256_file "$request_file")"
+
+  set +e
+  "$CURL_BIN" \
+    --silent \
+    --show-error \
+    --connect-timeout "$REQUEST_TIMEOUT_SECONDS" \
+    --max-time "$REQUEST_TIMEOUT_SECONDS" \
+    --request POST \
+    --header "Authorization: Bearer $OPENROUTER_API_KEY" \
+    --header 'Content-Type: application/json' \
+    --data-binary "@$request_file" \
+    --output "$response_file" \
+    --write-out '%{http_code}' \
+    "${ROUTING_BASE_URL%/}$REQUEST_ENDPOINT" \
+    >"$http_status_file" \
+    2>"$stderr_file"
+  curl_exit=$?
+  set -e
+
+  ended_at="$(now_seconds)"
+  duration_seconds=$((ended_at - started_at))
+  http_status="$(tr -d '\r\n' <"$http_status_file")"
+  if [ -s "$response_file" ]; then
+    if jq -e . "$response_file" >/dev/null 2>&1; then
+      response_state="valid_json"
+    else
+      response_state="invalid_json"
+    fi
+  fi
+
+  stderr_category="$(classify_stderr "$stderr_file")"
+  if [ -s "$stderr_file" ]; then
+    stderr_fingerprint="$(sha256_file "$stderr_file")"
+  fi
+  if [ -s "$response_file" ]; then
+    response_fingerprint="$(sha256_file "$response_file")"
+  fi
+
+  if [ "$curl_exit" -ne 0 ]; then
+    if [ "$curl_exit" -eq 28 ] || [ "$stderr_category" = "timeout" ]; then
+      error_code="judge_request_timeout"
+    else
+      error_code="judge_provider_transport_error"
+    fi
+  elif ! [[ "$http_status" =~ ^[0-9]{3}$ ]]; then
+    error_code="judge_provider_transport_error"
+  elif [[ ! "$http_status" =~ ^2[0-9]{2}$ ]]; then
+    case "$(classify_response_error "$http_status" "$response_file")" in
+      credentials_rejected) error_code="judge_credentials_rejected" ;;
+      model_unavailable) error_code="judge_model_unavailable" ;;
+      request_timeout) error_code="judge_request_timeout" ;;
+      provider_rate_limited) error_code="judge_provider_rate_limited" ;;
+      *) error_code="judge_provider_error" ;;
+    esac
+  elif [ "$response_state" != "valid_json" ]; then
+    error_code="judge_response_malformed"
+  else
+    error_code="$(classify_response_error "$http_status" "$response_file")"
+    if [ -n "$error_code" ]; then
+      error_code="judge_response_malformed"
+    fi
+  fi
+
+  if [ "$response_state" = "valid_json" ]; then
+    resolved_model="$(jq -r '
+      if (.model | type) == "string" and .model != "" then .model else empty end
+    ' "$response_file" 2>/dev/null || true)"
+    if [ -n "$resolved_model" ]; then
+      resolution_status="reported"
+    fi
+    finish_reason="$(jq -r '
+      if (.choices[0].finish_reason | type) == "string" then .choices[0].finish_reason else empty end
+    ' "$response_file" 2>/dev/null || true)"
+    usage_json="$(jq -c '
+      if (.usage | type) == "object" then {
+        prompt_tokens: (if (.usage.prompt_tokens | type) == "number" then .usage.prompt_tokens else null end),
+        completion_tokens: (
+          if (.usage.completion_tokens | type) == "number"
+          then .usage.completion_tokens
+          else null
+          end
+        ),
+        total_tokens: (if (.usage.total_tokens | type) == "number" then .usage.total_tokens else null end),
+        cost_usd: (if (.usage.cost | type) == "number" then .usage.cost else null end)
+      } else null end
+    ' "$response_file" 2>/dev/null || printf '%s' 'null')"
+  fi
+
+  if [ -z "$error_code" ]; then
+    response_text="$(jq -r '.choices[0].message.content' "$response_file" 2>/dev/null || true)"
+    normalized_payload="$(printf '%s\n' "$response_text" | normalize_judge_payload)"
+    if ! jq -e . <<<"$normalized_payload" >/dev/null 2>&1; then
+      error_code="judge_response_malformed"
+    elif ! jq -e '
+      type == "object"
+      and (keys | sort == ["evidence", "score"])
+      and (.score | type == "number" and floor == . and . >= 0 and . <= 100)
+      and (.evidence | type == "array" and length <= 3)
+      and ([.evidence[] | type == "string" and length > 0 and length <= 512] | all)
+    ' <<<"$normalized_payload" >/dev/null 2>&1; then
+      error_code="judge_score_invalid"
+    else
+      parsed_score="$(jq -c '.score' <<<"$normalized_payload")"
+      parsed_evidence="$(jq -c '
+        .evidence | map(gsub("[[:space:]]+"; " "))
+      ' <<<"$normalized_payload")"
+      while IFS= read -r evidence; do
+        if printf '%s' "$evidence" | grep -Eqi \
+          '(OPENROUTER_API_KEY|AUTHORIZATION|BEARER[[:space:]]+[A-Za-z0-9._~+/=-]{8,}|(sk|pk)-[A-Za-z0-9_-]{12,})'; then
+          secret_evidence="true"
+        fi
+      done < <(jq -r '.[]' <<<"$parsed_evidence")
+      if [ "$secret_evidence" = "true" ]; then
+        error_code="judge_redaction_failure"
+        parsed_score="null"
+        parsed_evidence='[]'
+      fi
+    fi
+  fi
+
+  if [ -n "$error_code" ]; then
+    error_category_value="$(judge_error_category "$error_code")"
+  else
+    status="scored"
+    outcome="scored"
+    JUDGE_SCORE="$parsed_score"
+  fi
+
+  JUDGE_FAILED="false"
+  if [ -n "$error_code" ]; then
+    JUDGE_FAILED="true"
+  fi
+
+  JUDGE_RESULT="$(jq -n \
+    --arg model "$JUDGE_MODEL" \
+    --arg status "$status" \
+    --arg outcome "$outcome" \
+    --arg request_hash "$request_hash" \
+    --arg http_status "$http_status" \
+    --arg response_state "$response_state" \
+    --arg resolved_model "$resolved_model" \
+    --arg resolution_status "$resolution_status" \
+    --arg finish_reason "$finish_reason" \
+    --arg stderr_category "$stderr_category" \
+    --arg stderr_fingerprint "$stderr_fingerprint" \
+    --arg response_fingerprint "$response_fingerprint" \
+    --arg error_code "$error_code" \
+    --arg error_category "$error_category_value" \
+    --argjson request "$JUDGE_REQUEST_JSON" \
+    --argjson curl_exit "$curl_exit" \
+    --argjson usage "$usage_json" \
+    --argjson duration_seconds "$duration_seconds" \
+    --argjson score "$parsed_score" \
+    --argjson evidence "$parsed_evidence" \
+    ' {
+      status: $status,
+      outcome: $outcome,
+      requested_model: $model,
+      request: $request,
+      request_sha256: $request_hash,
+      response: {
+        state: $response_state,
+        http_status: (if ($http_status | test("^[0-9]{3}$")) then ($http_status | tonumber) else null end),
+        curl_exit: $curl_exit,
+        resolved_model: (if $resolved_model == "" then null else $resolved_model end),
+        resolution_status: $resolution_status,
+        finish_reason: (if $finish_reason == "" then null else $finish_reason end),
+        usage: $usage,
+        content: null,
+        response_sha256: (if $response_fingerprint == "" then null else $response_fingerprint end)
+      },
+      timing: {duration_seconds: $duration_seconds},
+      score: $score,
+      evidence: $evidence
+    }
+    + (if $error_code == "" then {}
+       else {
+         error: {
+           type: "infrastructure",
+           category: $error_category,
+           code: $error_code,
+           message: "The judge request did not produce a bounded score.",
+           diagnostics: {
+             response_state: $response_state,
+             stderr_category: $stderr_category,
+             stderr_sha256: (if $stderr_fingerprint == "" then null else $stderr_fingerprint end)
+           }
+         }
+       }
+       end) ' )"
+}
+
 CONDITION_RESULT=""
 CONDITION_FAILED="false"
+CONDITION_RESPONSE_TEXT=""
+CONDITION_RESPONSE_AVAILABLE="false"
 
 process_condition() {
   local model="$1"
@@ -228,12 +698,18 @@ process_condition() {
   local usage_json="null"
   local finish_reason=""
   local request_hash
+  local started_at
+  local ended_at
+  local duration_seconds
 
+  CONDITION_RESPONSE_TEXT=""
+  CONDITION_RESPONSE_AVAILABLE="false"
   REQUEST_INDEX=$((REQUEST_INDEX + 1))
   request_file="$TEMP_DIR/request-$REQUEST_INDEX.json"
   response_file="$TEMP_DIR/response-$REQUEST_INDEX.json"
   stderr_file="$TEMP_DIR/stderr-$REQUEST_INDEX.txt"
   http_status_file="$TEMP_DIR/status-$REQUEST_INDEX.txt"
+  started_at="$(now_seconds)"
 
   build_request "$model" "$condition" "$request_file"
   request_hash="$(sha256_file "$request_file")"
@@ -255,6 +731,8 @@ process_condition() {
     2>"$stderr_file"
   curl_exit=$?
   set -e
+  ended_at="$(now_seconds)"
+  duration_seconds=$((ended_at - started_at))
 
   http_status="$(tr -d '\r\n' <"$http_status_file")"
   if [ -s "$response_file" ]; then
@@ -312,6 +790,11 @@ process_condition() {
         cost_usd: (if (.usage.cost | type) == "number" then .usage.cost else null end)
       } else null end
     ' "$response_file" 2>/dev/null || printf '%s' 'null')"
+    if [ -z "$error_code" ]; then
+      CONDITION_RESPONSE_TEXT="$(jq -r '.choices[0].message.content' \
+        "$response_file" 2>/dev/null || true)"
+      CONDITION_RESPONSE_AVAILABLE="true"
+    fi
   fi
 
   CONDITION_FAILED="false"
@@ -345,6 +828,8 @@ process_condition() {
     --arg stderr_category "$stderr_category" \
     --arg stderr_fingerprint "$stderr_fingerprint" \
     --arg response_fingerprint "$response_fingerprint" \
+    --argjson request "$REQUEST_JSON" \
+    --argjson duration_seconds "$duration_seconds" \
     --argjson curl_exit "$curl_exit" \
     --argjson usage "$usage_json" \
     '{
@@ -353,6 +838,7 @@ process_condition() {
       status: $status,
       outcome: "not-scored",
       request_count: 1,
+      request: $request,
       skill_context: $skill_context,
       skill_name: (if $skill_name == "" then null else $skill_name end),
       task_sha256: $task_hash,
@@ -367,7 +853,8 @@ process_condition() {
         usage: $usage,
         content: null,
         response_sha256: (if $response_fingerprint == "" then null else $response_fingerprint end)
-      }
+      },
+      timing: {duration_seconds: $duration_seconds}
     }
     + (if $error_code == "" then {}
        else {
@@ -398,9 +885,19 @@ while [ "$#" -gt 0 ]; do
       TASK_FILE="$2"
       shift 2
       ;;
+    --task-revision)
+      [ "$#" -ge 2 ] || { echo "api paired evaluation: --task-revision requires a value" >&2; exit 2; }
+      TASK_REVISION="$2"
+      shift 2
+      ;;
     --skill-file)
       [ "$#" -ge 2 ] || { echo "api paired evaluation: --skill-file requires a path" >&2; exit 2; }
       SKILL_FILE="$2"
+      shift 2
+      ;;
+    --skill-revision)
+      [ "$#" -ge 2 ] || { echo "api paired evaluation: --skill-revision requires a value" >&2; exit 2; }
+      SKILL_REVISION="$2"
       shift 2
       ;;
     --skill-name)
@@ -411,6 +908,16 @@ while [ "$#" -gt 0 ]; do
     --fixture-revision)
       [ "$#" -ge 2 ] || { echo "api paired evaluation: --fixture-revision requires a value" >&2; exit 2; }
       FIXTURE_REVISION="$2"
+      shift 2
+      ;;
+    --rubric-file)
+      [ "$#" -ge 2 ] || { echo "api paired evaluation: --rubric-file requires a path" >&2; exit 2; }
+      RUBRIC_FILE="$2"
+      shift 2
+      ;;
+    --rubric-revision)
+      [ "$#" -ge 2 ] || { echo "api paired evaluation: --rubric-revision requires a value" >&2; exit 2; }
+      RUBRIC_REVISION="$2"
       shift 2
       ;;
     --artifact-dir)
@@ -449,17 +956,59 @@ fi
   "the supplied API evaluation profile is not available."
 [ -s "$TASK_FILE" ] || write_failure "configuration" "task_fixture_invalid" "task_file" \
   "the task fixture must be a non-empty file."
+[ -n "$TASK_REVISION" ] || write_failure "configuration" "task_revision_missing" "task_revision" \
+  "the task fixture revision must be provided."
 [ -s "$SKILL_FILE" ] || write_failure "configuration" "skill_fixture_invalid" "skill_file" \
   "the selected skill fixture must be a non-empty file."
+[ -n "$SKILL_REVISION" ] || write_failure "configuration" "skill_revision_missing" "skill_revision" \
+  "the selected skill revision must be provided."
 [ -n "$FIXTURE_REVISION" ] || write_failure "configuration" "fixture_revision_missing" "fixture_revision" \
   "the fixture revision must be provided."
-if [[ "$FIXTURE_REVISION" == *$'\n'* || "$SKILL_NAME" == *$'\n'* ]]; then
+[ -s "$RUBRIC_FILE" ] || write_failure "configuration" "rubric_fixture_invalid" "rubric_file" \
+  "the fixed rubric must be a non-empty file."
+[ -n "$RUBRIC_REVISION" ] || write_failure "configuration" "rubric_revision_missing" "rubric_revision" \
+  "the rubric revision must be provided."
+if [[ "$FIXTURE_REVISION" == *$'\n'* || "$TASK_REVISION" == *$'\n'* \
+  || "$SKILL_REVISION" == *$'\n'* || "$SKILL_NAME" == *$'\n'* \
+  || "$RUBRIC_REVISION" == *$'\n'* ]]; then
   write_failure "configuration" "fixture_metadata_malformed" "fixture" \
     "fixture metadata must not contain newlines."
 fi
 [ -n "$SKILL_NAME" ] || SKILL_NAME="$(basename "$(dirname "$SKILL_FILE")")"
 [ -n "$SKILL_NAME" ] || write_failure "configuration" "skill_name_missing" "skill_name" \
   "the selected skill must have a stable name."
+
+if ! jq -e \
+  --arg rubric_revision "$RUBRIC_REVISION" '
+    .schema_version == 1
+    and (.rubric_id | type == "string" and length > 0)
+    and .revision == $rubric_revision
+    and (.checks | type == "array" and length > 0)
+    and ([.checks[].id | type == "string" and length > 0] | all)
+    and ([.checks[].id] | length == (unique | length))
+    and ([.checks[] | .bounded == true and .field == "response_text"] | all)
+    and ([.checks[].kind
+      | select(. != "required_headings"
+        and . != "minimum_context_references"
+        and . != "minimum_grounded_findings"
+        and . != "forbid_regex")] | length == 0)
+    and any(.checks[]; .kind == "required_headings"
+      and (.headings | type == "array" and length > 0))
+    and any(.checks[]; .kind == "minimum_context_references"
+      and (.terms | type == "array" and length > 0)
+      and (.minimum | type == "number" and . >= 1))
+    and any(.checks[]; .kind == "minimum_grounded_findings"
+      and (.minimum | type == "number" and . >= 1)
+      and .per_item == true)
+    and any(.checks[]; .kind == "forbid_regex"
+      and (.patterns | type == "array" and length > 0)
+      and (.regression_phrases | type == "array" and length > 0))
+  ' "$RUBRIC_FILE" >/dev/null 2>&1; then
+  write_failure "configuration" "rubric_invalid" "rubric_file" \
+    "the rubric must be a fixed bounded response-level contract."
+fi
+
+MAX_ARTIFACT_BYTES=32768
 
 if ! jq -e '
   .schema_version == 1
@@ -510,18 +1059,38 @@ ROUTING_JSON="$(jq -c '{
   require_parameters: .provider_routing.require_parameters
 }' "$PROFILE_PATH")"
 ROUTING_BASE_URL="$(jq -r '.provider_routing.base_url' "$PROFILE_PATH")"
+REQUEST_METHOD="$(jq -r '.request.method' "$PROFILE_PATH")"
 REQUEST_ENDPOINT="$(jq -r '.request.endpoint' "$PROFILE_PATH")"
 REQUEST_TEMPERATURE="$(jq -r '.request.temperature' "$PROFILE_PATH")"
 REQUEST_MAX_TOKENS="$(jq -r '.request.max_tokens' "$PROFILE_PATH")"
 REQUEST_STREAM="$(jq -r '.request.stream' "$PROFILE_PATH")"
+REQUEST_MAX_TURNS="$(jq -r '.request.max_turns' "$PROFILE_PATH")"
 REQUEST_TIMEOUT_SECONDS="$(jq -r '.request.timeout_seconds' "$PROFILE_PATH")"
 REQUEST_PROVIDER_JSON="$(jq -c '{
   allow_fallbacks: .provider_routing.allow_fallbacks,
   require_parameters: .provider_routing.require_parameters
 }' "$PROFILE_PATH")"
+JUDGE_REQUEST_JSON="$(jq -n \
+  --arg method "$REQUEST_METHOD" \
+  --arg endpoint "$REQUEST_ENDPOINT" \
+  --argjson temperature "$REQUEST_TEMPERATURE" \
+  --argjson max_tokens "$JUDGE_MAX_TOKENS" \
+  --argjson stream "$REQUEST_STREAM" \
+  --argjson max_turns "$REQUEST_MAX_TURNS" \
+  --argjson timeout_seconds "$REQUEST_TIMEOUT_SECONDS" \
+  '{
+    method: $method,
+    endpoint: $endpoint,
+    temperature: $temperature,
+    max_tokens: $max_tokens,
+    stream: $stream,
+    max_turns: $max_turns,
+    timeout_seconds: $timeout_seconds
+  }')"
 
 TASK_HASH="$(sha256_file "$TASK_FILE")"
 SKILL_HASH="$(sha256_file "$SKILL_FILE")"
+RUBRIC_HASH="$(sha256_file "$RUBRIC_FILE")"
 
 if [ -z "${OPENROUTER_API_KEY:-}" ]; then
   write_failure "credentials" "credential_missing" "OPENROUTER_API_KEY" \
@@ -535,38 +1104,133 @@ for model in "${TARGET_MODELS[@]}"; do
   process_condition "$model" "treatment"
   treatment_result="$CONDITION_RESULT"
   treatment_failed="$CONDITION_FAILED"
+  treatment_response_text="$CONDITION_RESPONSE_TEXT"
+  treatment_response_available="$CONDITION_RESPONSE_AVAILABLE"
+  if [ "$treatment_response_available" = "true" ]; then
+    treatment_deterministic="$(evaluate_deterministic "$treatment_response_text")"
+  else
+    treatment_deterministic="$(jq -n '{
+      status: "not_run",
+      checks: [],
+      error: {
+        type: "infrastructure",
+        category: "response",
+        code: "candidate_response_unavailable",
+        message: "Deterministic checks could not inspect the candidate response."
+      }
+    }')"
+  fi
 
   process_condition "$model" "control"
   control_result="$CONDITION_RESULT"
   control_failed="$CONDITION_FAILED"
+  control_response_text="$CONDITION_RESPONSE_TEXT"
+  control_response_available="$CONDITION_RESPONSE_AVAILABLE"
+  if [ "$control_response_available" = "true" ]; then
+    control_deterministic="$(evaluate_deterministic "$control_response_text")"
+  else
+    control_deterministic="$(jq -n '{
+      status: "not_run",
+      checks: [],
+      error: {
+        type: "infrastructure",
+        category: "response",
+        code: "candidate_response_unavailable",
+        message: "Deterministic checks could not inspect the candidate response."
+      }
+    }')"
+  fi
+
+  judge_candidate "$treatment_response_text" "$treatment_response_available"
+  treatment_judge="$JUDGE_RESULT"
+  treatment_judge_failed="$JUDGE_FAILED"
+  treatment_score="$JUDGE_SCORE"
+
+  judge_candidate "$control_response_text" "$control_response_available"
+  control_judge="$JUDGE_RESULT"
+  control_judge_failed="$JUDGE_FAILED"
+  control_score="$JUDGE_SCORE"
+
+  treatment_result="$(jq -n \
+    --argjson candidate "$treatment_result" \
+    --argjson deterministic "$treatment_deterministic" \
+    --argjson judge "$treatment_judge" \
+    '$candidate + {deterministic: $deterministic, judge: $judge}')"
+  control_result="$(jq -n \
+    --argjson candidate "$control_result" \
+    --argjson deterministic "$control_deterministic" \
+    --argjson judge "$control_judge" \
+    '$candidate + {deterministic: $deterministic, judge: $judge}')"
 
   pair_status="completed"
-  if [ "$treatment_failed" = "true" ] || [ "$control_failed" = "true" ]; then
+  if [ "$treatment_failed" = "true" ] || [ "$control_failed" = "true" ] \
+    || [ "$treatment_judge_failed" = "true" ] \
+    || [ "$control_judge_failed" = "true" ]; then
     pair_status="failed"
     OVERALL_FAILURE="true"
+  fi
+
+  pair_outcome="scored"
+  if [ "$pair_status" != "completed" ]; then
+    pair_outcome="not-scored"
+  fi
+
+  if [ "$treatment_judge_failed" = "true" ] \
+    || [ "$control_judge_failed" = "true" ] \
+    || [ -z "$treatment_score" ] || [ -z "$control_score" ]; then
+    paired_lift="$(jq -n '{
+      status: "not-scored",
+      treatment_score: null,
+      control_score: null,
+      treatment_minus_control: null
+    }')"
+  else
+    paired_lift="$(jq -n \
+      --argjson treatment_score "$treatment_score" \
+      --argjson control_score "$control_score" \
+      '{
+        status: "scored",
+        score_scale: {min: 0, max: 100},
+        treatment_score: $treatment_score,
+        control_score: $control_score,
+        treatment_minus_control: ($treatment_score - $control_score)
+      }')"
   fi
 
   jq -n \
     --arg model "$model" \
     --arg fixture_revision "$FIXTURE_REVISION" \
+    --arg task_revision "$TASK_REVISION" \
+    --arg skill_revision "$SKILL_REVISION" \
+    --arg rubric_revision "$RUBRIC_REVISION" \
+    --arg skill_name "$SKILL_NAME" \
     --arg task_hash "$TASK_HASH" \
     --arg skill_hash "$SKILL_HASH" \
+    --arg rubric_hash "$RUBRIC_HASH" \
     --arg pair_status "$pair_status" \
+    --arg pair_outcome "$pair_outcome" \
     --argjson request "$REQUEST_JSON" \
     --argjson routing "$ROUTING_JSON" \
     --argjson treatment "$treatment_result" \
     --argjson control "$control_result" \
+    --argjson paired_lift "$paired_lift" \
     '{
       target_model: $model,
       fixture_revision: $fixture_revision,
+      task_revision: $task_revision,
+      skill_revision: $skill_revision,
+      rubric_revision: $rubric_revision,
+      skill_name: $skill_name,
       task_sha256: $task_hash,
       skill_sha256: $skill_hash,
+      rubric_sha256: $rubric_hash,
       request: $request,
       provider_routing: $routing,
       status: $pair_status,
-      outcome: "not-scored",
+      outcome: $pair_outcome,
       treatment: $treatment,
-      control: $control
+      control: $control,
+      paired_lift: $paired_lift
     }' >>"$PAIRS_NDJSON"
 done
 
@@ -575,15 +1239,24 @@ OVERALL_STATUS="completed"
 if [ "$OVERALL_FAILURE" = "true" ]; then
   OVERALL_STATUS="failed"
 fi
+OVERALL_OUTCOME="scored"
+if [ "$OVERALL_FAILURE" = "true" ]; then
+  OVERALL_OUTCOME="not-scored"
+fi
 
 jq -n \
   --arg schema_version "$PROFILE_SCHEMA_VERSION" \
   --arg profile "$PROFILE_NAME" \
   --arg status "$OVERALL_STATUS" \
+  --arg outcome "$OVERALL_OUTCOME" \
   --arg fixture_revision "$FIXTURE_REVISION" \
+  --arg task_revision "$TASK_REVISION" \
+  --arg skill_revision "$SKILL_REVISION" \
+  --arg rubric_revision "$RUBRIC_REVISION" \
   --arg skill_name "$SKILL_NAME" \
   --arg task_hash "$TASK_HASH" \
   --arg skill_hash "$SKILL_HASH" \
+  --arg rubric_hash "$RUBRIC_HASH" \
   --arg judge_model "$JUDGE_MODEL" \
   --argjson target_models "$TARGET_MODELS_JSON" \
   --argjson request "$REQUEST_JSON" \
@@ -595,13 +1268,17 @@ jq -n \
     runner: "openrouter-one-turn-paired",
     result_type: "paired_results",
     status: $status,
-    outcome: "not-scored",
+    outcome: $outcome,
     profile: {name: $profile},
     fixture: {
       revision: $fixture_revision,
+      task_revision: $task_revision,
+      skill_revision: $skill_revision,
+      rubric_revision: $rubric_revision,
       skill_name: $skill_name,
       task_sha256: $task_hash,
-      skill_sha256: $skill_hash
+      skill_sha256: $skill_hash,
+      rubric_sha256: $rubric_hash
     },
     target_models: $target_models,
     judge_model: $judge_model,
@@ -609,6 +1286,12 @@ jq -n \
     request: $request,
     pairs: $pairs
   }' >"$ARTIFACT_DIR/results.json"
+
+artifact_bytes="$(wc -c <"$ARTIFACT_DIR/results.json" | tr -d ' ')"
+if [ "$artifact_bytes" -gt "$MAX_ARTIFACT_BYTES" ]; then
+  write_failure "security" "artifact_too_large" "results.json" \
+    "the normalized result exceeded the bounded artifact policy."
+fi
 
 if [ "$OVERALL_FAILURE" = "true" ]; then
   echo "API paired evaluation failed: $ARTIFACT_DIR/results.json" >&2
