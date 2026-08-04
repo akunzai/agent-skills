@@ -1,0 +1,11 @@
+Audit the following project instructions for micromanagement and return a concise quality report.
+
+Use only the supplied context. Identify at least two concrete rules that are overly prescriptive or duplicate general model judgment. For each finding, name the supplied rule, explain why it is micromanagement, and suggest a project-specific alternative. Organize the response with these headings: `Micromanagement Audit`, `Grounded Findings`, and `Recommendations`.
+
+Do not claim that you inspected, edited, created, ran, verified, or changed any file, command, process, permission, repository, or workspace. The context below is illustrative text only; no action is requested.
+
+Supplied project context:
+- The `agents-md` skill says to keep `AGENTS.md` lean (< 100 lines) and offload detailed SOPs.
+- It says to avoid defensive micromanagement and redundant negative constraints.
+- It also requires a `CLAUDE.md` compatibility check and gives a safe migration rule when the link is absent.
+- It says to prefer pointers to schemas and gold-standard tests over long prose.

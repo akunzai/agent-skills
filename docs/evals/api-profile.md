@@ -45,6 +45,20 @@ such as `openrouter/auto`, `openrouter/free`, and `latest`/`default` aliases
 are rejected because they cannot provide a reproducible canonical identifier.
 The current profile supports the OpenRouter provider only.
 
+## Operational boundary for live runs
+
+The profile is intended to feed a protected/manual workflow. Static validation
+and mocked contract tests must remain credential-free; real model-backed runs
+must use an explicitly approved environment with bounded request time, turn
+count, concurrency, and cost. The workflow should persist a normalized profile
+snapshot and bounded result metadata, but never raw provider transcripts,
+authorization headers, credentials, or unrestricted upstream artifacts.
+
+This is a deliberately narrow operational borrowing from native eval harnesses:
+it informs the live-run boundary and provenance discipline, but does not import
+their native CLI launch modes, interactive QA driver, workspace checks, or
+release-gating behavior.
+
 When a caller has a pinned availability snapshot, `--model-catalog PATH` accepts
 a non-empty JSON array of exact model identifiers. A requested model absent
 from that snapshot produces the typed `model_unavailable` result. Without a

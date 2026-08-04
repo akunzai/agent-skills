@@ -97,6 +97,9 @@ jobs:
       - name: Run API evaluation profile workflow checks
         run: bash tests/api-evaluation-profile-workflow.sh
 
+      - name: Run API response-level fixture checks
+        run: bash tests/api-fixtures.sh
+
       - name: Run API paired runner checks
         run: bash tests/api-paired-runner.sh
 
