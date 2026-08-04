@@ -47,13 +47,18 @@ Before writing:
   - If a regular `CLAUDE.md` exists, preserve its contents until the user approves migration and replacement.
   - Add the concise explanation block (`CLAUDE.md is a symbolic link...`) to `AGENTS.md`.
   - Add `CLAUDE.md` overrides (if any) to `AGENTS.md` or as separate imports.
-- Include the `Knowledge Writeback & Active Pruning` section rules in `AGENTS.md` so all future agents follow them.
+- Include the `Self-Reflection` section rules in `AGENTS.md` so all future agents follow them.
 
-### 4. Knowledge Writeback & Active Pruning (on problem-solving)
+### 4. Self-Reflection (on problem-solving)
 When solving a problem reveals non-obvious knowledge (e.g., a gotcha, hidden config, env var quirk), the agent MUST:
-1. **Extract reusable insight**: Distill into a concise, non-derivable rule (1–2 bullets, no drifting metrics or micromanagement).
-2. **Propose the writeback**: Present the candidate snippet to the user for explicit confirmation before writing to `AGENTS.md` or dedicated notes.
-3. **Active Pruning**: Keep `AGENTS.md` lean (< 100 lines). If `## Lessons Learned` or gotchas exceed 5 entries, propose deleting stale items or promoting mature patterns into types, tests, or auxiliary files (see [references/quality-criteria.md](references/quality-criteria.md)).
+1. **Candidate**: Distill into a concise, non-derivable rule (≤ 2 bullets, context-tagged, no drifting metrics or micromanagement — see [references/quality-criteria.md](references/quality-criteria.md)).
+2. **Promote**: Present the candidate to the user for explicit confirmation, then write it to a dedicated file — never inline in `AGENTS.md` itself:
+   - If an existing topic doc already covers the subject, merge into it.
+   - Otherwise create `docs/<topic>.md` (kebab-case, named from the content).
+   - If the insight doesn't fit any topic, fall back to `docs/lessons-learned.md`.
+   - Add or update a single `@path` reference line per file under `AGENTS.md`'s Rich References section — never a standalone "Lessons Learned" heading.
+3. **Prune**: Periodically review the referenced files and drop entries once stale (library/version upgraded past the tagged context, now enforced by a linter/type/test, duplicated across files, or a one-off debugging transcript). Propose deletions to the user rather than applying a fixed entry-count cap.
+4. **Legacy migration**: If `AGENTS.md` already contains an inline `## Lessons Learned` section from the old writeback format, propose migrating its entries out to the appropriate topic/fallback file(s) and replacing the section with reference line(s), pending user confirmation.
 
 ## Advanced features
 
