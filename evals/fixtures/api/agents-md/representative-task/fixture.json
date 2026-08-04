@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "fixture_id": "agents-md/representative-task",
+  "fixture_revision": "agents-md-api-v1",
+  "task": {
+    "path": "evals/fixtures/api/agents-md/representative-task/task.txt",
+    "revision": "agents-md-task-v1",
+    "sha256": "sha256:37277324740263ade107e8c034b910fb125e28786806618489a0f2957f098b96"
+  },
+  "skill": {
+    "name": "agents-md",
+    "path": "skills/agents-md/SKILL.md",
+    "revision": "agents-md-skill-v1",
+    "sha256": "sha256:46edff6ebccf07ad21cd820b7e20b0e17c2d334c52b32314a2e401da59dc9f87"
+  },
+  "rubric": {
+    "path": "evals/fixtures/api/agents-md/representative-task/rubric.json",
+    "revision": "agents-md-micromanagement-v1",
+    "sha256": "sha256:2d5e42136e2f1b45f9b69ff41daaa3dec97a7a2d58cd1ab56d15af119d8ef02a"
+  },
+  "conditions": {
+    "treatment": {
+      "task_path": "evals/fixtures/api/agents-md/representative-task/task.txt",
+      "task_revision": "agents-md-task-v1",
+      "skill_path": "skills/agents-md/SKILL.md",
+      "rubric_revision": "agents-md-micromanagement-v1"
+    },
+    "control": {
+      "task_path": "evals/fixtures/api/agents-md/representative-task/task.txt",
+      "task_revision": "agents-md-task-v1",
+      "skill_path": null,
+      "rubric_revision": "agents-md-micromanagement-v1"
+    }
+  },
+  "deterministic_checks": [
+    "required-response-structure",
+    "grounded-findings",
+    "minimum-grounded-findings",
+    "no-invented-actions-or-state"
+  ],
+  "artifact_policy": {
+    "allowed_fields": [
+      "schema_version",
+      "fixture_id",
+      "fixture_revision",
+      "condition",
+      "status",
+      "outcome",
+      "check_results",
+      "failure_code",
+      "error_category"
+    ],
+    "forbidden_fields": [
+      "raw_response",
+      "raw_transcript",
+      "request_body",
+      "provider_stderr",
+      "authorization",
+      "credential",
+      "workspace_snapshot"
+    ],
+    "max_field_bytes": 4096,
+    "max_artifact_bytes": 16384
+  }
+}
