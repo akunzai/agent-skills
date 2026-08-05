@@ -67,20 +67,17 @@ jobs:
       - name: Run API evaluation cleanup checks
         run: bash tests/api-eval-cleanup.sh
 
-  git-sync-memory:
+  to-memory:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Run git-sync-memory integration tests
-        run: bash tests/git-sync-memory-integration.sh
+      - name: Run to-memory content checks
+        run: bash tests/to-memory-content.sh
 
-      - name: Run git-sync-memory branch derivation tests
-        run: bash tests/git-sync-memory-branch.sh
-
-      - name: Run memory content checks
-        run: bash tests/memory-content.sh
+      - name: Run to-memory project storage checks
+        run: bash tests/to-memory-storage.sh
 
   tidy-commits:
     runs-on: ubuntu-latest
@@ -144,42 +141,3 @@ jobs:
 
       - name: Run agentsview-extract content checks
         run: bash tests/agentsview-extract-content.sh
-
-  mem-setup:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Set up mise
-        uses: jdx/mise-action@v4
-
-      - name: Run mem-setup content checks
-        run: bash tests/mem-setup-content.sh
-
-      - name: Run mem-setup bridge checks
-        run: bash tests/mem-setup-bridge.sh
-
-  windows:
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Set up mise
-        uses: jdx/mise-action@v4
-
-      - name: Run Windows POSIX path-guard tests
-        run: bash tests/windows-path-guard.sh
-
-      - name: Run git-sync-memory integration tests
-        run: bash tests/git-sync-memory-integration.sh
-
-      - name: Run git-sync-memory branch derivation tests
-        run: bash tests/git-sync-memory-branch.sh
-
-      - name: Run mem-setup bridge checks
-        run: bash tests/mem-setup-bridge.sh
