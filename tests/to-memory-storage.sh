@@ -2,21 +2,16 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-RESOLVER="$ROOT_DIR/skills/mem-auto/scripts/resolve-proj-memory-path.sh"
-MIGRATOR="$ROOT_DIR/skills/mem-auto/scripts/migrate-legacy-proj-memory.sh"
-ENSURER="$ROOT_DIR/skills/mem-auto/scripts/ensure-proj-memory-path.sh"
+RESOLVER="$ROOT_DIR/skills/to-memory/scripts/resolve-proj-memory-path.sh"
+ENSURER="$ROOT_DIR/skills/to-memory/scripts/ensure-proj-memory-path.sh"
 
 fail() {
-  echo "mem-proj-storage test failed: $*" >&2
+  echo "to-memory-storage test failed: $*" >&2
   exit 1
 }
 
 if [ ! -x "$RESOLVER" ]; then
   fail "Resolver script $RESOLVER is missing or not executable"
-fi
-
-if [ ! -x "$MIGRATOR" ]; then
-  fail "Migrator script $MIGRATOR is missing or not executable"
 fi
 
 if [ ! -x "$ENSURER" ]; then
@@ -66,29 +61,11 @@ if [ "$MAIN_MEM_PATH" != "$WORKTREE_MEM_PATH" ]; then
   fail "Git worktree memory path ($WORKTREE_MEM_PATH) does not match main repo memory path ($MAIN_MEM_PATH)"
 fi
 
-# Test 4: Legacy Migration & Cleanup via migrate-legacy-proj-memory.sh
-LEGACY_REPO="$TMP_DIR/legacy_repo"
-mkdir -p "$LEGACY_REPO/.memories/handoffs"
-git -C "$LEGACY_REPO" init -b main >/dev/null
-git -C "$LEGACY_REPO" config user.email "test@example.com"
-git -C "$LEGACY_REPO" config user.name "Test User"
-
-echo "Candidate note 1" > "$LEGACY_REPO/.memories/2026-07-30.md"
-echo "Handoff note 1" > "$LEGACY_REPO/.memories/handoffs/2026-07-30__task.md"
-
-LEGACY_MEM_PATH="$("$RESOLVER" "$LEGACY_REPO")"
-[ ! -d "$LEGACY_MEM_PATH" ] || fail "Pure resolver should not create directory or perform migration"
-
-"$MIGRATOR" "$LEGACY_REPO"
-
-[ ! -d "$LEGACY_REPO/.memories" ] || fail "Legacy .memories directory was not removed from repository"
-[ -f "$LEGACY_MEM_PATH/2026-07-30.md" ] || fail "Legacy 2026-07-30.md log was not migrated to $LEGACY_MEM_PATH"
-[ -f "$LEGACY_MEM_PATH/handoffs/2026-07-30__task.md" ] || fail "Legacy handoff file was not migrated to $LEGACY_MEM_PATH/handoffs/"
-
-# Test 5: Idempotency with Ensurer
-IDEMPOTENT_PATH="$("$ENSURER" "$LEGACY_REPO")"
-if [ "$IDEMPOTENT_PATH" != "$LEGACY_MEM_PATH" ]; then
-  fail "Idempotent run returned different path: $IDEMPOTENT_PATH vs $LEGACY_MEM_PATH"
+# Test 4: Ensurer idempotency (re-running returns the same path, makes no changes)
+IDEMPOTENT_PATH="$("$ENSURER" "$GIT_REPO_DIR")"
+if [ "$IDEMPOTENT_PATH" != "$MAIN_MEM_PATH" ]; then
+  fail "Idempotent run returned different path: $IDEMPOTENT_PATH vs $MAIN_MEM_PATH"
 fi
+[ -d "$IDEMPOTENT_PATH" ] || fail "Ensurer did not create the directory on the git-repo path"
 
-echo "mem-proj-storage tests passed"
+echo "to-memory-storage tests passed"

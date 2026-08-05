@@ -50,15 +50,12 @@ Use it when you want to:
 - Keep `AGENTS.md` in sync with Claude Code via a `CLAUDE.md` symlink
 - Automatically write discovered knowledge back to `AGENTS.md` after solving problems
 
-### [`mem-auto`](skills/mem-auto/SKILL.md)
+### [`to-memory`](skills/to-memory/SKILL.md)
 
-Autopilot memory governance umbrella. Captures verified candidate notes to global project memory, and delegates manual work to the commands below.
-
-- [`mem-recall`](skills/mem-recall/SKILL.md) — search/load past context on demand
-- [`mem-promote`](skills/mem-promote/SKILL.md) — promote candidates to durable memory; prune duplicates
-- [`mem-clean`](skills/mem-clean/SKILL.md) — clean expired short-term logs; resolve cloud conflicts
-- [`mem-sync`](skills/mem-sync/SKILL.md) — (DEPRECATED) project short-term memory is now stored globally without Git sync operations
-- [`mem-setup`](skills/mem-setup/SKILL.md) — bridge every installed agent's global memory to one canonical `~/.agents/AGENTS.md`
+Explicitly record something worth remembering — decides scope (global vs.
+project) and tier (short-term candidate vs. long-term durable), then writes it.
+Autonomous knowledge capture after solving a problem stays with `agents-md`'s
+Self-Reflection mechanism.
 
 ### [`mise`](skills/mise/SKILL.md)
 

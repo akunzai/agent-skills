@@ -3,7 +3,7 @@ set -euo pipefail
 
 # resolve-proj-memory-path.sh
 # Resolves global project short-term memory path (~/.agents/memories/projects/<proj-slug>/)
-# Pure path resolution without side-effects (no directory creation, no legacy migration).
+# Pure path resolution without side-effects (no directory creation).
 
 TARGET_DIR="${1:-$PWD}"
 
