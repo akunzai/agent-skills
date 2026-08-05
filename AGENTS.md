@@ -18,7 +18,7 @@
 
 ## Workflows & Conventions
 - **Skill Requirements**: Every skill lives in `skills/<name>/` and must contain `SKILL.md` with valid YAML frontmatter (`name`, `description`).
-- **Skill Documentation**: When creating or updating a skill in `skills/`, always update `README.md` to document its description and link.
+- **Skill Documentation**: When creating or updating a skill in `skills/`, always update `README.md` to document its description and link. If the skill is stable/recommended, also add or move its slug in the matching group in `skills.sh.json` — `tests/skill-catalog-sync.sh` enforces that the two stay in sync.
 - **Shell Scripts**: Shell script style and linting standards are defined in @CONTRIBUTING.md.
 - **Single Test Execution**: Always run a targeted single test (`bash tests/<name>.sh`) during fast iteration.
 - **Self-Reflection**: When non-obvious gotchas or framework quirks are discovered, propose a concise, context-tagged Candidate to the user; on confirmation, promote it into the relevant `docs/agents/<topic>.md` (merge if one exists, else create) or `docs/agents/lessons-learned.md` as fallback, and add/update its `@path` line under Rich References & Specs. Prune entries when stale (version upgraded past the tagged context, enforced by lint/type/test, duplicated, or a debugging transcript) rather than by a fixed count.

@@ -141,3 +141,12 @@ jobs:
 
       - name: Run agentsview-extract content checks
         run: bash tests/agentsview-extract-content.sh
+
+  skill-catalog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Run skill-catalog-sync checks
+        run: bash tests/skill-catalog-sync.sh
