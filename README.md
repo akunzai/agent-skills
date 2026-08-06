@@ -10,8 +10,10 @@ My personal agent skills for AI coding assistants — compatible with Antigravit
 
 AI coding assistants are powerful out of the box, but they lack persistent memory
 and opinionated workflows across sessions. This project fills that gap with
-reusable skills that give your assistant long-term memory, cleaner
-git history, and better project awareness — without manual setup every time.
+reusable skills grouped into three areas: **Memory** (durable project context
+that survives across sessions), **Git** (clean commit history and safe PR/issue
+workflows), and **Toolchain** (pinned, opinionated tool and dependency
+management).
 
 ## Install
 
