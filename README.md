@@ -21,25 +21,29 @@ npx skills add akunzai/agent-skills
 
 ## Skills
 
-### [`tidy-commits`](skills/tidy-commits/SKILL.md)
+### Git
+
+#### [`tidy-commits`](skills/tidy-commits/SKILL.md)
 
 Clean up local git commit history before review or merge. Use it to turn WIP,
 fixup, review-fix, format-only, poorly ordered, unsigned, or poorly messaged
 commits into a clear, verified branch story.
 
-### [`pr-workflow`](skills/pr-workflow/SKILL.md)
+#### [`pr-workflow`](skills/pr-workflow/SKILL.md)
 
 Standard operating procedure for preparing, opening, and managing Pull Requests (PR) and Merge Requests (MR) safely with preflight checks, commit scoping, and issue auto-closing rules.
 
-### [`github-epic`](skills/github-epic/SKILL.md)
+#### [`github-epic`](skills/github-epic/SKILL.md)
 
 Manage multi-issue epics, parent-child task hierarchies, and blocking dependencies natively on GitHub (`gh api ... sub_issues` and `dependencies/blocked_by`).
 
-### [`gitlab-epic`](skills/gitlab-epic/SKILL.md)
+#### [`gitlab-epic`](skills/gitlab-epic/SKILL.md)
 
 Manage multi-issue epics and task hierarchies on GitLab (supporting Premium/Ultimate native epics and Free/CE tier label & markdown emulation).
 
-### [`agents-md`](skills/agents-md/SKILL.md)
+### Memory
+
+#### [`agents-md`](skills/agents-md/SKILL.md)
 
 Audit, create, and improve `AGENTS.md` files to give AI assistants persistent project memory.
 
@@ -50,28 +54,30 @@ Use it when you want to:
 - Keep `AGENTS.md` in sync with Claude Code via a `CLAUDE.md` symlink
 - Automatically write discovered knowledge back to `AGENTS.md` after solving problems
 
-### [`to-memory`](skills/to-memory/SKILL.md)
+#### [`to-memory`](skills/to-memory/SKILL.md)
 
 Explicitly record something worth remembering — decides scope (global vs.
 project) and tier (short-term candidate vs. long-term durable), then writes it.
 Autonomous knowledge capture after solving a problem stays with `agents-md`'s
 Self-Reflection mechanism.
 
-### [`mise`](skills/mise/SKILL.md)
+#### [`agentsview-extract`](skills/agentsview-extract/SKILL.md)
+
+Analyze conversation history across AI agents using `agentsview` (CLI or MCP) to extract reusable gotchas/preferences into `AGENTS.md` or construct new skills.
+
+### Toolchain
+
+#### [`mise`](skills/mise/SKILL.md)
 
 Manage a project's toolchain, language runtimes, and tasks through a single
 committed `mise.toml`. Captures opinionated conventions for pinning, built-in
 backends, tasks over scripts, and phased host → CI → container adoption.
 
-### [`aube`](skills/aube/SKILL.md)
+#### [`aube`](skills/aube/SKILL.md)
 
 Use [aube](https://aube.jdx.dev/) as the Node.js package manager, installed and
 pinned through mise. Covers `aubr`/`aube ci` workflows, lockfile policy, the
 lifecycle-script jail, and migrating from pnpm/npm/bun.
-
-### [`agentsview-extract`](skills/agentsview-extract/SKILL.md)
-
-Analyze conversation history across AI agents using `agentsview` (CLI or MCP) to extract reusable gotchas/preferences into `AGENTS.md` or construct new skills.
 
 
 ## Contributing

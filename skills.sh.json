@@ -1,0 +1,29 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "groupings": [
+    {
+      "title": "Git",
+      "skills": [
+        "tidy-commits",
+        "pr-workflow",
+        "github-epic",
+        "gitlab-epic"
+      ]
+    },
+    {
+      "title": "Memory",
+      "skills": [
+        "agents-md",
+        "to-memory",
+        "agentsview-extract"
+      ]
+    },
+    {
+      "title": "Toolchain",
+      "skills": [
+        "mise",
+        "aube"
+      ]
+    }
+  ]
+}
