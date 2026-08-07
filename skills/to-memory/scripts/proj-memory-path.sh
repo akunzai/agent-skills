@@ -1,11 +1,46 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# resolve-proj-memory-path.sh
-# Resolves global project short-term memory path (~/.agents/memories/projects/<proj-slug>/)
-# Pure path resolution without side-effects (no directory creation).
+# proj-memory-path.sh
+# Resolves global project short-term memory path
+# (~/.agents/memories/projects/<proj-slug>/).
+#
+# Usage: proj-memory-path.sh [--ensure] [DIR]
+#   Default: pure path resolution (no side effects).
+#   --ensure: create the directory if missing, then print the path.
 
-TARGET_DIR="${1:-$PWD}"
+ENSURE=0
+TARGET_DIR="$PWD"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --ensure)
+      ENSURE=1
+      shift
+      ;;
+    -h|--help)
+      cat <<'EOF'
+Usage: proj-memory-path.sh [--ensure] [DIR]
+
+Resolve the global project short-term memory directory for DIR
+(default: current working directory).
+
+  --ensure   Create the directory if it does not exist
+  -h, --help Show this help
+EOF
+      exit 0
+      ;;
+    -*)
+      echo "Error: unknown option: $1" >&2
+      echo "Usage: proj-memory-path.sh [--ensure] [DIR]" >&2
+      exit 1
+      ;;
+    *)
+      TARGET_DIR="$1"
+      shift
+      ;;
+  esac
+done
 
 if [ ! -d "$TARGET_DIR" ]; then
   echo "Error: Directory '$TARGET_DIR' does not exist." >&2
@@ -57,5 +92,9 @@ fi
 
 SLUG="${PROJ_NAME}-${HASH}"
 GLOBAL_MEM_DIR="${HOME}/.agents/memories/projects/${SLUG}"
+
+if [[ "$ENSURE" -eq 1 ]]; then
+  mkdir -p "$GLOBAL_MEM_DIR"
+fi
 
 echo "$GLOBAL_MEM_DIR"

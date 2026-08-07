@@ -26,8 +26,10 @@ grep -q -E '~/.agents/memories/YYYY-MM-DD' "$DIR/SKILL.md" \
 # shellcheck disable=SC2088
 grep -q -E '~/.agents/memories/projects/' "$DIR/SKILL.md" \
   || fail "project short-term directory guidance is missing"
-grep -q -E 'resolve-proj-memory-path\.sh' "$DIR/SKILL.md" \
-  || fail "resolve-proj-memory-path.sh path resolution guidance is missing"
+grep -q -E 'proj-memory-path\.sh' "$DIR/SKILL.md" \
+  || fail "proj-memory-path.sh path resolution guidance is missing"
+grep -q -e '--ensure' "$DIR/SKILL.md" \
+  || fail "proj-memory-path.sh --ensure guidance is missing"
 
 # --- no dedicated recall/clean/setup skills ---
 grep -qziE 'no[[:space:]]+dedicated recall skill' "$DIR/SKILL.md" \
