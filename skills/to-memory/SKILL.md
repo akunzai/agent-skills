@@ -51,8 +51,8 @@ Land the note as its own file — one file per note, not appended to a shared lo
 - `<slug>` is a short, agent-chosen topic slug, so the filename alone identifies
   the content without opening the file.
 - Resolve `<proj-slug>` and the project memory directory with
-  `scripts/resolve-proj-memory-path.sh` (pure resolution, no side effects) or
-  `scripts/ensure-proj-memory-path.sh` (also creates the directory).
+  `scripts/proj-memory-path.sh` (pure resolution by default; pass `--ensure`
+  to also create the directory).
 - No retention policy and no resolution markers: when a note is no longer needed,
   delete the file directly — a destructive action, so get explicit confirmation
   first, same as any other destructive operation.
