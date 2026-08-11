@@ -102,7 +102,17 @@ if jq -e '
     }
   ' "$request_file" >>"$REQUEST_LOG"
 
-  case "${MOCK_JUDGE_MODE:-success}" in
+  mock_judge_mode="${MOCK_JUDGE_MODE:-success}"
+  if [ "$mock_judge_mode" = "malformed-once" ]; then
+    judge_count="$(grep -c '"kind":"judge"' "$REQUEST_LOG" || true)"
+    if [ "$judge_count" -eq 1 ]; then
+      mock_judge_mode="malformed"
+    else
+      mock_judge_mode="success"
+    fi
+  fi
+
+  case "$mock_judge_mode" in
     success)
       if jq -e '[.messages[].content] | any(contains("SKILL_MARKER"))' \
         "$request_file" >/dev/null; then
@@ -229,7 +239,17 @@ jq -e '
   and .provider.require_parameters == true
 ' "$request_file" >/dev/null || { echo "request must preserve provider routing" >&2; exit 48; }
 
-case "$MOCK_CURL_MODE" in
+mock_curl_mode="$MOCK_CURL_MODE"
+if [ "$mock_curl_mode" = "provider-error-once" ]; then
+  candidate_count="$(grep -c '"kind":"candidate"' "$REQUEST_LOG" || true)"
+  if [ "$candidate_count" -eq 1 ]; then
+    mock_curl_mode="provider-error"
+  else
+    mock_curl_mode="success"
+  fi
+fi
+
+case "$mock_curl_mode" in
   success)
     if jq -e '[.messages[].content] | any(contains("SKILL-CONTEXT"))' \
       "$request_file" >/dev/null; then
@@ -454,6 +474,7 @@ jq -e '
   and .outcome == "scored"
   and .target_models == ["openai/test-one", "google/test-two"]
   and .judge_model == "anthropic/test-judge"
+  and .retry_policy == {attempt_ceiling: 3, retry_ceiling: 2}
   and .fixture.revision == "fixture-v1"
   and .fixture.task_revision == "agents-md-task-v1"
   and .fixture.skill_revision == "agents-md-skill-v1"
@@ -468,6 +489,10 @@ jq -e '
   and ([.pairs[].treatment.condition] | unique == ["treatment"])
   and ([.pairs[].control.condition] | unique == ["control"])
   and ([.pairs[].treatment.request_count, .pairs[].control.request_count] | all(. == 1))
+  and ([.pairs[].treatment.attempts, .pairs[].control.attempts]
+    | all(length == 1))
+  and ([.pairs[].treatment.retry_exhausted, .pairs[].control.retry_exhausted]
+    | all(. == false))
   and ([.pairs[].treatment.skill_context] | all(. == "present"))
   and ([.pairs[].control.skill_context] | all(. == "absent"))
   and (([.pairs[] | .treatment.task_sha256, .control.task_sha256] | unique)
@@ -734,11 +759,120 @@ run_fully_paired_replicates_case() {
     || fail "completed request progress must identify every replicate"
 }
 
+run_candidate_retry_recovery_case() {
+  local artifact_dir="$TEMP_DIR/candidate-retry-recovery-artifacts"
+  local request_log="$TEMP_DIR/candidate-retry-recovery-requests.ndjson"
+  local results_file="$artifact_dir/results.json"
+  local exit_code
+
+  : >"$request_log"
+  set +e
+  OPENROUTER_API_KEY='test-api-key' \
+    CURL_BIN="$FAKE_CURL" \
+    MOCK_CURL_MODE='provider-error-once' \
+    MOCK_JUDGE_MODE='success' \
+    REQUEST_LOG="$request_log" \
+    "$RUNNER" \
+    --profile "$FAIL_PROFILE" \
+    --task-file "$TASK_FILE" \
+    --task-revision agents-md-task-v1 \
+    --skill-file "$SKILL_FILE" \
+    --skill-revision agents-md-skill-v1 \
+    --skill-name agents-md \
+    --fixture-revision fixture-v1 \
+    --rubric-file "$RUBRIC_FILE" \
+    --rubric-revision agents-md-micromanagement-v1 \
+    --artifact-dir "$artifact_dir" \
+    >"$TEMP_DIR/candidate-retry-recovery.stdout" \
+    2>"$TEMP_DIR/candidate-retry-recovery.stderr"
+  exit_code=$?
+  set -e
+
+  [ "$exit_code" -eq 0 ] || fail "a recovered candidate retry must complete the pair"
+  jq -e '
+    .status == "completed"
+    and .outcome == "scored"
+    and (.pairs | length == 1)
+    and .pairs[0].treatment.request_count == 2
+    and .pairs[0].treatment.attempt_ceiling == 3
+    and .pairs[0].treatment.retry_exhausted == false
+    and (.pairs[0].treatment.attempts == [
+      {
+        attempt_index: 1,
+        status: "failed",
+        error_type: "infrastructure",
+        error_category: "provider",
+        error_code: "provider_error"
+      },
+      {
+        attempt_index: 2,
+        status: "response_received",
+        error_type: null,
+        error_category: null,
+        error_code: null
+      }
+    ])
+    and .pairs[0].control.request_count == 1
+    and .pairs[0].paired_lift.status == "scored"
+  ' "$results_file" >/dev/null \
+    || fail "a recovered candidate retry must retain typed attempt accounting"
+  [ "$(wc -l <"$request_log" | tr -d ' ')" -eq 5 ] \
+    || fail "candidate recovery must retry only the affected condition"
+}
+
+run_judge_retry_recovery_case() {
+  local artifact_dir="$TEMP_DIR/judge-retry-recovery-artifacts"
+  local request_log="$TEMP_DIR/judge-retry-recovery-requests.ndjson"
+  local results_file="$artifact_dir/results.json"
+  local exit_code
+
+  : >"$request_log"
+  set +e
+  OPENROUTER_API_KEY='test-api-key' \
+    CURL_BIN="$FAKE_CURL" \
+    MOCK_CURL_MODE='success' \
+    MOCK_JUDGE_MODE='malformed-once' \
+    REQUEST_LOG="$request_log" \
+    "$RUNNER" \
+    --profile "$FAIL_PROFILE" \
+    --task-file "$TASK_FILE" \
+    --task-revision agents-md-task-v1 \
+    --skill-file "$SKILL_FILE" \
+    --skill-revision agents-md-skill-v1 \
+    --skill-name agents-md \
+    --fixture-revision fixture-v1 \
+    --rubric-file "$RUBRIC_FILE" \
+    --rubric-revision agents-md-micromanagement-v1 \
+    --artifact-dir "$artifact_dir" \
+    >"$TEMP_DIR/judge-retry-recovery.stdout" \
+    2>"$TEMP_DIR/judge-retry-recovery.stderr"
+  exit_code=$?
+  set -e
+
+  [ "$exit_code" -eq 0 ] || fail "a recovered judge retry must complete the pair"
+  jq -e '
+    .status == "completed"
+    and .pairs[0].treatment.request_count == 1
+    and .pairs[0].treatment.judge.request_count == 2
+    and .pairs[0].treatment.judge.attempt_ceiling == 3
+    and .pairs[0].treatment.judge.retry_exhausted == false
+    and ([.pairs[0].treatment.judge.attempts[].error_code]
+      == ["judge_response_malformed", null])
+    and .pairs[0].treatment.judge.status == "scored"
+    and .pairs[0].control.judge.request_count == 1
+    and .pairs[0].paired_lift.status == "scored"
+  ' "$results_file" >/dev/null \
+    || fail "a recovered judge retry must retain typed attempt accounting"
+  [ "$(wc -l <"$request_log" | tr -d ' ')" -eq 5 ] \
+    || fail "judge recovery must retry only the affected judge request"
+}
+
 run_provider_failure_case() {
   local case_name="$1"
   local mock_mode="$2"
   local expected_code="$3"
   local expected_category="$4"
+  local expected_attempts="${5:-1}"
   local artifact_dir="$TEMP_DIR/$case_name-artifacts"
   local request_log="$TEMP_DIR/$case_name-requests.ndjson"
   local stdout_file="$TEMP_DIR/$case_name.stdout"
@@ -771,6 +905,7 @@ run_provider_failure_case() {
   jq -e \
     --arg expected_code "$expected_code" \
     --arg expected_category "$expected_category" \
+    --argjson expected_attempts "$expected_attempts" \
     '
       .status == "failed"
       and .outcome == "not-scored"
@@ -808,15 +943,21 @@ run_provider_failure_case() {
         else true
         end)
       and ([.pairs[] | .treatment.request_count, .control.request_count]
-        | all(. == 1))
+        | all(. == $expected_attempts))
+      and ([.pairs[] | .treatment.attempts, .control.attempts]
+        | all(length == $expected_attempts))
+      and ([.pairs[] | .treatment.attempt_ceiling, .control.attempt_ceiling]
+        | all(. == 3))
+      and ([.pairs[] | .treatment.retry_exhausted, .control.retry_exhausted]
+        | all(. == ($expected_attempts == 3)))
       and ([.pairs[] | .treatment.skill_context, .control.skill_context]
         | sort == ["absent", "present"])
       and ((tostring | contains("provider-only-secret")) | not)
       and ((tostring | contains("body-only-secret")) | not)
     ' "$results_file" >/dev/null \
     || fail "$case_name did not emit its typed, redacted failure result"
-  [ "$(wc -l <"$request_log" | tr -d ' ')" -eq 2 ] \
-    || fail "$case_name must issue exactly one request per condition"
+  [ "$(wc -l <"$request_log" | tr -d ' ')" -eq $((expected_attempts * 2)) ] \
+    || fail "$case_name must issue the expected attempts per condition"
 }
 
 run_judge_failure_case() {
@@ -824,6 +965,7 @@ run_judge_failure_case() {
   local mock_judge_mode="$2"
   local expected_code="$3"
   local expected_category="$4"
+  local expected_attempts="${5:-1}"
   local artifact_dir="$TEMP_DIR/$case_name-judge-artifacts"
   local request_log="$TEMP_DIR/$case_name-judge-requests.ndjson"
   local results_file="$artifact_dir/results.json"
@@ -856,6 +998,7 @@ run_judge_failure_case() {
   jq -e \
     --arg expected_code "$expected_code" \
     --arg expected_category "$expected_category" \
+    --argjson expected_attempts "$expected_attempts" \
     '
       .status == "failed"
       and .outcome == "not-scored"
@@ -867,13 +1010,19 @@ run_judge_failure_case() {
         .control.judge.error.category] | all(. == $expected_category))
       and ([.pairs[] | .treatment.judge.status, .control.judge.status]
         | all(. == "failed"))
+      and ([.pairs[] | .treatment.judge.request_count,
+        .control.judge.request_count] | all(. == $expected_attempts))
+      and ([.pairs[] | .treatment.judge.attempts,
+        .control.judge.attempts] | all(length == $expected_attempts))
+      and ([.pairs[] | .treatment.judge.retry_exhausted,
+        .control.judge.retry_exhausted] | all(. == ($expected_attempts == 3)))
       and ([.pairs[].paired_lift.status] | all(. == "not-scored"))
       and ((tostring | contains("secret-token-value")) | not)
       and ((tostring | contains("test-api-key")) | not)
     ' "$results_file" >/dev/null \
     || fail "$case_name did not emit its typed, redacted judge failure"
-  [ "$(wc -l <"$request_log" | tr -d ' ')" -eq 4 ] \
-    || fail "$case_name must issue two candidate and two judge requests"
+  [ "$(wc -l <"$request_log" | tr -d ' ')" -eq $((2 + expected_attempts * 2)) ] \
+    || fail "$case_name must issue the expected judge attempts"
 }
 
 run_judge_truncated_case() {
@@ -911,16 +1060,22 @@ run_judge_truncated_case() {
     and .outcome == "not-scored"
     and (.pairs | length == 1)
     and ([.pairs[] | .treatment.judge.error.code, .control.judge.error.code]
-      | all(. == "judge_response_malformed"))
+      | all(. == "judge_response_truncated"))
     and ([.pairs[] | .treatment.judge.error.category, .control.judge.error.category]
       | all(. == "response"))
     and ([.pairs[] | .treatment.judge.response.finish_reason,
       .control.judge.response.finish_reason] | all(. == "length"))
     and ([.pairs[] | .treatment.judge.status, .control.judge.status]
       | all(. == "failed"))
+    and ([.pairs[] | .treatment.judge.request_count,
+      .control.judge.request_count] | all(. == 1))
+    and ([.pairs[] | .treatment.judge.retry_exhausted,
+      .control.judge.retry_exhausted] | all(. == false))
     and ([.pairs[].paired_lift.status] | all(. == "not-scored"))
   ' "$results_file" >/dev/null \
-    || fail "a truncated judge response must be typed judge_response_malformed, excluded from paired_lift, with finish_reason recorded"
+    || fail "a truncated judge response must be typed, excluded from paired_lift, and never retried"
+  [ "$(wc -l <"$request_log" | tr -d ' ')" -eq 4 ] \
+    || fail "a truncated judge response must not be retried"
 }
 
 run_judge_max_tokens_override_case() {
@@ -1123,6 +1278,10 @@ run_truncated_response_case() {
     and ([.pairs[].paired_lift.status] | all(. == "not-scored"))
     and ([.pairs[] | .treatment.deterministic.status, .control.deterministic.status]
       | all(. == "not_run"))
+    and ([.pairs[] | .treatment.request_count, .control.request_count]
+      | all(. == 1))
+    and ([.pairs[] | .treatment.retry_exhausted, .control.retry_exhausted]
+      | all(. == false))
   ' "$artifact_dir/results.json" >/dev/null \
     || fail "a truncated candidate response must be typed response_truncated and excluded from judging/paired_lift"
   [ "$(wc -l <"$request_log" | tr -d ' ')" -eq 2 ] \
@@ -1164,10 +1323,16 @@ run_finding_then_heading_case() {
       | map(select(.id == "minimum-grounded-findings"))) as $checks
     | ($checks | length) == 2
     and ($checks | all(.status == "failed" and .observed_count == 1))
+    and ([.pairs[] | .treatment.request_count, .control.request_count]
+      | all(. == 1))
+    and ([.pairs[] | .treatment.retry_exhausted, .control.retry_exhausted]
+      | all(. == false))
   ' "$artifact_dir/results.json" >/dev/null \
     || fail "a finding block must stop at the next markdown heading instead of absorbing trailing prose"
 }
 
+run_candidate_retry_recovery_case
+run_judge_retry_recovery_case
 run_fully_paired_replicates_case
 run_multiline_grounded_findings_case
 run_truncated_response_case
@@ -1177,16 +1342,16 @@ run_provider_failure_case model-unavailable model-unavailable model_unavailable 
 run_provider_failure_case parameters-unsupported parameters-unsupported \
   request_parameters_unsupported configuration
 run_provider_failure_case no-provider-endpoint no-provider-endpoint \
-  provider_endpoint_unavailable provider
-run_provider_failure_case redirect redirect provider_error provider
+  provider_endpoint_unavailable provider 3
+run_provider_failure_case redirect redirect provider_error provider 3
 run_provider_failure_case credentials-rejected credentials-rejected credentials_rejected credentials
-run_provider_failure_case rate-limited rate-limited provider_rate_limited provider
-run_provider_failure_case provider-error provider-error provider_error provider
+run_provider_failure_case rate-limited rate-limited provider_rate_limited provider 3
+run_provider_failure_case provider-error provider-error provider_error provider 3
 run_provider_failure_case provider-error-long-type provider-error-long-type \
-  provider_error provider
-run_provider_failure_case timeout timeout request_timeout transport
-run_provider_failure_case malformed malformed response_malformed response
-run_judge_failure_case malformed malformed judge_response_malformed response
+  provider_error provider 3
+run_provider_failure_case timeout timeout request_timeout transport 3
+run_provider_failure_case malformed malformed response_malformed response 3
+run_judge_failure_case malformed malformed judge_response_malformed response 3
 run_judge_failure_case secret secret judge_redaction_failure security
 run_judge_failure_case empty-evidence empty-evidence judge_score_invalid response
 run_judge_failure_case whitespace-evidence whitespace-evidence judge_score_invalid response

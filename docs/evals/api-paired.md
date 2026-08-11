@@ -44,6 +44,21 @@ Actions step summary and emits one error annotation per failed phase. The
 summary records that spend is governed by the OpenRouter account budget; it does
 not apply a second workflow-local cost gate.
 
+Each candidate or judge phase allows at most three attempts: the initial
+request plus two retries. Retries apply only to typed, potentially transient
+transport/provider failures and malformed provider responses. The runner does
+not retry fixed credential, model, or request-configuration failures. It also
+does not retry content outcomes such as failed deterministic checks,
+`response_truncated`, invalid judge scores, or judge redaction failures.
+Candidate and judge retry loops are independent, so a judge retry reuses the
+same candidate response rather than resampling the candidate.
+
+Every phase records `request_count`, `attempt_ceiling`, `retry_exhausted`, and a
+bounded `attempts` array containing the attempt index, status, and typed error
+identity. A recovered phase retains its failed attempt records while its final
+status reflects the valid result. A ceiling-exhausted phase retains the final
+typed infrastructure error and sets `retry_exhausted: true`.
+
 Each OpenRouter request also enables `X-OpenRouter-Metadata: enabled`. When the
 provider returns router metadata, the artifact keeps only a bounded projection:
 the routing attempt, strategy, total endpoint count, available endpoint count,
@@ -73,9 +88,9 @@ lane.
 The profile defaults to `5` fully paired replicates per target. Its lower-level
 CLI accepts any positive count so credential-free contract tests can use a
 smaller sample. The manual model-backed workflow enforces at least `5`, records
-the count in its run policy, and accounts for four possible provider requests
-per pair. Infrastructure retries and per-model distribution summaries remain
-separate methodology slices.
+the count and fixed retry policy in its run policy, and distinguishes the base
+request count from the three-attempt request ceiling. Per-model distribution
+summaries remain a separate methodology slice.
 
 ## Local contract test
 
@@ -109,8 +124,8 @@ A real run uses the environment-scoped OpenRouter credential. The repository wor
 and diagnostic; it is not a pull-request check or a release
 gate. The `skills-evals` GitHub environment supplies the credential but does
 not gate the job on reviewer approval or a branch restriction. Spend is
-governed by the OpenRouter account budget. The workflow allows 140 minutes for
-the 60 bounded requests in the default matrix, keeps per-request timeouts,
+governed by the OpenRouter account budget. The workflow allows 350 minutes for
+the default matrix's bounded ceiling of 180 requests, keeps per-request timeouts,
 serializes live runs, and retains only normalized artifacts for 30
 days; it does not cap the target list or fail a run because a provider omits a
 cost field.
@@ -168,18 +183,20 @@ findings are bounded response-level checks from the rubric; the judge emits an
 integer score from `0` through `100` plus at most three short evidence strings.
 Malformed judge JSON, invalid scores, secret-bearing evidence, missing candidate
 responses, and provider failures are typed as not-scored infrastructure results.
-The runner does not retry, follow up, resume a session, or silently substitute a
-model. Common codes include credential_missing, credentials_rejected,
+The runner retries only the transient allowlist described above; it does not
+follow up conversationally, resume a session, or silently substitute a model.
+Common codes include credential_missing, credentials_rejected,
 model_unavailable, request_parameters_unsupported,
 provider_endpoint_unavailable, provider_rate_limited, provider_error,
 request_timeout, provider_transport_error,
 response_malformed, response_truncated, judge_response_malformed,
-judge_score_invalid, and judge_redaction_failure. A candidate response whose
-`finish_reason` is `length` is typed `response_truncated` rather than scored:
-grading a response that was cut off before it finished would conflate the
-skill's effect with running out of the token budget, so the runner excludes it
-from judging and from `paired_lift` instead of feeding a partial answer to the
-blind judge. `request_parameters_unsupported` is distinct from
+judge_response_truncated, judge_score_invalid, and judge_redaction_failure. A
+candidate response whose `finish_reason` is `length` is typed
+`response_truncated` and excluded from judging and `paired_lift`. A judge
+response with the same finish reason is typed `judge_response_truncated` and
+excluded from `paired_lift`. Scoring either incomplete response would conflate
+the skill's effect with running out of the token budget.
+`request_parameters_unsupported` is distinct from
 `model_unavailable`: it means the provider response indicates that no endpoint
 supports all recorded request parameters, which can happen when
 `provider.require_parameters` is true even though the model identifier exists.

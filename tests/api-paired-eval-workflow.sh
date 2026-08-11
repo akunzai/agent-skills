@@ -29,8 +29,8 @@ fi
 grep -q 'concurrency:' "$WORKFLOW" || fail "workflow must serialize live evaluation runs"
 grep -q 'cancel-in-progress: false' "$WORKFLOW" \
   || fail "workflow must not cancel a live paid evaluation"
-grep -q 'timeout-minutes: 150' "$WORKFLOW" \
-  || fail "workflow timeout must accommodate the default replicate matrix"
+grep -q 'timeout-minutes: 360' "$WORKFLOW" \
+  || fail "workflow timeout must accommodate the bounded retry matrix"
 
 grep -q '^      target_models:' "$WORKFLOW" || fail "workflow must expose target_models"
 grep -q "default: openai/gpt-5.6-luna,x-ai/grok-4.5,google/gemini-3.6-flash" \
@@ -48,6 +48,11 @@ grep -q -- '--replicate-count "$REPLICATE_COUNT"' "$WORKFLOW" \
   || fail "workflow must snapshot replicate_count in the profile"
 grep -q 'target_count \* replicate_count \* 4' "$WORKFLOW" \
   || fail "workflow request accounting must include every replicate"
+grep -q 'max_attempts=3' "$WORKFLOW" \
+  || fail "workflow must record the fixed retry ceiling"
+# shellcheck disable=SC2016
+grep -q 'request_ceiling_count=$((request_count \* max_attempts))' "$WORKFLOW" \
+  || fail "workflow must account for the bounded retry ceiling"
 if grep -qE '^      max_budget_usd:|MAX_BUDGET_USD|Enforce reported cost budget|budget-failure|budget_exceeded|cost_unreported|cost_invalid|cost_unavailable' "$WORKFLOW"; then
   fail "workflow must delegate spend enforcement to the OpenRouter account budget"
 fi
@@ -66,8 +71,8 @@ grep -q 'evals/fixtures/api/agents-md/representative-task' "$WORKFLOW" \
   || fail "workflow must use the checked-in API fixture"
 grep -q 'evals/run-api-paired.sh' "$WORKFLOW" \
   || fail "workflow must invoke the repository-owned paired runner"
-grep -q 'timeout --signal=TERM --kill-after=30s 140m' "$WORKFLOW" \
-  || fail "runner timeout must accommodate 60 bounded requests"
+grep -q 'timeout --signal=TERM --kill-after=30s 350m' "$WORKFLOW" \
+  || fail "runner timeout must accommodate the bounded retry matrix"
 grep -q 'code: "request_timeout"' "$WORKFLOW" \
   || fail "workflow timeout must emit a typed request_timeout artifact"
 grep -q 'Summarize API evaluation' "$WORKFLOW" \
