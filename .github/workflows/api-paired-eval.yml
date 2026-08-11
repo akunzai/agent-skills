@@ -13,6 +13,11 @@ on:
         required: true
         default: anthropic/claude-sonnet-5
         type: string
+      replicate_count:
+        description: Independent treatment/control pairs per target (minimum 5)
+        required: true
+        default: '5'
+        type: string
       judge_max_tokens:
         description: Judge output token budget (score + evidence, plus any reasoning tokens)
         required: true
@@ -28,13 +33,14 @@ concurrency:
 jobs:
   evaluate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 150
     environment: skills-evals
     env:
       TARGET_MODELS: ${{ inputs.target_models }}
       JUDGE_MODEL: ${{ inputs.judge_model }}
+      REPLICATE_COUNT: ${{ inputs.replicate_count }}
       JUDGE_MAX_TOKENS: ${{ inputs.judge_max_tokens }}
-      MAX_ARTIFACT_BYTES: '65536'
+      MAX_ARTIFACT_BYTES: '262144'
 
     steps:
       - name: Checkout code
@@ -46,10 +52,20 @@ jobs:
           artifact_dir="$RUNNER_TEMP/api-paired-artifacts"
           profile_path="$artifact_dir/profile.json"
           mkdir -p "$artifact_dir"
+          if ! [[ "$REPLICATE_COUNT" =~ ^[1-9][0-9]*$ ]]; then
+            echo "replicate_count must be a positive integer" >&2
+            exit 2
+          fi
+          replicate_count="$REPLICATE_COUNT"
+          if (( replicate_count < 5 )); then
+            echo "manual evaluation requires at least 5 replicates" >&2
+            exit 2
+          fi
           bash tests/api-fixtures.sh
           evals/api-evaluation-profile.sh \
             --target-models "$TARGET_MODELS" \
             --judge-model "$JUDGE_MODEL" \
+            --replicate-count "$REPLICATE_COUNT" \
             --output "$profile_path"
           jq -e '
             .status == "valid"
@@ -58,6 +74,7 @@ jobs:
             and .request.timeout_seconds == 120
             and .request.max_tokens == 4096
             and .request.stream == false
+            and .replicate_count >= 5
             and .provider_routing.allow_fallbacks == false
           ' "$profile_path" >/dev/null
 
@@ -67,12 +84,14 @@ jobs:
           artifact_dir="$RUNNER_TEMP/api-paired-artifacts"
           profile_path="$artifact_dir/profile.json"
           target_count="$(jq -r '.target_models | length' "$profile_path")"
-          request_count=$((target_count * 4))
+          replicate_count="$(jq -r '.replicate_count' "$profile_path")"
+          request_count=$((target_count * replicate_count * 4))
           jq -n \
             --arg policy "api-paired-manual-v3" \
             --arg budget_policy "openrouter_account" \
             --arg judge_max_tokens "$JUDGE_MAX_TOKENS" \
             --argjson target_count "$target_count" \
+            --argjson replicate_count "$replicate_count" \
             --argjson request_count "$request_count" \
             --argjson max_artifact_bytes "$MAX_ARTIFACT_BYTES" \
             ' {
@@ -80,6 +99,7 @@ jobs:
               policy: $policy,
               budget_enforcement: $budget_policy,
               target_count: $target_count,
+              replicate_count: $replicate_count,
               request_count: $request_count,
               request: {
                 max_turns: 1,
@@ -105,7 +125,7 @@ jobs:
           artifact_dir="$RUNNER_TEMP/api-paired-artifacts"
           profile_path="$artifact_dir/profile.json"
           set +e
-          timeout --signal=TERM --kill-after=30s 25m \
+          timeout --signal=TERM --kill-after=30s 140m \
             evals/run-api-paired.sh \
               --profile "$profile_path" \
               --task-file evals/fixtures/api/agents-md/representative-task/task.txt \

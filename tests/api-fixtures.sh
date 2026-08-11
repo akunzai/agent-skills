@@ -226,7 +226,7 @@ for manifest in "${manifests[@]}"; do
     and (.artifact_policy.max_field_bytes | type == "number" and . > 0)
     and (.artifact_policy.max_artifact_bytes | type == "number" and . > 0)
     and (.artifact_policy.max_field_bytes <= 4096)
-    and (.artifact_policy.max_artifact_bytes <= 65536)
+    and (.artifact_policy.max_artifact_bytes <= 262144)
     and (.artifact_policy.allowed_fields - .artifact_policy.forbidden_fields
       == .artifact_policy.allowed_fields)
     and ([.artifact_policy.allowed_fields[]

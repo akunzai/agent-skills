@@ -409,6 +409,7 @@ printf '%s\n' 'SKILL-CONTEXT: audit project instructions without inventing state
 "$PROFILE" \
   --target-models 'openai/test-one,google/test-two' \
   --judge-model 'anthropic/test-judge' \
+  --replicate-count 1 \
   --output "$PROFILE_FILE"
 
 set +e
@@ -594,6 +595,40 @@ jq -e '
   || fail "overlapping judge profile must emit a typed configuration failure"
 [ ! -s "$OVERLAPPING_LOG" ] || fail "an overlapping judge must not call the provider"
 
+INVALID_REPLICATE_PROFILE="$TEMP_DIR/invalid-replicate-profile.json"
+jq '.replicate_count = 0' "$PROFILE_FILE" >"$INVALID_REPLICATE_PROFILE"
+INVALID_REPLICATE_ARTIFACT="$TEMP_DIR/invalid-replicate-artifacts"
+INVALID_REPLICATE_LOG="$TEMP_DIR/invalid-replicate-requests.ndjson"
+set +e
+OPENROUTER_API_KEY='test-api-key' \
+  CURL_BIN="$FAKE_CURL" \
+  MOCK_CURL_MODE='success' \
+  REQUEST_LOG="$INVALID_REPLICATE_LOG" \
+  "$RUNNER" \
+  --profile "$INVALID_REPLICATE_PROFILE" \
+  --task-file "$TASK_FILE" \
+  --task-revision agents-md-task-v1 \
+  --skill-file "$SKILL_FILE" \
+  --skill-revision agents-md-skill-v1 \
+  --fixture-revision fixture-v1 \
+  --rubric-file "$RUBRIC_FILE" \
+  --rubric-revision agents-md-micromanagement-v1 \
+  --artifact-dir "$INVALID_REPLICATE_ARTIFACT" \
+  >"$TEMP_DIR/invalid-replicate.stdout" \
+  2>"$TEMP_DIR/invalid-replicate.stderr"
+invalid_replicate_exit=$?
+set -e
+[ "$invalid_replicate_exit" -eq 2 ] \
+  || fail "runner must reject a profile with replicate_count below 1"
+jq -e '
+  .status == "failed"
+  and .error.category == "configuration"
+  and .error.code == "profile_invalid"
+' "$INVALID_REPLICATE_ARTIFACT/results.json" >/dev/null \
+  || fail "invalid replicate_count must emit a typed configuration failure"
+[ ! -s "$INVALID_REPLICATE_LOG" ] \
+  || fail "invalid replicate_count must not call the provider"
+
 PROFILE_WITH_EXTRAS="$TEMP_DIR/profile-with-extras.json"
 jq '
   .request += {untrusted_metadata: "profile-only-secret"}
@@ -641,7 +676,63 @@ FAIL_PROFILE="$TEMP_DIR/failure-profile.json"
 "$PROFILE" \
   --target-models 'openai/failure-target' \
   --judge-model 'anthropic/failure-judge' \
+  --replicate-count 1 \
   --output "$FAIL_PROFILE"
+
+run_fully_paired_replicates_case() {
+  local profile_file="$TEMP_DIR/replicates-profile.json"
+  local artifact_dir="$TEMP_DIR/replicates-artifacts"
+  local request_log="$TEMP_DIR/replicates-requests.ndjson"
+  local results_file="$artifact_dir/results.json"
+  local exit_code
+
+  "$PROFILE" \
+    --target-models 'openai/replicate-one,x-ai/replicate-two,google/replicate-three' \
+    --judge-model 'anthropic/replicate-judge' \
+    --output "$profile_file"
+  : >"$request_log"
+
+  set +e
+  OPENROUTER_API_KEY='test-api-key' \
+    CURL_BIN="$FAKE_CURL" \
+    MOCK_CURL_MODE='success' \
+    MOCK_JUDGE_MODE='success' \
+    REQUEST_LOG="$request_log" \
+    "$RUNNER" \
+    --profile "$profile_file" \
+    --task-file "$TASK_FILE" \
+    --task-revision agents-md-task-v1 \
+    --skill-file "$SKILL_FILE" \
+    --skill-revision agents-md-skill-v1 \
+    --skill-name agents-md \
+    --fixture-revision fixture-v1 \
+    --rubric-file "$RUBRIC_FILE" \
+    --rubric-revision agents-md-micromanagement-v1 \
+    --artifact-dir "$artifact_dir" \
+    >"$TEMP_DIR/replicates.stdout" \
+    2>"$TEMP_DIR/replicates.stderr"
+  exit_code=$?
+  set -e
+
+  if [ "$exit_code" -ne 0 ]; then
+    sed -n '1,20p' "$TEMP_DIR/replicates.stderr" >&2
+    jq -r '.error.code // "paired_results_unavailable"' "$results_file" >&2
+    fail "fully paired replicate run must exit zero"
+  fi
+  jq -e '
+    .replicate_count == 5
+    and (.pairs | length == 15)
+    and ([.pairs[].replicate_index] == [1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5])
+    and ([.pairs[].target_model] | unique | length == 3)
+    and ([.pairs[].treatment.condition] | all(. == "treatment"))
+    and ([.pairs[].control.condition] | all(. == "control"))
+  ' "$results_file" >/dev/null \
+    || fail "results must represent every fully paired replicate"
+  [ "$(wc -l <"$request_log" | tr -d ' ')" -eq 60 ] \
+    || fail "the default matrix must issue independent requests for every pair"
+  [ "$(grep -c 'phase=treatment status=response_received replicate=' "$TEMP_DIR/replicates.stdout")" -eq 15 ] \
+    || fail "completed request progress must identify every replicate"
+}
 
 run_provider_failure_case() {
   local case_name="$1"
@@ -1077,6 +1168,7 @@ run_finding_then_heading_case() {
     || fail "a finding block must stop at the next markdown heading instead of absorbing trailing prose"
 }
 
+run_fully_paired_replicates_case
 run_multiline_grounded_findings_case
 run_truncated_response_case
 run_finding_then_heading_case

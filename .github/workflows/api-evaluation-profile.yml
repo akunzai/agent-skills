@@ -13,6 +13,11 @@ on:
         required: true
         default: anthropic/claude-sonnet-5
         type: string
+      replicate_count:
+        description: Independent treatment/control pairs per target
+        required: true
+        default: 5
+        type: number
   workflow_call:
     inputs:
       target_models:
@@ -25,6 +30,11 @@ on:
         required: false
         default: anthropic/claude-sonnet-5
         type: string
+      replicate_count:
+        description: Independent treatment/control pairs per target
+        required: false
+        default: 5
+        type: number
 
 permissions:
   contents: read
@@ -40,10 +50,16 @@ jobs:
         env:
           TARGET_MODELS: ${{ inputs.target_models }}
           JUDGE_MODEL: ${{ inputs.judge_model }}
+          REPLICATE_COUNT: ${{ inputs.replicate_count }}
         run: |
           profile_path="$RUNNER_TEMP/api-evaluation-profile.json"
           evals/api-evaluation-profile.sh \
             --target-models "$TARGET_MODELS" \
             --judge-model "$JUDGE_MODEL" \
+            --replicate-count "$REPLICATE_COUNT" \
             --output "$profile_path"
-          jq -e '.status == "valid" and .result_type == "profile"' "$profile_path" >/dev/null
+          jq -e '
+            .status == "valid"
+            and .result_type == "profile"
+            and .replicate_count >= 1
+          ' "$profile_path" >/dev/null

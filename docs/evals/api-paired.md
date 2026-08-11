@@ -1,12 +1,12 @@
 # API Paired Runner
 
 evals/run-api-paired.sh is the repository-owned one-turn adapter for the
-OpenRouter API evaluation lane. It consumes the validated profile from #84 and
-emits one matched treatment/control pair for every target model and scores each
-candidate with one fixed blind judge model.
+OpenRouter API evaluation lane. It consumes the validated profile and emits the
+configured number of independently sampled, matched treatment/control pairs for
+every target model. Each candidate is scored by one fixed blind judge model.
 
-For each target, the runner sends up to four non-streaming
-POST /chat/completions requests:
+For each target replicate, the runner sends up to four non-streaming
+`POST /chat/completions` requests:
 
 - treatment receives the task plus one selected skill in a controlled
   SKILL-CONTEXT message.
@@ -15,12 +15,15 @@ POST /chat/completions requests:
 - the fixed judge receives the task, rubric, and one candidate response at a
   time, without target model identity, condition labels, or the other response.
 
-The target model, fixed independent judge model, OpenRouter provider routing, fixture
+Treatment and control are both resampled for every replicate; no control
+response is reused. The target model, one-based replicate index, fixed
+independent judge model, OpenRouter provider routing, fixture
 revisions, hashes, request metadata, timing, and permitted usage/cost fields
 are recorded on each pair. Candidate content and raw judge output are never
 written to the durable artifact. The runner computes a treatment-minus-control
-lift independently for each target and emits no tiers, groups, rankings, or
-aggregate score.
+lift independently for each pair and emits no tiers, groups, rankings, or
+aggregate score. Distribution reporting is handled by a later methodology
+slice; this contract preserves every individual paired sample needed by it.
 Judge requests use OpenRouter's strict `response_format.type=json_schema` with
 the required `score` and `evidence` fields. The local parser still enforces the
 score range and evidence length/count bounds because structured-output
@@ -67,12 +70,12 @@ still evaluates one-turn response behavior only; native tool-call, transcript,
 filesystem, worktree, and interactive-driver checks belong to a separate future
 lane.
 
-For a later replicate/methodology slice, candidate safeguards include a frozen
-no-skill control, fixed provider/model/fixture inputs, pre-registered replicate
-and decision rules, blind condition-label rotation, manual review of automated
-flags, and an explicit rerun rule for infrastructure-indeterminate cells. These
-are future methodology inputs, not new requirements for this MVP's one request
-per condition contract.
+The profile defaults to `5` fully paired replicates per target. Its lower-level
+CLI accepts any positive count so credential-free contract tests can use a
+smaller sample. The manual model-backed workflow enforces at least `5`, records
+the count in its run policy, and accounts for four possible provider requests
+per pair. Infrastructure retries and per-model distribution summaries remain
+separate methodology slices.
 
 ## Local contract test
 
@@ -106,8 +109,9 @@ A real run uses the environment-scoped OpenRouter credential. The repository wor
 and diagnostic; it is not a pull-request check or a release
 gate. The `skills-evals` GitHub environment supplies the credential but does
 not gate the job on reviewer approval or a branch restriction. Spend is
-governed by the OpenRouter account budget. The workflow keeps job and request
-timeouts, serializes live runs, and retains only normalized artifacts for 30
+governed by the OpenRouter account budget. The workflow allows 140 minutes for
+the 60 bounded requests in the default matrix, keeps per-request timeouts,
+serializes live runs, and retains only normalized artifacts for 30
 days; it does not cap the target list or fail a run because a provider omits a
 cost field.
 
@@ -127,6 +131,7 @@ inputs before the credentialed step. Its live command is equivalent to:
     evals/api-evaluation-profile.sh \
       --target-models 'openai/eval-target,x-ai/eval-target' \
       --judge-model 'anthropic/eval-judge' \
+      --replicate-count 5 \
       --output "$RUNNER_TEMP/api-profile.json"
 
     export OPENROUTER_API_KEY
@@ -152,6 +157,10 @@ the manual workflow's run-policy metadata). The manual workflow exposes
 defaulting to `4096`. Raising it does not change what the judge is asked to
 produce, only how much budget it has to produce it in before the request is
 cut off mid-response.
+
+The manual workflow also exposes `replicate_count`, defaults it to `5`, and
+rejects values below `5`. Each replicate produces a fresh treatment request and
+a fresh control request; the resulting pair records `replicate_index`.
 
 The profile must use a judge identifier that is not present in the target sweep.
 The runner requires the pinned rubric and revision metadata. Deterministic

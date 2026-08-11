@@ -21,6 +21,7 @@ The profile uses one fixed OpenRouter route and these model selections:
 | --- | --- |
 | `target_models` | `openai/gpt-5.6-luna`, `x-ai/grok-4.5`, `google/gemini-3.6-flash` |
 | `judge_model` | `anthropic/claude-sonnet-5` |
+| `replicate_count` | `5` fully paired treatment/control samples per target |
 
 Candidate and blind judge requests are one-turn, non-streaming
 `POST /chat/completions` requests with `temperature` omitted. Candidates use
@@ -40,6 +41,10 @@ scoring. Provider fallbacks are disabled, and the route is recorded as
 entire default list. It never appends to the defaults. `--judge-model` accepts
 exactly one model and replaces the default judge; the resulting judge metadata
 states that it applies uniformly to every target in the run.
+`--replicate-count` accepts a positive integer and replaces the default of `5`.
+Values below `1` are rejected with a typed configuration error. The manual
+model-backed workflow separately enforces at least `5` replicates per target;
+smaller counts are available for credential-free contract tests and diagnostics.
 The judge identifier must not appear in `target_models`; the profile rejects
 that overlap so the judge remains independent of the target sweep.
 
@@ -47,6 +52,7 @@ that overlap so the judge remains independent of the target sweep.
 evals/api-evaluation-profile.sh \
   --target-models 'openai/eval-target,x-ai/eval-target' \
   --judge-model 'anthropic/eval-judge' \
+  --replicate-count 5 \
   --output "$RUNNER_TEMP/api-profile.json"
 ```
 

@@ -24,6 +24,7 @@ PROFILE_NAME=""
 TARGET_MODELS_JSON=""
 TARGET_MODELS=()
 JUDGE_MODEL=""
+REPLICATE_COUNT=""
 REQUEST_JSON=""
 ROUTING_JSON=""
 ROUTING_BASE_URL=""
@@ -118,7 +119,9 @@ report_result() {
   local target_count="$2"
   local model="$3"
   local phase="$4"
-  local result="$5"
+  local replicate_index="$5"
+  local replicate_count="$6"
+  local result="$7"
   local status
   local http_status
   local error_code
@@ -146,6 +149,7 @@ report_result() {
     "model=$model" \
     "phase=$phase" \
     "status=$status" \
+    "replicate=$replicate_index/$replicate_count" \
     "http=$http_status" \
     "error=$error_code" \
     "provider_error_type=$provider_error_type" \
@@ -1341,7 +1345,7 @@ if ! jq -e \
     "the rubric must be a fixed bounded response-level contract."
 fi
 
-MAX_ARTIFACT_BYTES=65536
+MAX_ARTIFACT_BYTES=262144
 
 if ! jq -e '
   . as $profile
@@ -1351,6 +1355,7 @@ if ! jq -e '
   and .result_type == "profile"
   and (.target_models | type == "array" and length > 0 and all(.[]; type == "string" and length > 0))
   and (.judge_model | type == "string" and length > 0)
+  and (.replicate_count | type == "number" and floor == . and . >= 1)
   and (any($profile.target_models[]; . == $profile.judge_model) | not)
   and .provider_routing.provider == "openrouter"
   and .provider_routing.gateway == "openrouter-chat-completions"
@@ -1377,6 +1382,7 @@ PROFILE_NAME="$(jq -r '.profile' "$PROFILE_PATH")"
 TARGET_MODELS_JSON="$(jq -c '.target_models' "$PROFILE_PATH")"
 mapfile -t TARGET_MODELS < <(jq -r '.target_models[]' "$PROFILE_PATH")
 JUDGE_MODEL="$(jq -r '.judge_model' "$PROFILE_PATH")"
+REPLICATE_COUNT="$(jq -r '.replicate_count' "$PROFILE_PATH")"
 REQUEST_JSON="$(jq -c '{
   method: .request.method,
   endpoint: .request.endpoint,
@@ -1451,12 +1457,15 @@ fi
 PAIRS_NDJSON="$TEMP_DIR/pairs.ndjson"
 OVERALL_FAILURE="false"
 TARGET_COUNT="${#TARGET_MODELS[@]}"
-TOTAL_REQUEST_COUNT=$((TARGET_COUNT * 4))
+TOTAL_PAIR_COUNT=$((TARGET_COUNT * REPLICATE_COUNT))
+TOTAL_REQUEST_COUNT=$((TOTAL_PAIR_COUNT * 4))
 COMPLETED_PAIR_COUNT=0
 FAILED_PAIR_COUNT=0
 
 progress \
   "run_started targets=$TARGET_COUNT" \
+  "replicates=$REPLICATE_COUNT" \
+  "pairs=$TOTAL_PAIR_COUNT" \
   "requests=$TOTAL_REQUEST_COUNT" \
   "judge=$JUDGE_MODEL" \
   "timeout=${REQUEST_TIMEOUT_SECONDS}s"
@@ -1470,196 +1479,210 @@ for model in "${TARGET_MODELS[@]}"; do
     "phase=target" \
     "status=running"
 
-  progress \
-    "target=$target_index/$TARGET_COUNT" \
-    "model=$model" \
-    "phase=treatment" \
-    "status=running" \
-    "request=$((REQUEST_INDEX + 1))/$TOTAL_REQUEST_COUNT"
-  process_condition "$model" "treatment"
-  treatment_result="$CONDITION_RESULT"
-  treatment_failed="$CONDITION_FAILED"
-  treatment_response_text="$CONDITION_RESPONSE_TEXT"
-  treatment_response_available="$CONDITION_RESPONSE_AVAILABLE"
-  report_result "$target_index" "$TARGET_COUNT" "$model" "treatment" "$treatment_result"
-  if [ "$treatment_response_available" = "true" ]; then
-    treatment_deterministic="$(evaluate_deterministic "$treatment_response_text")"
-  else
-    treatment_deterministic="$(jq -n '{
-      status: "not_run",
-      checks: [],
-      error: {
-        type: "infrastructure",
-        category: "response",
-        code: "candidate_response_unavailable",
-        message: "Deterministic checks could not inspect the candidate response."
-      }
-    }')"
-  fi
-
-  progress \
-    "target=$target_index/$TARGET_COUNT" \
-    "model=$model" \
-    "phase=control" \
-    "status=running" \
-    "request=$((REQUEST_INDEX + 1))/$TOTAL_REQUEST_COUNT"
-  process_condition "$model" "control"
-  control_result="$CONDITION_RESULT"
-  control_failed="$CONDITION_FAILED"
-  control_response_text="$CONDITION_RESPONSE_TEXT"
-  control_response_available="$CONDITION_RESPONSE_AVAILABLE"
-  report_result "$target_index" "$TARGET_COUNT" "$model" "control" "$control_result"
-  if [ "$control_response_available" = "true" ]; then
-    control_deterministic="$(evaluate_deterministic "$control_response_text")"
-  else
-    control_deterministic="$(jq -n '{
-      status: "not_run",
-      checks: [],
-      error: {
-        type: "infrastructure",
-        category: "response",
-        code: "candidate_response_unavailable",
-        message: "Deterministic checks could not inspect the candidate response."
-      }
-    }')"
-  fi
-
-  if [ "$treatment_response_available" = "true" ]; then
+  for ((replicate_index = 1; replicate_index <= REPLICATE_COUNT; replicate_index++)); do
     progress \
       "target=$target_index/$TARGET_COUNT" \
       "model=$model" \
-      "phase=treatment-judge" \
+      "phase=treatment" \
       "status=running" \
+      "replicate=$replicate_index/$REPLICATE_COUNT" \
       "request=$((REQUEST_INDEX + 1))/$TOTAL_REQUEST_COUNT"
-  else
-    progress \
-      "target=$target_index/$TARGET_COUNT" \
-      "model=$model" \
-      "phase=treatment-judge" \
-      "status=skipped" \
-      "reason=candidate_response_unavailable"
-  fi
-  judge_candidate "$treatment_response_text" "$treatment_response_available"
-  treatment_judge="$JUDGE_RESULT"
-  treatment_judge_failed="$JUDGE_FAILED"
-  treatment_score="$JUDGE_SCORE"
-  report_result "$target_index" "$TARGET_COUNT" "$model" "treatment-judge" "$treatment_judge"
+    process_condition "$model" "treatment"
+    treatment_result="$CONDITION_RESULT"
+    treatment_failed="$CONDITION_FAILED"
+    treatment_response_text="$CONDITION_RESPONSE_TEXT"
+    treatment_response_available="$CONDITION_RESPONSE_AVAILABLE"
+    report_result "$target_index" "$TARGET_COUNT" "$model" "treatment" \
+      "$replicate_index" "$REPLICATE_COUNT" "$treatment_result"
+    if [ "$treatment_response_available" = "true" ]; then
+      treatment_deterministic="$(evaluate_deterministic "$treatment_response_text")"
+    else
+      treatment_deterministic="$(jq -n '{
+        status: "not_run",
+        checks: [],
+        error: {
+          type: "infrastructure",
+          category: "response",
+          code: "candidate_response_unavailable",
+          message: "Deterministic checks could not inspect the candidate response."
+        }
+      }')"
+    fi
 
-  if [ "$control_response_available" = "true" ]; then
     progress \
       "target=$target_index/$TARGET_COUNT" \
       "model=$model" \
-      "phase=control-judge" \
+      "phase=control" \
       "status=running" \
+      "replicate=$replicate_index/$REPLICATE_COUNT" \
       "request=$((REQUEST_INDEX + 1))/$TOTAL_REQUEST_COUNT"
-  else
+    process_condition "$model" "control"
+    control_result="$CONDITION_RESULT"
+    control_failed="$CONDITION_FAILED"
+    control_response_text="$CONDITION_RESPONSE_TEXT"
+    control_response_available="$CONDITION_RESPONSE_AVAILABLE"
+    report_result "$target_index" "$TARGET_COUNT" "$model" "control" \
+      "$replicate_index" "$REPLICATE_COUNT" "$control_result"
+    if [ "$control_response_available" = "true" ]; then
+      control_deterministic="$(evaluate_deterministic "$control_response_text")"
+    else
+      control_deterministic="$(jq -n '{
+        status: "not_run",
+        checks: [],
+        error: {
+          type: "infrastructure",
+          category: "response",
+          code: "candidate_response_unavailable",
+          message: "Deterministic checks could not inspect the candidate response."
+        }
+      }')"
+    fi
+
+    if [ "$treatment_response_available" = "true" ]; then
+      progress \
+        "target=$target_index/$TARGET_COUNT" \
+        "model=$model" \
+        "phase=treatment-judge" \
+        "status=running" \
+        "replicate=$replicate_index/$REPLICATE_COUNT" \
+        "request=$((REQUEST_INDEX + 1))/$TOTAL_REQUEST_COUNT"
+    else
+      progress \
+        "target=$target_index/$TARGET_COUNT" \
+        "model=$model" \
+        "phase=treatment-judge" \
+        "status=skipped" \
+        "replicate=$replicate_index/$REPLICATE_COUNT" \
+        "reason=candidate_response_unavailable"
+    fi
+    judge_candidate "$treatment_response_text" "$treatment_response_available"
+    treatment_judge="$JUDGE_RESULT"
+    treatment_judge_failed="$JUDGE_FAILED"
+    treatment_score="$JUDGE_SCORE"
+    report_result "$target_index" "$TARGET_COUNT" "$model" "treatment-judge" \
+      "$replicate_index" "$REPLICATE_COUNT" "$treatment_judge"
+
+    if [ "$control_response_available" = "true" ]; then
+      progress \
+        "target=$target_index/$TARGET_COUNT" \
+        "model=$model" \
+        "phase=control-judge" \
+        "status=running" \
+        "replicate=$replicate_index/$REPLICATE_COUNT" \
+        "request=$((REQUEST_INDEX + 1))/$TOTAL_REQUEST_COUNT"
+    else
+      progress \
+        "target=$target_index/$TARGET_COUNT" \
+        "model=$model" \
+        "phase=control-judge" \
+        "status=skipped" \
+        "replicate=$replicate_index/$REPLICATE_COUNT" \
+        "reason=candidate_response_unavailable"
+    fi
+    judge_candidate "$control_response_text" "$control_response_available"
+    control_judge="$JUDGE_RESULT"
+    control_judge_failed="$JUDGE_FAILED"
+    control_score="$JUDGE_SCORE"
+    report_result "$target_index" "$TARGET_COUNT" "$model" "control-judge" \
+      "$replicate_index" "$REPLICATE_COUNT" "$control_judge"
+
+    treatment_result="$(jq -n \
+      --argjson candidate "$treatment_result" \
+      --argjson deterministic "$treatment_deterministic" \
+      --argjson judge "$treatment_judge" \
+      '$candidate + {deterministic: $deterministic, judge: $judge}')"
+    control_result="$(jq -n \
+      --argjson candidate "$control_result" \
+      --argjson deterministic "$control_deterministic" \
+      --argjson judge "$control_judge" \
+      '$candidate + {deterministic: $deterministic, judge: $judge}')"
+
+    pair_status="completed"
+    if [ "$treatment_failed" = "true" ] || [ "$control_failed" = "true" ] \
+      || [ "$treatment_judge_failed" = "true" ] \
+      || [ "$control_judge_failed" = "true" ]; then
+      pair_status="failed"
+      OVERALL_FAILURE="true"
+      FAILED_PAIR_COUNT=$((FAILED_PAIR_COUNT + 1))
+    else
+      COMPLETED_PAIR_COUNT=$((COMPLETED_PAIR_COUNT + 1))
+    fi
+
+    pair_outcome="scored"
+    if [ "$pair_status" != "completed" ]; then
+      pair_outcome="not-scored"
+    fi
+
+    if [ "$treatment_judge_failed" = "true" ] \
+      || [ "$control_judge_failed" = "true" ] \
+      || [ -z "$treatment_score" ] || [ -z "$control_score" ]; then
+      paired_lift="$(jq -n '{
+        status: "not-scored",
+        treatment_score: null,
+        control_score: null,
+        treatment_minus_control: null
+      }')"
+    else
+      paired_lift="$(jq -n \
+        --argjson treatment_score "$treatment_score" \
+        --argjson control_score "$control_score" \
+        '{
+          status: "scored",
+          score_scale: {min: 0, max: 100},
+          treatment_score: $treatment_score,
+          control_score: $control_score,
+          treatment_minus_control: ($treatment_score - $control_score)
+        }')"
+    fi
+
     progress \
       "target=$target_index/$TARGET_COUNT" \
       "model=$model" \
-      "phase=control-judge" \
-      "status=skipped" \
-      "reason=candidate_response_unavailable"
-  fi
-  judge_candidate "$control_response_text" "$control_response_available"
-  control_judge="$JUDGE_RESULT"
-  control_judge_failed="$JUDGE_FAILED"
-  control_score="$JUDGE_SCORE"
-  report_result "$target_index" "$TARGET_COUNT" "$model" "control-judge" "$control_judge"
+      "phase=pair" \
+      "status=$pair_status" \
+      "replicate=$replicate_index/$REPLICATE_COUNT" \
+      "outcome=$pair_outcome"
 
-  treatment_result="$(jq -n \
-    --argjson candidate "$treatment_result" \
-    --argjson deterministic "$treatment_deterministic" \
-    --argjson judge "$treatment_judge" \
-    '$candidate + {deterministic: $deterministic, judge: $judge}')"
-  control_result="$(jq -n \
-    --argjson candidate "$control_result" \
-    --argjson deterministic "$control_deterministic" \
-    --argjson judge "$control_judge" \
-    '$candidate + {deterministic: $deterministic, judge: $judge}')"
-
-  pair_status="completed"
-  if [ "$treatment_failed" = "true" ] || [ "$control_failed" = "true" ] \
-    || [ "$treatment_judge_failed" = "true" ] \
-    || [ "$control_judge_failed" = "true" ]; then
-    pair_status="failed"
-    OVERALL_FAILURE="true"
-    FAILED_PAIR_COUNT=$((FAILED_PAIR_COUNT + 1))
-  else
-    COMPLETED_PAIR_COUNT=$((COMPLETED_PAIR_COUNT + 1))
-  fi
-
-  pair_outcome="scored"
-  if [ "$pair_status" != "completed" ]; then
-    pair_outcome="not-scored"
-  fi
-
-  if [ "$treatment_judge_failed" = "true" ] \
-    || [ "$control_judge_failed" = "true" ] \
-    || [ -z "$treatment_score" ] || [ -z "$control_score" ]; then
-    paired_lift="$(jq -n '{
-      status: "not-scored",
-      treatment_score: null,
-      control_score: null,
-      treatment_minus_control: null
-    }')"
-  else
-    paired_lift="$(jq -n \
-      --argjson treatment_score "$treatment_score" \
-      --argjson control_score "$control_score" \
+    jq -n \
+      --arg model "$model" \
+      --arg fixture_revision "$FIXTURE_REVISION" \
+      --arg task_revision "$TASK_REVISION" \
+      --arg skill_revision "$SKILL_REVISION" \
+      --arg rubric_revision "$RUBRIC_REVISION" \
+      --arg skill_name "$SKILL_NAME" \
+      --arg task_hash "$TASK_HASH" \
+      --arg skill_hash "$SKILL_HASH" \
+      --arg rubric_hash "$RUBRIC_HASH" \
+      --arg pair_status "$pair_status" \
+      --arg pair_outcome "$pair_outcome" \
+      --argjson replicate_index "$replicate_index" \
+      --argjson request "$REQUEST_JSON" \
+      --argjson routing "$ROUTING_JSON" \
+      --argjson treatment "$treatment_result" \
+      --argjson control "$control_result" \
+      --argjson paired_lift "$paired_lift" \
       '{
-        status: "scored",
-        score_scale: {min: 0, max: 100},
-        treatment_score: $treatment_score,
-        control_score: $control_score,
-        treatment_minus_control: ($treatment_score - $control_score)
-    }')"
-  fi
-
-  progress \
-    "target=$target_index/$TARGET_COUNT" \
-    "model=$model" \
-    "phase=pair" \
-    "status=$pair_status" \
-    "outcome=$pair_outcome"
-
-  jq -n \
-    --arg model "$model" \
-    --arg fixture_revision "$FIXTURE_REVISION" \
-    --arg task_revision "$TASK_REVISION" \
-    --arg skill_revision "$SKILL_REVISION" \
-    --arg rubric_revision "$RUBRIC_REVISION" \
-    --arg skill_name "$SKILL_NAME" \
-    --arg task_hash "$TASK_HASH" \
-    --arg skill_hash "$SKILL_HASH" \
-    --arg rubric_hash "$RUBRIC_HASH" \
-    --arg pair_status "$pair_status" \
-    --arg pair_outcome "$pair_outcome" \
-    --argjson request "$REQUEST_JSON" \
-    --argjson routing "$ROUTING_JSON" \
-    --argjson treatment "$treatment_result" \
-    --argjson control "$control_result" \
-    --argjson paired_lift "$paired_lift" \
-    '{
-      target_model: $model,
-      fixture_revision: $fixture_revision,
-      task_revision: $task_revision,
-      skill_revision: $skill_revision,
-      rubric_revision: $rubric_revision,
-      skill_name: $skill_name,
-      task_sha256: $task_hash,
-      skill_sha256: $skill_hash,
-      rubric_sha256: $rubric_hash,
-      request: $request,
-      provider_routing: $routing,
-      status: $pair_status,
-      outcome: $pair_outcome,
-      treatment: $treatment,
-      control: $control,
-      paired_lift: $paired_lift
-    }' >>"$PAIRS_NDJSON"
+        target_model: $model,
+        replicate_index: $replicate_index,
+        fixture_revision: $fixture_revision,
+        task_revision: $task_revision,
+        skill_revision: $skill_revision,
+        rubric_revision: $rubric_revision,
+        skill_name: $skill_name,
+        task_sha256: $task_hash,
+        skill_sha256: $skill_hash,
+        rubric_sha256: $rubric_hash,
+        request: $request,
+        provider_routing: $routing,
+        status: $pair_status,
+        outcome: $pair_outcome,
+        treatment: $treatment,
+        control: $control,
+        paired_lift: $paired_lift
+      }' >>"$PAIRS_NDJSON"
+  done
 done
 
-PAIRS_JSON="$(jq -s . "$PAIRS_NDJSON")"
 OVERALL_STATUS="completed"
 if [ "$OVERALL_FAILURE" = "true" ]; then
   OVERALL_STATUS="failed"
@@ -1683,10 +1706,11 @@ jq -n \
   --arg skill_hash "$SKILL_HASH" \
   --arg rubric_hash "$RUBRIC_HASH" \
   --arg judge_model "$JUDGE_MODEL" \
+  --argjson replicate_count "$REPLICATE_COUNT" \
   --argjson target_models "$TARGET_MODELS_JSON" \
   --argjson request "$REQUEST_JSON" \
   --argjson routing "$ROUTING_JSON" \
-  --argjson pairs "$PAIRS_JSON" \
+  --slurpfile pairs "$PAIRS_NDJSON" \
   '{
     schema_version: ($schema_version | tonumber),
     suite: "api-skill-utility",
@@ -1707,6 +1731,7 @@ jq -n \
     },
     target_models: $target_models,
     judge_model: $judge_model,
+    replicate_count: $replicate_count,
     provider_routing: $routing,
     request: $request,
     pairs: $pairs
