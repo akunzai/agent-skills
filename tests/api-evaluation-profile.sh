@@ -50,6 +50,7 @@ jq -e '
     "google/gemini-3.6-flash"
   ]
   and .judge_model == "anthropic/claude-sonnet-5"
+  and .replicate_count == 5
   and .selection.target_models_source == "default"
   and .selection.judge_model_source == "default"
   and .provider_routing.provider == "openrouter"
@@ -80,11 +81,13 @@ OVERRIDE_RESULT="$TEMP_DIR/override.json"
 "$PROFILE" \
   --target-models 'openai/eval-target,google/eval-target' \
   --judge-model 'anthropic/eval-judge' \
+  --replicate-count 2 \
   >"$OVERRIDE_RESULT"
 jq -e '
   .status == "valid"
   and .target_models == ["openai/eval-target", "google/eval-target"]
   and .judge_model == "anthropic/eval-judge"
+  and .replicate_count == 2
   and .selection.target_models_source == "workflow_input"
   and .selection.judge_model_source == "workflow_input"
   and (.target_model_metadata | length == 2)
@@ -141,6 +144,7 @@ expect_invalid floating-target model_unavailable --target-models 'openrouter/aut
 expect_invalid catalog-unavailable model_unavailable \
   --model-catalog "$MODEL_CATALOG" --target-models 'x-ai/not-listed'
 expect_invalid multiple-judges judge_model_count_invalid --judge-model 'anthropic/one,anthropic/two'
+expect_invalid invalid-replicate-count replicate_count_invalid --replicate-count 0
 expect_invalid judge-in-target-sweep judge_model_in_target_sweep \
   --target-models 'openai/one,google/two' --judge-model 'google/two'
 expect_invalid unsupported-provider provider_unsupported --provider direct-xai

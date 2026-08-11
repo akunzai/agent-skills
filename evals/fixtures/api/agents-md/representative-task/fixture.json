@@ -47,6 +47,7 @@
       "profile",
       "target_models",
       "judge_model",
+      "replicate_count",
       "provider_routing",
       "request",
       "pairs",
@@ -61,6 +62,7 @@
       "rubric_sha256",
       "condition",
       "target_model",
+      "replicate_index",
       "requested_model",
       "request_count",
       "request_sha256",
@@ -124,6 +126,6 @@
       "workspace_snapshot"
     ],
     "max_field_bytes": 4096,
-    "max_artifact_bytes": 65536
+    "max_artifact_bytes": 262144
   }
 }

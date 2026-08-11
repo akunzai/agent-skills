@@ -27,12 +27,15 @@ not use slash invocation or harness-specific activation.
 and rubric. Its deterministic check IDs must resolve to checks in the rubric.
 Artifact policy is part of the fixture contract: result fields are allowlisted,
 provider/session material is forbidden, and both field and artifact sizes are
-bounded (the current fixture uses 4 KiB fields and a 64 KiB artifact). A new
+bounded (the current fixture uses 4 KiB fields and a 256 KiB artifact, sufficient
+for the default 15 pairs). A new
 skill adds another `<skill>/<case>` directory without changing the runner or
 scoring semantics.
 
 The API paired runner consumes the task, skill, and rubric paths. It evaluates
-deterministic response checks separately, sends one anonymized candidate at a
-time to the fixed judge model, and records only bounded scores/evidence and
-metadata. The fixture and rubric are credential-free data and are safe to
-validate in ordinary pull-request CI.
+deterministic response checks separately, fully resamples treatment and control
+for every configured replicate, sends one anonymized candidate at a time to the
+fixed judge model, and records only bounded scores/evidence and metadata. Each
+pair carries a one-based `replicate_index`; the result records the configured
+`replicate_count`. The fixture and rubric are credential-free data and are safe
+to validate in ordinary pull-request CI.

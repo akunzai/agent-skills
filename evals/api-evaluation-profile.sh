@@ -16,6 +16,7 @@ DEFAULT_TARGET_MODELS=(
   "google/gemini-3.6-flash"
 )
 DEFAULT_JUDGE_MODEL="anthropic/claude-sonnet-5"
+DEFAULT_REPLICATE_COUNT=5
 
 # The one-turn API lane keeps these settings fixed so a model override changes
 # model selection only. The profile records them for reproducibility.
@@ -34,6 +35,8 @@ TARGET_MODELS_RAW=""
 TARGET_MODELS_SET="false"
 JUDGE_MODEL=""
 JUDGE_MODEL_SET="false"
+REPLICATE_COUNT="$DEFAULT_REPLICATE_COUNT"
+REPLICATE_COUNT_SET="false"
 TARGET_MODELS_SOURCE="default"
 JUDGE_MODEL_SOURCE="default"
 PROVIDER="$DEFAULT_PROVIDER"
@@ -52,6 +55,7 @@ Build the reproducible API-level skill-utility evaluation profile.
 Options:
   --target-models LIST  Comma- or newline-separated model ids. Replaces all defaults.
   --judge-model MODEL   One model id. Replaces the default judge for the whole run.
+  --replicate-count N   Independent treatment/control pairs per target (default: 5).
   --provider NAME       API provider (openrouter is currently supported).
   --model-catalog PATH  Optional pinned JSON array of available model ids.
   --output PATH         Write the normalized JSON profile to PATH instead of stdout.
@@ -225,6 +229,7 @@ build_profile() {
     --arg target_models_source "$TARGET_MODELS_SOURCE" \
     --arg judge_model "$JUDGE_MODEL" \
     --arg judge_model_source "$JUDGE_MODEL_SOURCE" \
+    --argjson replicate_count "$REPLICATE_COUNT" \
       --arg provider "$PROVIDER" \
       --arg gateway "$DEFAULT_GATEWAY" \
       --arg base_url "$DEFAULT_BASE_URL" \
@@ -282,6 +287,7 @@ build_profile() {
         },
         target_models: $target_models,
         judge_model: $judge_model,
+        replicate_count: $replicate_count,
         availability_validation: $availability_source,
         provider_routing: provider_routing,
         request: request_settings,
@@ -339,6 +345,17 @@ while [ "$#" -gt 0 ]; do
       PROVIDER="$2"
       shift 2
       ;;
+    --replicate-count)
+      [ "$#" -ge 2 ] || typed_error \
+        "malformed" "option_value_missing" "replicate_count" \
+        "--replicate-count requires a value."
+      [ "$REPLICATE_COUNT_SET" = "false" ] || typed_error \
+        "malformed" "option_duplicate" "replicate_count" \
+        "--replicate-count may be supplied only once."
+      REPLICATE_COUNT="$2"
+      REPLICATE_COUNT_SET="true"
+      shift 2
+      ;;
     --model-catalog)
       [ "$#" -ge 2 ] || typed_error \
         "malformed" "option_value_missing" "model_catalog" \
@@ -373,6 +390,10 @@ while [ "$#" -gt 0 ]; do
 done
 
 validate_provider
+
+[[ "$REPLICATE_COUNT" =~ ^[1-9][0-9]*$ ]] || typed_error \
+  "malformed" "replicate_count_invalid" "replicate_count" \
+  "replicate_count must be a positive integer."
 
 if [ "$TARGET_MODELS_SET" = "true" ]; then
   parse_target_models
