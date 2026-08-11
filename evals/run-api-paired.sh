@@ -1584,6 +1584,7 @@ fi
 
 PAIRS_NDJSON="$TEMP_DIR/pairs.ndjson"
 OVERALL_FAILURE="false"
+OVERALL_NOT_SCORED="false"
 TARGET_COUNT="${#TARGET_MODELS[@]}"
 TOTAL_PAIR_COUNT=$((TARGET_COUNT * REPLICATE_COUNT))
 BASE_REQUEST_COUNT=$((TOTAL_PAIR_COUNT * 4))
@@ -1738,11 +1739,6 @@ for model in "${TARGET_MODELS[@]}"; do
       COMPLETED_PAIR_COUNT=$((COMPLETED_PAIR_COUNT + 1))
     fi
 
-    pair_outcome="scored"
-    if [ "$pair_status" != "completed" ]; then
-      pair_outcome="not-scored"
-    fi
-
     if [ "$treatment_judge_failed" = "true" ] \
       || [ "$control_judge_failed" = "true" ] \
       || [ -z "$treatment_score" ] || [ -z "$control_score" ]; then
@@ -1752,6 +1748,19 @@ for model in "${TARGET_MODELS[@]}"; do
         control_score: null,
         treatment_minus_control: null
       }')"
+    elif jq -e '.status == "failed"' <<<"$treatment_deterministic" >/dev/null \
+      || jq -e '.status == "failed"' <<<"$control_deterministic" >/dev/null; then
+      paired_lift="$(jq -n \
+        --argjson treatment_score "$treatment_score" \
+        --argjson control_score "$control_score" \
+        '{
+          status: "not-scored",
+          outcome_type: "content",
+          reason: "deterministic_check_failed",
+          treatment_score: $treatment_score,
+          control_score: $control_score,
+          treatment_minus_control: null
+        }')"
     else
       paired_lift="$(jq -n \
         --argjson treatment_score "$treatment_score" \
@@ -1763,6 +1772,11 @@ for model in "${TARGET_MODELS[@]}"; do
           control_score: $control_score,
           treatment_minus_control: ($treatment_score - $control_score)
         }')"
+    fi
+
+    pair_outcome="$(jq -r '.status' <<<"$paired_lift")"
+    if [ "$pair_outcome" = "not-scored" ]; then
+      OVERALL_NOT_SCORED="true"
     fi
 
     progress \
@@ -1813,12 +1827,78 @@ for model in "${TARGET_MODELS[@]}"; do
   done
 done
 
+LIFT_DISTRIBUTIONS_FILE="$TEMP_DIR/lift-distributions.json"
+jq -s \
+  --argjson target_models "$TARGET_MODELS_JSON" '
+    def median:
+      sort as $sorted
+      | ($sorted | length) as $count
+      | if $count == 0 then null
+        elif ($count % 2) == 1 then $sorted[($count / 2) | floor]
+        else (($sorted[($count / 2) - 1] + $sorted[$count / 2]) / 2)
+        end;
+
+    . as $pairs
+    | $target_models
+    | map(
+        . as $target_model
+        | [$pairs[]
+            | select(.target_model == $target_model)
+            | {
+                replicate_index,
+                status: .paired_lift.status,
+                treatment_score: .paired_lift.treatment_score,
+                control_score: .paired_lift.control_score,
+                treatment_minus_control: .paired_lift.treatment_minus_control
+              }
+          ] as $samples
+        | [$samples[]
+            | select(.status == "scored")
+            | .treatment_minus_control
+          ] as $scored_lifts
+        | {
+            target_model: $target_model,
+            sample_count: ($samples | length),
+            scored_sample_count: ($scored_lifts | length),
+            not_scored_sample_count: (
+              ($samples | length) - ($scored_lifts | length)
+            ),
+            samples: $samples,
+            median: ($scored_lifts | median),
+            min: (
+              if ($scored_lifts | length) == 0 then null
+              else ($scored_lifts | min)
+              end
+            ),
+            max: (
+              if ($scored_lifts | length) == 0 then null
+              else ($scored_lifts | max)
+              end
+            ),
+            sign_consistent: (
+              if ($scored_lifts | length) == 0 then null
+              else (
+                [$scored_lifts[]
+                  | if . > 0 then "positive"
+                    elif . < 0 then "negative"
+                    else "zero"
+                    end
+                ]
+                | unique
+                | length == 1
+              )
+              end
+            )
+          }
+      )
+  ' "$PAIRS_NDJSON" >"$LIFT_DISTRIBUTIONS_FILE"
+
 OVERALL_STATUS="completed"
 if [ "$OVERALL_FAILURE" = "true" ]; then
   OVERALL_STATUS="failed"
 fi
 OVERALL_OUTCOME="scored"
-if [ "$OVERALL_FAILURE" = "true" ]; then
+if [ "$OVERALL_FAILURE" = "true" ] || [ "$OVERALL_NOT_SCORED" = "true" ]; then
   OVERALL_OUTCOME="not-scored"
 fi
 
@@ -1842,6 +1922,7 @@ jq -n \
   --argjson request "$REQUEST_JSON" \
   --argjson routing "$ROUTING_JSON" \
   --slurpfile pairs "$PAIRS_NDJSON" \
+  --slurpfile lift_distribution_documents "$LIFT_DISTRIBUTIONS_FILE" \
   '{
     schema_version: ($schema_version | tonumber),
     suite: "api-skill-utility",
@@ -1869,7 +1950,8 @@ jq -n \
     },
     provider_routing: $routing,
     request: $request,
-    pairs: $pairs
+    pairs: $pairs,
+    lift_distributions: $lift_distribution_documents[0]
   }' >"$ARTIFACT_DIR/results.json"
 
 artifact_bytes="$(wc -c <"$ARTIFACT_DIR/results.json" | tr -d ' ')"
