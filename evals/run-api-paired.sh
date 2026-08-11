@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEFAULT_ARTIFACT_DIR="${TMPDIR:-/tmp}/agent-skills-evals/api-paired"
 DEFAULT_JUDGE_MAX_TOKENS=4096
+MAX_ATTEMPTS=3
 PROFILE_RUNNER="$ROOT_DIR/evals/api-evaluation-profile.sh"
 CURL_BIN="${CURL_BIN:-curl}"
 
@@ -442,10 +443,10 @@ describe_error() {
   local message
 
   case "$1" in
-    response_truncated)
-      message='The candidate response was truncated by the token budget before it '
-      message+='finished; it was excluded from judging and the paired lift instead of '
-      message+='scoring an incomplete answer.'
+    response_truncated|judge_response_truncated)
+      message='The response was truncated by the token budget before it finished; '
+      message+='it was excluded from scoring instead of treating an incomplete answer '
+      message+='as a retryable infrastructure failure.'
       ;;
     request_parameters_unsupported|judge_request_parameters_unsupported)
       message='No OpenRouter endpoint supports all recorded request parameters; '
@@ -567,7 +568,7 @@ evaluate_deterministic() {
 
 judge_error_category() {
   case "$1" in
-    candidate_response_unavailable|candidate_response_too_large|judge_response_malformed|judge_score_invalid)
+    candidate_response_unavailable|candidate_response_too_large|judge_response_malformed|judge_response_truncated|judge_score_invalid)
       printf '%s\n' 'response'
       ;;
     judge_credentials_rejected)
@@ -841,6 +842,9 @@ judge_candidate() {
     finish_reason="$(jq -r '
       if (.choices[0].finish_reason | type) == "string" then .choices[0].finish_reason else empty end
     ' "$response_file" 2>/dev/null || true)"
+    if [ "$finish_reason" = "length" ]; then
+      error_code="judge_response_truncated"
+    fi
     usage_json="$(jq -c '
       if (.usage | type) == "object" then {
         prompt_tokens: (if (.usage.prompt_tokens | type) == "number" then .usage.prompt_tokens else null end),
@@ -988,6 +992,65 @@ CONDITION_RESULT=""
 CONDITION_FAILED="false"
 CONDITION_RESPONSE_TEXT=""
 CONDITION_RESPONSE_AVAILABLE="false"
+
+append_attempt() {
+  local result="$1"
+  local attempt_index="$2"
+  local attempts_file="$3"
+
+  jq -c \
+    --argjson attempt_index "$attempt_index" \
+    '{
+      attempt_index: $attempt_index,
+      status,
+      error_type: (.error.type // null),
+      error_category: (.error.category // null),
+      error_code: (.error.code // null)
+    }' <<<"$result" >>"$attempts_file"
+}
+
+with_attempt_accounting() {
+  local result="$1"
+  local attempts_file="$2"
+  local request_count="$3"
+  local retry_exhausted="$4"
+
+  jq -c \
+    --argjson attempt_ceiling "$MAX_ATTEMPTS" \
+    --argjson request_count "$request_count" \
+    --argjson retry_exhausted "$retry_exhausted" \
+    --slurpfile attempts "$attempts_file" \
+    '. + {
+      request_count: $request_count,
+      attempt_ceiling: $attempt_ceiling,
+      retry_exhausted: $retry_exhausted,
+      attempts: $attempts
+    }' <<<"$result"
+}
+
+candidate_failure_is_retryable() {
+  jq -e '
+    .error.type == "infrastructure"
+    and (.error.code == "request_timeout"
+      or .error.code == "provider_transport_error"
+      or .error.code == "provider_rate_limited"
+      or .error.code == "provider_error"
+      or .error.code == "provider_endpoint_unavailable"
+      or .error.code == "response_malformed")
+  ' <<<"$1" >/dev/null
+}
+
+judge_failure_is_retryable() {
+  jq -e '
+    .error.type == "infrastructure"
+    and (.error.code == "judge_request_timeout"
+      or .error.code == "judge_provider_transport_error"
+      or .error.code == "judge_provider_rate_limited"
+      or .error.code == "judge_provider_error"
+      or .error.code == "judge_provider_endpoint_unavailable"
+      or .error.code == "judge_response_malformed")
+  ' <<<"$1" >/dev/null
+}
 
 process_condition() {
   local model="$1"
@@ -1200,6 +1263,71 @@ process_condition() {
          }
        }
        end)' )"
+}
+
+process_condition_with_retries() {
+  local model="$1"
+  local condition="$2"
+  local attempts_file
+  local attempt_index
+  local retry_exhausted="false"
+
+  attempts_file="$(mktemp "$TEMP_DIR/condition-attempts.XXXXXX")"
+  for ((attempt_index = 1; attempt_index <= MAX_ATTEMPTS; attempt_index++)); do
+    process_condition "$model" "$condition"
+    append_attempt "$CONDITION_RESULT" "$attempt_index" "$attempts_file"
+    if [ "$CONDITION_FAILED" != "true" ] \
+      || ! candidate_failure_is_retryable "$CONDITION_RESULT"; then
+      break
+    fi
+    if [ "$attempt_index" -eq "$MAX_ATTEMPTS" ]; then
+      retry_exhausted="true"
+      break
+    fi
+    progress \
+      "model=$model" \
+      "phase=$condition" \
+      "status=retrying" \
+      "attempt=$((attempt_index + 1))/$MAX_ATTEMPTS" \
+      "request=$((REQUEST_INDEX + 1))/$TOTAL_REQUEST_COUNT"
+  done
+
+  CONDITION_RESULT="$(with_attempt_accounting \
+    "$CONDITION_RESULT" "$attempts_file" "$attempt_index" "$retry_exhausted")"
+}
+
+judge_candidate_with_retries() {
+  local candidate_text="$1"
+  local candidate_available="$2"
+  local attempts_file
+  local attempt_index
+  local request_index_before="$REQUEST_INDEX"
+  local request_count
+  local retry_exhausted="false"
+
+  attempts_file="$(mktemp "$TEMP_DIR/judge-attempts.XXXXXX")"
+  for ((attempt_index = 1; attempt_index <= MAX_ATTEMPTS; attempt_index++)); do
+    judge_candidate "$candidate_text" "$candidate_available"
+    append_attempt "$JUDGE_RESULT" "$attempt_index" "$attempts_file"
+    if [ "$JUDGE_FAILED" != "true" ] \
+      || ! judge_failure_is_retryable "$JUDGE_RESULT"; then
+      break
+    fi
+    if [ "$attempt_index" -eq "$MAX_ATTEMPTS" ]; then
+      retry_exhausted="true"
+      break
+    fi
+    progress \
+      "model=$JUDGE_MODEL" \
+      "phase=judge" \
+      "status=retrying" \
+      "attempt=$((attempt_index + 1))/$MAX_ATTEMPTS" \
+      "request=$((REQUEST_INDEX + 1))/$TOTAL_REQUEST_COUNT"
+  done
+
+  request_count=$((REQUEST_INDEX - request_index_before))
+  JUDGE_RESULT="$(with_attempt_accounting \
+    "$JUDGE_RESULT" "$attempts_file" "$request_count" "$retry_exhausted")"
 }
 
 while [ "$#" -gt 0 ]; do
@@ -1458,7 +1586,8 @@ PAIRS_NDJSON="$TEMP_DIR/pairs.ndjson"
 OVERALL_FAILURE="false"
 TARGET_COUNT="${#TARGET_MODELS[@]}"
 TOTAL_PAIR_COUNT=$((TARGET_COUNT * REPLICATE_COUNT))
-TOTAL_REQUEST_COUNT=$((TOTAL_PAIR_COUNT * 4))
+BASE_REQUEST_COUNT=$((TOTAL_PAIR_COUNT * 4))
+TOTAL_REQUEST_COUNT=$((BASE_REQUEST_COUNT * MAX_ATTEMPTS))
 COMPLETED_PAIR_COUNT=0
 FAILED_PAIR_COUNT=0
 
@@ -1466,7 +1595,8 @@ progress \
   "run_started targets=$TARGET_COUNT" \
   "replicates=$REPLICATE_COUNT" \
   "pairs=$TOTAL_PAIR_COUNT" \
-  "requests=$TOTAL_REQUEST_COUNT" \
+  "base_requests=$BASE_REQUEST_COUNT" \
+  "request_ceiling=$TOTAL_REQUEST_COUNT" \
   "judge=$JUDGE_MODEL" \
   "timeout=${REQUEST_TIMEOUT_SECONDS}s"
 
@@ -1487,7 +1617,7 @@ for model in "${TARGET_MODELS[@]}"; do
       "status=running" \
       "replicate=$replicate_index/$REPLICATE_COUNT" \
       "request=$((REQUEST_INDEX + 1))/$TOTAL_REQUEST_COUNT"
-    process_condition "$model" "treatment"
+    process_condition_with_retries "$model" "treatment"
     treatment_result="$CONDITION_RESULT"
     treatment_failed="$CONDITION_FAILED"
     treatment_response_text="$CONDITION_RESPONSE_TEXT"
@@ -1516,7 +1646,7 @@ for model in "${TARGET_MODELS[@]}"; do
       "status=running" \
       "replicate=$replicate_index/$REPLICATE_COUNT" \
       "request=$((REQUEST_INDEX + 1))/$TOTAL_REQUEST_COUNT"
-    process_condition "$model" "control"
+    process_condition_with_retries "$model" "control"
     control_result="$CONDITION_RESULT"
     control_failed="$CONDITION_FAILED"
     control_response_text="$CONDITION_RESPONSE_TEXT"
@@ -1555,7 +1685,7 @@ for model in "${TARGET_MODELS[@]}"; do
         "replicate=$replicate_index/$REPLICATE_COUNT" \
         "reason=candidate_response_unavailable"
     fi
-    judge_candidate "$treatment_response_text" "$treatment_response_available"
+    judge_candidate_with_retries "$treatment_response_text" "$treatment_response_available"
     treatment_judge="$JUDGE_RESULT"
     treatment_judge_failed="$JUDGE_FAILED"
     treatment_score="$JUDGE_SCORE"
@@ -1579,7 +1709,7 @@ for model in "${TARGET_MODELS[@]}"; do
         "replicate=$replicate_index/$REPLICATE_COUNT" \
         "reason=candidate_response_unavailable"
     fi
-    judge_candidate "$control_response_text" "$control_response_available"
+    judge_candidate_with_retries "$control_response_text" "$control_response_available"
     control_judge="$JUDGE_RESULT"
     control_judge_failed="$JUDGE_FAILED"
     control_score="$JUDGE_SCORE"
@@ -1707,6 +1837,7 @@ jq -n \
   --arg rubric_hash "$RUBRIC_HASH" \
   --arg judge_model "$JUDGE_MODEL" \
   --argjson replicate_count "$REPLICATE_COUNT" \
+  --argjson attempt_ceiling "$MAX_ATTEMPTS" \
   --argjson target_models "$TARGET_MODELS_JSON" \
   --argjson request "$REQUEST_JSON" \
   --argjson routing "$ROUTING_JSON" \
@@ -1732,6 +1863,10 @@ jq -n \
     target_models: $target_models,
     judge_model: $judge_model,
     replicate_count: $replicate_count,
+    retry_policy: {
+      attempt_ceiling: $attempt_ceiling,
+      retry_ceiling: ($attempt_ceiling - 1)
+    },
     provider_routing: $routing,
     request: $request,
     pairs: $pairs

@@ -37,5 +37,7 @@ deterministic response checks separately, fully resamples treatment and control
 for every configured replicate, sends one anonymized candidate at a time to the
 fixed judge model, and records only bounded scores/evidence and metadata. Each
 pair carries a one-based `replicate_index`; the result records the configured
-`replicate_count`. The fixture and rubric are credential-free data and are safe
-to validate in ordinary pull-request CI.
+`replicate_count`. Candidate and judge phases also record the fixed retry
+ceiling, whether it was exhausted, and a bounded list of typed attempt outcomes;
+raw provider responses remain forbidden. The fixture and rubric are
+credential-free data and are safe to validate in ordinary pull-request CI.

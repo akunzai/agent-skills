@@ -33,7 +33,7 @@ concurrency:
 jobs:
   evaluate:
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 360
     environment: skills-evals
     env:
       TARGET_MODELS: ${{ inputs.target_models }}
@@ -86,6 +86,8 @@ jobs:
           target_count="$(jq -r '.target_models | length' "$profile_path")"
           replicate_count="$(jq -r '.replicate_count' "$profile_path")"
           request_count=$((target_count * replicate_count * 4))
+          max_attempts=3
+          request_ceiling_count=$((request_count * max_attempts))
           jq -n \
             --arg policy "api-paired-manual-v3" \
             --arg budget_policy "openrouter_account" \
@@ -93,6 +95,8 @@ jobs:
             --argjson target_count "$target_count" \
             --argjson replicate_count "$replicate_count" \
             --argjson request_count "$request_count" \
+            --argjson max_attempts "$max_attempts" \
+            --argjson request_ceiling_count "$request_ceiling_count" \
             --argjson max_artifact_bytes "$MAX_ARTIFACT_BYTES" \
             ' {
               schema_version: 1,
@@ -101,6 +105,11 @@ jobs:
               target_count: $target_count,
               replicate_count: $replicate_count,
               request_count: $request_count,
+              request_ceiling_count: $request_ceiling_count,
+              retry_policy: {
+                attempt_ceiling: $max_attempts,
+                retry_ceiling: ($max_attempts - 1)
+              },
               request: {
                 max_turns: 1,
                 timeout_seconds: 120,
@@ -125,7 +134,7 @@ jobs:
           artifact_dir="$RUNNER_TEMP/api-paired-artifacts"
           profile_path="$artifact_dir/profile.json"
           set +e
-          timeout --signal=TERM --kill-after=30s 140m \
+          timeout --signal=TERM --kill-after=30s 350m \
             evals/run-api-paired.sh \
               --profile "$profile_path" \
               --task-file evals/fixtures/api/agents-md/representative-task/task.txt \
