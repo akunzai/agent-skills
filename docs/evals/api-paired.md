@@ -22,8 +22,21 @@ revisions, hashes, request metadata, timing, and permitted usage/cost fields
 are recorded on each pair. Candidate content and raw judge output are never
 written to the durable artifact. The runner computes a treatment-minus-control
 lift independently for each pair and emits no tiers, groups, rankings, or
-aggregate score. Distribution reporting is handled by a later methodology
-slice; this contract preserves every individual paired sample needed by it.
+aggregate score.
+
+The result also groups paired lifts by target model in `lift_distributions`.
+Each target retains all individual samples in replicate order, including
+`not-scored` samples with null lift. Content-based not-scored samples retain
+their actual judge scores, identify the content reason, and never fabricate a
+lift. `sample_count`,
+`scored_sample_count`, and `not_scored_sample_count` make those missing values
+explicit. Median, minimum, maximum, and sign consistency are computed only from
+scored lifts; when none are scored, all four statistics are null. For an even
+number of scored lifts, median is the mean of the two middle values. Sign
+consistency is true when every scored lift is positive, every lift is negative,
+or every lift is zero; mixed signs (including zero mixed with a nonzero sign)
+are false. These per-model diagnostics do not create a pass/fail decision,
+minimum-lift gate, cross-model aggregate, ranking, or tier.
 Judge requests use OpenRouter's strict `response_format.type=json_schema` with
 the required `score` and `evidence` fields. The local parser still enforces the
 score range and evidence length/count bounds because structured-output
@@ -89,8 +102,9 @@ The profile defaults to `5` fully paired replicates per target. Its lower-level
 CLI accepts any positive count so credential-free contract tests can use a
 smaller sample. The manual model-backed workflow enforces at least `5`, records
 the count and fixed retry policy in its run policy, and distinguishes the base
-request count from the three-attempt request ceiling. Per-model distribution
-summaries remain a separate methodology slice.
+request count from the three-attempt request ceiling. The diagnostics step
+summary renders the same per-model distribution statistics from the artifact;
+it does not recompute them or turn them into a release gate.
 
 ## Local contract test
 

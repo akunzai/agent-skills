@@ -112,6 +112,43 @@ if jq -e '
     fi
   fi
 
+  if [[ "$mock_judge_mode" == distribution-* ]]; then
+    judge_count="$(grep -c '"kind":"judge"' "$REQUEST_LOG" || true)"
+    pair_index=$(((judge_count + 1) / 2))
+    if [ $((judge_count % 2)) -eq 0 ]; then
+      judge_score=50
+    else
+      case "$mock_judge_mode" in
+        distribution-positive) judge_score=$((50 + pair_index * 10)) ;;
+        distribution-negative) judge_score=$((50 - pair_index * 10)) ;;
+        distribution-mixed)
+          case "$pair_index" in
+            1) judge_score=60 ;;
+            2) judge_score=40 ;;
+            3) judge_score=50 ;;
+            4) judge_score=50 ;;
+            5) judge_score=70 ;;
+          esac
+          ;;
+      esac
+    fi
+    jq -n --arg model "$model" --argjson score "$judge_score" '{
+      id: "mock-judge-distribution",
+      model: $model,
+      choices: [{
+        index: 0,
+        message: {
+          role: "assistant",
+          content: ({score: $score, evidence: ["Bounded distribution evidence."]} | tojson)
+        },
+        finish_reason: "stop"
+      }],
+      usage: {prompt_tokens: 21, completion_tokens: 9, total_tokens: 30}
+    }' >"$output_file"
+    printf '%s' '200'
+    exit 0
+  fi
+
   case "$mock_judge_mode" in
     success)
       if jq -e '[.messages[].content] | any(contains("SKILL_MARKER"))' \
@@ -244,6 +281,14 @@ if [ "$mock_curl_mode" = "provider-error-once" ]; then
   candidate_count="$(grep -c '"kind":"candidate"' "$REQUEST_LOG" || true)"
   if [ "$candidate_count" -eq 1 ]; then
     mock_curl_mode="provider-error"
+  else
+    mock_curl_mode="success"
+  fi
+fi
+if [ "$mock_curl_mode" = "distribution-partial" ]; then
+  candidate_count="$(grep -c '"kind":"candidate"' "$REQUEST_LOG" || true)"
+  if [ "$candidate_count" -eq 5 ] || [ "$candidate_count" -eq 6 ]; then
+    mock_curl_mode="finding-then-heading"
   else
     mock_curl_mode="success"
   fi
@@ -867,6 +912,94 @@ run_judge_retry_recovery_case() {
     || fail "judge recovery must retry only the affected judge request"
 }
 
+run_lift_distribution_case() {
+  local case_name="$1"
+  local mock_judge_mode="$2"
+  local expected_median="$3"
+  local expected_min="$4"
+  local expected_max="$5"
+  local expected_sign_consistent="$6"
+  local expected_scored_count="$7"
+  local mock_curl_mode="success"
+  local profile_file="$TEMP_DIR/$case_name-profile.json"
+  local artifact_dir="$TEMP_DIR/$case_name-artifacts"
+  local request_log="$TEMP_DIR/$case_name-requests.ndjson"
+  local results_file="$artifact_dir/results.json"
+  local exit_code
+
+  "$PROFILE" \
+    --target-models "openai/$case_name" \
+    --judge-model 'anthropic/distribution-judge' \
+    --replicate-count 5 \
+    --output "$profile_file"
+  : >"$request_log"
+  if [ "$mock_judge_mode" = "distribution-mixed" ]; then
+    mock_curl_mode="distribution-partial"
+  fi
+
+  set +e
+  OPENROUTER_API_KEY='test-api-key' \
+    CURL_BIN="$FAKE_CURL" \
+    MOCK_CURL_MODE="$mock_curl_mode" \
+    MOCK_JUDGE_MODE="$mock_judge_mode" \
+    REQUEST_LOG="$request_log" \
+    "$RUNNER" \
+    --profile "$profile_file" \
+    --task-file "$TASK_FILE" \
+    --task-revision agents-md-task-v1 \
+    --skill-file "$SKILL_FILE" \
+    --skill-revision agents-md-skill-v1 \
+    --skill-name agents-md \
+    --fixture-revision fixture-v1 \
+    --rubric-file "$RUBRIC_FILE" \
+    --rubric-revision agents-md-micromanagement-v1 \
+    --artifact-dir "$artifact_dir" \
+    >"$TEMP_DIR/$case_name.stdout" \
+    2>"$TEMP_DIR/$case_name.stderr"
+  exit_code=$?
+  set -e
+
+  [ "$exit_code" -eq 0 ] || fail "$case_name distribution run must succeed"
+
+  jq -e \
+    --arg target_model "openai/$case_name" \
+    --argjson expected_median "$expected_median" \
+    --argjson expected_min "$expected_min" \
+    --argjson expected_max "$expected_max" \
+    --argjson expected_sign_consistent "$expected_sign_consistent" \
+    --argjson expected_scored_count "$expected_scored_count" '
+      (.lift_distributions | length) == 1
+      and (.lift_distributions[0] | keys | sort) == [
+        "max", "median", "min", "not_scored_sample_count", "sample_count",
+        "samples", "scored_sample_count", "sign_consistent", "target_model"
+      ]
+      and .lift_distributions[0].target_model == $target_model
+      and .lift_distributions[0].sample_count == 5
+      and .lift_distributions[0].scored_sample_count == $expected_scored_count
+      and .lift_distributions[0].not_scored_sample_count == (5 - $expected_scored_count)
+      and .lift_distributions[0].median == $expected_median
+      and .lift_distributions[0].min == $expected_min
+      and .lift_distributions[0].max == $expected_max
+      and .lift_distributions[0].sign_consistent == $expected_sign_consistent
+      and ([.lift_distributions[0].samples[].replicate_index] == [1, 2, 3, 4, 5])
+      and ([.lift_distributions[0].samples[] | keys | sort] | all(. == [
+        "control_score", "replicate_index", "status", "treatment_minus_control",
+        "treatment_score"
+      ]))
+      and (if $expected_scored_count == 4 then
+        .lift_distributions[0].samples[2].status == "not-scored"
+        and .lift_distributions[0].samples[2].treatment_minus_control == null
+        and .pairs[2].status == "completed"
+        and .pairs[2].outcome == "not-scored"
+        and .pairs[2].paired_lift.outcome_type == "content"
+        and .pairs[2].paired_lift.reason == "deterministic_check_failed"
+        and .pairs[2].treatment.request_count == 1
+        and .pairs[2].control.request_count == 1
+      else true end)
+    ' "$results_file" >/dev/null \
+    || fail "$case_name must report the expected per-model lift distribution"
+}
+
 run_provider_failure_case() {
   local case_name="$1"
   local mock_mode="$2"
@@ -1282,6 +1415,13 @@ run_truncated_response_case() {
       | all(. == 1))
     and ([.pairs[] | .treatment.retry_exhausted, .control.retry_exhausted]
       | all(. == false))
+    and .lift_distributions[0].sample_count == 1
+    and .lift_distributions[0].scored_sample_count == 0
+    and .lift_distributions[0].not_scored_sample_count == 1
+    and .lift_distributions[0].median == null
+    and .lift_distributions[0].min == null
+    and .lift_distributions[0].max == null
+    and .lift_distributions[0].sign_consistent == null
   ' "$artifact_dir/results.json" >/dev/null \
     || fail "a truncated candidate response must be typed response_truncated and excluded from judging/paired_lift"
   [ "$(wc -l <"$request_log" | tr -d ' ')" -eq 2 ] \
@@ -1333,6 +1473,9 @@ run_finding_then_heading_case() {
 
 run_candidate_retry_recovery_case
 run_judge_retry_recovery_case
+run_lift_distribution_case positive distribution-positive 30 10 50 true 5
+run_lift_distribution_case negative distribution-negative -30 -50 -10 true 5
+run_lift_distribution_case mixed distribution-mixed 5 -10 20 false 4
 run_fully_paired_replicates_case
 run_multiline_grounded_findings_case
 run_truncated_response_case

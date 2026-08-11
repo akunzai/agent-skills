@@ -220,6 +220,12 @@ jobs:
                     + "\u0060 | \u0060" + phase(.control.judge) + "\u0060 |"
                 ' "$results_path"
               } >>"$summary_path"
+
+              if jq -e '(.lift_distributions | type) == "array"' \
+                "$results_path" >/dev/null; then
+                evals/render-api-paired-distributions.sh "$results_path" \
+                  >>"$summary_path"
+              fi
             else
               failure_code="$(jq -r '.error.code // "unknown"' "$results_path")"
               echo "- No paired result rows were produced; artifact error: \`$failure_code\`." \

@@ -39,5 +39,7 @@ fixed judge model, and records only bounded scores/evidence and metadata. Each
 pair carries a one-based `replicate_index`; the result records the configured
 `replicate_count`. Candidate and judge phases also record the fixed retry
 ceiling, whether it was exhausted, and a bounded list of typed attempt outcomes;
-raw provider responses remain forbidden. The fixture and rubric are
+raw provider responses remain forbidden. Per-model lift distributions preserve
+every scored or not-scored sample, while median/min/max/sign consistency use
+only scored lifts and remain null when none exist. The fixture and rubric are
 credential-free data and are safe to validate in ordinary pull-request CI.
