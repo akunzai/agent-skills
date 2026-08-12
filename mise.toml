@@ -21,7 +21,7 @@ exit $exit_code
 
 [tasks.lint-shell]
 description = "Lint shell scripts with ShellCheck"
-run = "find tests skills evals -name '*.sh' -type f -exec shellcheck {} +"
+run = "find tests skills evals plugins -name '*.sh' -type f -exec shellcheck {} +"
 
 [tasks.lint-actions]
 description = "Lint GitHub Actions workflows with actionlint"
