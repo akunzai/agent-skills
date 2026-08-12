@@ -26,7 +26,9 @@ Setup copies two private helpers to
 flags under `${XDG_STATE_HOME:-$HOME/.local/state}/codexbar-quota-handoff/`,
 adds CodexBar rules only for detected agents, and when `grok` is on PATH
 writes `~/.grok/hooks/codexbar-quota-handoff.json`. It prints Claude Code and
-Codex plugin-manager commands without running them (Grok needs none).
+Codex plugin-manager commands for `akunzai/agent-skills` without running them
+(Grok needs none). Pass `--local` to print this checkout's path instead when
+testing unpublished changes.
 
 <details>
 <summary>Claude Code</summary>

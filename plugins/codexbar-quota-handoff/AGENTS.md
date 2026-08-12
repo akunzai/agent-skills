@@ -8,10 +8,11 @@ Run the host integration from the repository checkout:
 bash scripts/setup.sh --threshold 0.9
 ```
 
-The script prints Claude Code and Codex marketplace commands using the
-checkout's absolute path (Grok uses only the global hook). Run the relevant
-commands to test unpublished changes; it does not invoke plugin managers
-automatically.
+By default the script prints Claude Code and Codex marketplace commands for
+the published GitHub source `akunzai/agent-skills` (so plugin managers can
+track remote updates). Pass `--local` to print this checkout's absolute path
+instead when testing unpublished changes. Grok uses only the global hook.
+Setup does not invoke plugin managers automatically.
 
 ## Checks
 

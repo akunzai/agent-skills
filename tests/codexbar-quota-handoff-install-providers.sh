@@ -40,15 +40,31 @@ done
 
 # Runs setup.sh with only the named stub tools (plus codexbar/jq) on PATH.
 # Pass no tool names to simulate none of claude/grok/codex being installed.
+# Extra args after the tool list are forwarded to setup.sh (e.g. --local).
 run_install() {
   local fake_home="$1"
   shift
   mkdir -p "$fake_home/.codexbar"
   echo '{"hooks":{"enabled":false,"events":[]}}' >"$fake_home/.codexbar/config.json"
 
+  local tools=()
+  local setup_args=()
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --*)
+        setup_args+=("$@")
+        break
+        ;;
+      *)
+        tools+=("$1")
+        shift
+        ;;
+    esac
+  done
+
   local tool_dir="$TMP_DIR/tools-$$-$RANDOM"
   mkdir -p "$tool_dir"
-  for tool in "$@"; do
+  for tool in "${tools[@]+"${tools[@]}"}"; do
     ln -s "$TOOL_BIN/$tool" "$tool_dir/$tool"
   done
 
@@ -56,7 +72,7 @@ run_install() {
     HOME="$fake_home" \
     XDG_DATA_HOME="$fake_home/xdg-data" \
     XDG_STATE_HOME="$fake_home/xdg-state" \
-    bash "$SCRIPT"
+    bash "$SCRIPT" "${setup_args[@]+"${setup_args[@]}"}"
 }
 
 configured_providers() {
@@ -71,12 +87,25 @@ OUTPUT="$(run_install "$CLAUDE_ONLY_HOME" claude)"
 ACTUAL="$(configured_providers "$CLAUDE_ONLY_HOME")"
 [ "$ACTUAL" = "claude" ] || fail "with only claude on PATH, expected only 'claude' configured, got: $ACTUAL"
 case "$OUTPUT" in
-  *'claude plugin marketplace add '*/*'codex plugin marketplace add '*) ;;
-  *) fail "setup did not print the Claude Code and Codex local marketplace commands" ;;
+  *'claude plugin marketplace add "akunzai/agent-skills"'*'codex plugin marketplace add "akunzai/agent-skills"'*) ;;
+  *) fail "setup did not print Claude Code and Codex marketplace commands for akunzai/agent-skills (got: $OUTPUT)" ;;
 esac
 case "$OUTPUT" in
   *'grok plugin '*)
     fail "setup must not print grok plugin marketplace commands (Grok uses the global hook only)"
+    ;;
+esac
+
+# --local prints this checkout's absolute path for unpublished testing.
+LOCAL_HOME="$TMP_DIR/local-marketplace"
+OUTPUT="$(run_install "$LOCAL_HOME" claude --local)"
+case "$OUTPUT" in
+  *'claude plugin marketplace add "'"$ROOT_DIR"'"'*'codex plugin marketplace add "'"$ROOT_DIR"'"'*) ;;
+  *) fail "--local did not print marketplace commands for this checkout (got: $OUTPUT)" ;;
+esac
+case "$OUTPUT" in
+  *'claude plugin marketplace add "akunzai/agent-skills"'*)
+    fail "--local must not print the default remote marketplace source"
     ;;
 esac
 
