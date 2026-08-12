@@ -150,3 +150,27 @@ jobs:
 
       - name: Run skill-catalog-sync checks
         run: bash tests/skill-catalog-sync.sh
+
+  codexbar-quota-handoff:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Run codexbar-quota-handoff manifest checks
+        run: bash tests/codexbar-quota-handoff-manifest.sh
+
+      - name: Run codexbar-quota-handoff flag-writer checks
+        run: bash tests/codexbar-quota-handoff-flag-writer.sh
+
+      - name: Run codexbar-quota-handoff quota-reminder checks
+        run: bash tests/codexbar-quota-handoff-quota-reminder.sh
+
+      - name: Run codexbar-quota-handoff threshold-validation checks
+        run: bash tests/codexbar-quota-handoff-threshold-validation.sh
+
+      - name: Run codexbar-quota-handoff install-providers checks
+        run: bash tests/codexbar-quota-handoff-install-providers.sh
+
+      - name: Run codexbar-quota-handoff uninstall checks
+        run: bash tests/codexbar-quota-handoff-uninstall.sh

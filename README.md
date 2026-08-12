@@ -81,6 +81,17 @@ Use [aube](https://aube.jdx.dev/) as the Node.js package manager, installed and
 pinned through mise. Covers `aubr`/`aube ci` workflows, lockfile policy, the
 lifecycle-script jail, and migrating from pnpm/npm/bun.
 
+## Plugins
+
+Separate from the skills above (not installable via `npx skills add`, not
+part of the `skills.sh` catalog):
+
+- [`codexbar-quota-handoff`](plugins/codexbar-quota-handoff/README.md) — a
+  Claude Code / Codex CLI plugin and Grok Build hook that reminds you to wrap up
+  when [CodexBar](https://github.com/steipete/CodexBar) detects that tool's
+  own quota is nearly exhausted. Machine-specific (depends on your own
+  CodexBar installation and account authorization) rather than something a
+  visitor installs directly.
 
 ## Contributing
 

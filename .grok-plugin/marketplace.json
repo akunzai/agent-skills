@@ -1,0 +1,12 @@
+{
+  "name": "akunzai-agent-skills",
+  "owner": {
+    "name": "Charley Wu"
+  },
+  "plugins": [
+    {
+      "name": "codexbar-quota-handoff",
+      "source": "./plugins/codexbar-quota-handoff"
+    }
+  ]
+}
