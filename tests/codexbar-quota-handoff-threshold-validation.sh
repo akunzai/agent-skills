@@ -18,7 +18,7 @@ for option in -h --help; do
   OUTPUT="$(HOME="$TMP_DIR/help-home" bash "$SCRIPT" "$option" 2>&1)" || RC=$?
   [ "$RC" -eq 0 ] || fail "$option should exit 0, got exit $RC"
   case "$OUTPUT" in
-    *"Usage:"*"--threshold"*"--help"*) ;;
+    *"Usage:"*"--threshold"*"--local"*"--help"*) ;;
     *) fail "$option output is missing usage or supported options (got: $OUTPUT)" ;;
   esac
   [ ! -e "$TMP_DIR/help-home" ] || fail "$option should not create files"
