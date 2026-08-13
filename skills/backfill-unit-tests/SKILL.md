@@ -14,7 +14,9 @@ description: >-
 Detects an existing codebase's test framework at run time and backfills unit
 test coverage for gaps, validating every generated test before handing it
 back. This skill starts after code already exists and is under-tested; for
-red-green development of new code, use the `tdd` skill instead.
+red-green development of new code, use the
+[`tdd`](https://github.com/mattpocock/skills/blob/main/skills/engineering/tdd/SKILL.md)
+skill instead.
 
 ## Scope
 

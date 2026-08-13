@@ -25,6 +25,9 @@ grep -q -E 'Use when' "$SKILL" \
 grep -q --fixed-strings 'tdd skill' "$SKILL" \
   || fail "cross-reference to the tdd skill is missing"
 
+grep -q --fixed-strings 'https://github.com/mattpocock/skills' "$SKILL" \
+  || fail "tdd skill source repo URL is missing"
+
 grep -q -E 'Unit tests only' "$SKILL" \
   || fail "unit-test-only scope statement is missing"
 

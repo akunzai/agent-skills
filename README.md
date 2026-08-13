@@ -55,7 +55,9 @@ Use it when you want to:
 - Bootstrap an `AGENTS.md` for a new project
 - Audit and score an existing `AGENTS.md` for quality
 - Keep `AGENTS.md` in sync with Claude Code via a `CLAUDE.md` symlink
-- Automatically write discovered knowledge back to `AGENTS.md` after solving problems
+- Surface discovered knowledge (gotchas, quirks) as a candidate after solving
+  a problem, then write it back to `AGENTS.md`'s references once you confirm
+  it
 
 #### [`to-memory`](skills/to-memory/SKILL.md)
 
