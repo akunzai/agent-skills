@@ -28,7 +28,8 @@
     {
       "title": "Testing",
       "skills": [
-        "backfill-unit-tests"
+        "backfill-unit-tests",
+        "write-e2e-tests"
       ]
     }
   ]

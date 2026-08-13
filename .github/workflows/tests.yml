@@ -142,6 +142,15 @@ jobs:
       - name: Run backfill-unit-tests content checks
         run: bash tests/backfill-unit-tests-content.sh
 
+  write-e2e-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Run write-e2e-tests content checks
+        run: bash tests/write-e2e-tests-content.sh
+
   agentsview-extract:
     runs-on: ubuntu-latest
     steps:
