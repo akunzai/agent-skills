@@ -10,10 +10,11 @@ My personal agent skills for AI coding assistants — compatible with Antigravit
 
 AI coding assistants are powerful out of the box, but they lack persistent memory
 and opinionated workflows across sessions. This project fills that gap with
-reusable skills grouped into three areas: **Memory** (durable project context
+reusable skills grouped into four areas: **Memory** (durable project context
 that survives across sessions), **Git** (clean commit history and safe PR/issue
-workflows), and **Toolchain** (pinned, opinionated tool and dependency
-management).
+workflows), **Toolchain** (pinned, opinionated tool and dependency
+management), and **Testing** (framework-agnostic test generation and
+validation workflows).
 
 ## Install
 
@@ -80,6 +81,15 @@ backends, tasks over scripts, and phased host → CI → container adoption.
 Use [aube](https://aube.jdx.dev/) as the Node.js package manager, installed and
 pinned through mise. Covers `aubr`/`aube ci` workflows, lockfile policy, the
 lifecycle-script jail, and migrating from pnpm/npm/bun.
+
+### Testing
+
+#### [`backfill-unit-tests`](skills/backfill-unit-tests/SKILL.md)
+
+Detect an existing codebase's test framework and backfill unit test
+coverage for gaps, validating each generated test builds, is
+CI-discoverable, and actually fails on broken code. For interactive
+feature-first development, use `tdd` instead.
 
 ## Plugins
 
