@@ -133,6 +133,15 @@ jobs:
       - name: Run aube content checks
         run: bash tests/aube-content.sh
 
+  backfill-unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Run backfill-unit-tests content checks
+        run: bash tests/backfill-unit-tests-content.sh
+
   agentsview-extract:
     runs-on: ubuntu-latest
     steps:
