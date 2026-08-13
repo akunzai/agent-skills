@@ -91,6 +91,13 @@ coverage for gaps, validating each generated test builds, is
 CI-discoverable, and actually fails on broken code. For interactive
 feature-first development, use `tdd` instead.
 
+#### [`write-e2e-tests`](skills/write-e2e-tests/SKILL.md)
+
+Convert a completed [webwright](https://github.com/microsoft/Webwright)
+browser-exploration run into a durable, checked-in Playwright Test e2e spec —
+mapping its Critical Points to assertions and validating the result is
+stable and CI-discoverable.
+
 ## Plugins
 
 Separate from the skills above (not installable via `npx skills add`, not
