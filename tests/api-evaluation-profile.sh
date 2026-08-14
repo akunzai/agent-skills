@@ -46,8 +46,8 @@ jq -e '
   and .result_type == "profile"
   and .target_models == [
     "openai/gpt-5.6-luna",
-    "x-ai/grok-4.5",
-    "google/gemini-3.6-flash"
+    "x-ai/grok-4.6",
+    "google/gemini-3.7-flash"
   ]
   and .judge_model == "anthropic/claude-sonnet-5"
   and .replicate_count == 5

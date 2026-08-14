@@ -35,7 +35,7 @@ grep -q 'timeout-minutes: 360' "$WORKFLOW" \
   || fail "workflow timeout must accommodate the bounded retry matrix"
 
 grep -q '^      target_models:' "$WORKFLOW" || fail "workflow must expose target_models"
-grep -q "default: openai/gpt-5.6-luna,x-ai/grok-4.5,google/gemini-3.6-flash" \
+grep -q "default: openai/gpt-5.6-luna,x-ai/grok-4.6,google/gemini-3.7-flash" \
   "$WORKFLOW" || fail "workflow must preserve the default target model set"
 grep -q '^      judge_model:' "$WORKFLOW" || fail "workflow must expose judge_model"
 grep -q 'default: anthropic/claude-sonnet-5' "$WORKFLOW" \
