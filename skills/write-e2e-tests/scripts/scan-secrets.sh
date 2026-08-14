@@ -12,7 +12,7 @@ fi
 
 FILE=$1
 
-if [[ ! -f $FILE ]]; then
+if [[ ! -f "$FILE" ]]; then
   echo "Error: '$FILE' is not a file." >&2
   exit 2
 fi
@@ -50,8 +50,11 @@ declare -a SHAPE_PATTERNS=(
 
 ASSIGNMENT_PATTERN='(^|[^A-Za-z0-9_])(password|token|secret|api[_-]?key|apikey)[[:space:]]*[:=][[:space:]]*['\''"][^'\''"]+['\''"]'
 FIELD_NAME_PATTERN='password|token|secret'
+# Value is the second quoted arg (page.fill(selector, value[, opts])).
 TWO_ARG_LITERAL='(\.|[[:alnum:]_])(fill|type)\([[:space:]]*['\''"][^'\''"]+['\''"][[:space:]]*,[[:space:]]*['\''"][^'\''"]+['\''"]'
-ONE_ARG_LITERAL='\.(fill|type)\([[:space:]]*['\''"][^'\''"]+['\''"][[:space:]]*\)'
+# Value is the first quoted arg: .fill('x'), .fill('x', { opts }), or
+# .fill('x', timeout=...) — not .fill('#sel', process.env.X).
+ONE_ARG_LITERAL='\.(fill|type)\([[:space:]]*['\''"][^'\''"]+['\''"][[:space:]]*(\)|,[[:space:]]*\{|,[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=)'
 
 hits=0
 line_no=0

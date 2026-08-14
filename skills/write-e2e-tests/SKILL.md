@@ -36,22 +36,19 @@ another framework, no cross-framework translation.
 
 3. **Convert.** Take a webwright run that has already finished — its
    `plan.md` and `final_script.py` — and produce a standalone Playwright
-   Test spec file. Credential handling is in
-   [references/security.md](references/security.md); the matcher is
-   `scripts/scan-secrets.sh`.
+   Test spec file. How to handle a scan hit is in
+   [references/security.md](references/security.md).
    - **Scan input.** Run `scripts/scan-secrets.sh` on `final_script.py`.
-     Non-zero exit: stop, report each `file:line:category` the script
-     printed, propose an `E2E_*` env mapping for every hit, and wait for
-     explicit confirmation. A visual read of the script is not a scan.
+     Non-zero exit: follow that doc. A visual read of the script is not
+     a scan.
    - **Map and draft.** Map each Critical Point in `plan.md` one-to-one to an
      `expect()` assertion; that mapping is the whole of the conversion,
      don't re-derive what to assert from scratch. Put credential values
      in `process.env`; leave selectors and non-credential fixtures as
      literals.
    - **Scan output.** Run `scripts/scan-secrets.sh` on the drafted spec
-     before writing it. Non-zero exit: conversion failed — stop, report
-     the hits, propose env mappings, and wait. Do not write a spec the
-     script rejects.
+     before writing it. Non-zero exit: follow that doc. Do not write a
+     spec the script rejects.
    Place the spec in the project's existing e2e test directory (its
    Playwright config's `testDir`, or the project's established
    convention), named after the flow being converted.

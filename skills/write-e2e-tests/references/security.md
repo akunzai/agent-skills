@@ -14,6 +14,5 @@ not a valid path; abort if the user declines the mapping.
 
 ## Writing rules
 
-Put credential values in `process.env`. Keep selectors, labels, and
-non-credential fixtures as literals. The output scan must exit 0 before
-the spec is written.
+Keep selectors, labels, and non-credential fixtures as literals. The
+output scan must exit 0 before the spec is written.

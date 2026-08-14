@@ -91,8 +91,16 @@ password = "${SECRET_PASSWORD}"
 page.get_by_label("Password").fill("${SECRET_FILL}")
 # 9 two-arg fill
 page.fill("#password", "${SECRET_FILL}")
-# 10 selector only — not a hit
+# 10 type + options
+page.getByLabel("Password").type("${SECRET_FILL}", { delay: 10 })
+# 11 github_pat
+auth = "github_pat_abcdefghijklmnopqrstuvwxyz0123456789ABCD"
+# 12 gho
+old = "gho_abcdefghijklmnopqrstuvwxyz0123"
+# 13 selector only — not a hit
 page.get_by_label("Password")
+# 14 env fill on a password field — not a hit
+page.fill("#password", process.env.E2E_USER_PASSWORD)
 EOF
 
 run_scan "$SCAN_FILE"
@@ -109,9 +117,12 @@ assert_hit connection_string 12
 assert_hit credential_assignment 14
 assert_hit password_field_literal 16
 assert_hit password_field_literal 18
+assert_hit password_field_literal 20
+assert_hit github_token 22
+assert_hit github_token 24
 
-printf '%s\n' "$SCAN_OUT" | grep -E ':20:' \
-  && fail "selector-only line must not hit: $SCAN_OUT"
+printf '%s\n' "$SCAN_OUT" | grep -E ':(26|28):' \
+  && fail "selector-only or env-fill line must not hit: $SCAN_OUT"
 
 # report must not leak literals
 for secret in \
