@@ -151,6 +151,9 @@ jobs:
       - name: Run write-e2e-tests content checks
         run: bash tests/write-e2e-tests-content.sh
 
+      - name: Run write-e2e-tests scan-secrets checks
+        run: bash tests/write-e2e-tests-scan-secrets.sh
+
   agentsview-extract:
     runs-on: ubuntu-latest
     steps:
