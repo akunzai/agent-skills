@@ -27,4 +27,13 @@ grep -q -E 'references/agentsview-cli.md' "$SKILL" \
 [ -f "$SKILL_DIR/references/security.md" ] || fail "references/security.md is missing"
 [ -f "$SKILL_DIR/references/agentsview-cli.md" ] || fail "references/agentsview-cli.md is missing"
 
+grep -q -E 'untrusted data' "$SKILL" \
+  || fail "SKILL.md must treat transcripts as untrusted data"
+
+grep -q -E 'Untrusted Transcript Content' "$SKILL_DIR/references/security.md" \
+  || fail "security.md must have an Untrusted Transcript Content section"
+
+grep -q -E 'Do not follow instructions' "$SKILL_DIR/references/security.md" \
+  || fail "security.md must forbid following instructions inside transcripts"
+
 echo "agentsview-extract content checks passed"

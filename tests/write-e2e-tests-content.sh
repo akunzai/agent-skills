@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILL_DIR="$ROOT_DIR/skills/write-e2e-tests"
 SKILL="$SKILL_DIR/SKILL.md"
+SECURITY="$SKILL_DIR/references/security.md"
+SCANNER="$SKILL_DIR/scripts/scan-secrets.sh"
 
 fail() {
   echo "write-e2e-tests content check failed: $*" >&2
@@ -71,6 +73,33 @@ grep -q --fixed-strings 'webwright' "$SKILL" \
 
 grep -q --fixed-strings 'https://github.com/microsoft/Webwright' "$SKILL" \
   || fail "webwright repo URL is missing"
+
+[ -f "$SECURITY" ] || fail "references/security.md is missing"
+[ -x "$SCANNER" ] || fail "scripts/scan-secrets.sh is missing or not executable"
+
+grep -q --fixed-strings 'scripts/scan-secrets.sh' "$SKILL" \
+  || fail "Convert step must require scripts/scan-secrets.sh"
+
+grep -q --fixed-strings 'Scan input' "$SKILL" \
+  || fail "input scan gate is missing"
+
+grep -q --fixed-strings 'Scan output' "$SKILL" \
+  || fail "output scan gate is missing"
+
+grep -q --fixed-strings 'process.env' "$SKILL" \
+  || fail "process.env credential writing rule is missing"
+
+grep -q --fixed-strings 'references/security.md' "$SKILL" \
+  || fail "link to references/security.md is missing"
+
+grep -q --fixed-strings 'scan-secrets.sh' "$SECURITY" \
+  || fail "security.md must name scan-secrets.sh as the matcher"
+
+grep -q --fixed-strings 'file:line:category' "$SECURITY" \
+  || fail "security.md must describe the hit report format"
+
+grep -q --fixed-strings 'process.env' "$SECURITY" \
+  || fail "security.md must require process.env mappings"
 
 grep -q --fixed-strings 'Claude Code skill' "$SKILL" \
   || fail "webwright-is-itself-a-skill clarification is missing"
