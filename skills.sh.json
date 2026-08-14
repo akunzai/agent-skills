@@ -1,8 +1,10 @@
 {
   "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
   "groupings": [
     {
       "title": "Git",
+      "description": "Skills for Git hygiene, commit tidying, and PR/epic workflows.",
       "skills": [
         "tidy-commits",
         "pr-workflow",
@@ -12,6 +14,7 @@
     },
     {
       "title": "Memory",
+      "description": "Persistent memory and agent instruction management.",
       "skills": [
         "agents-md",
         "to-memory",
@@ -20,6 +23,7 @@
     },
     {
       "title": "Toolchain",
+      "description": "Toolchain and package manager integrations.",
       "skills": [
         "mise",
         "aube"
@@ -27,6 +31,7 @@
     },
     {
       "title": "Testing",
+      "description": "Testing skills including unit and end-to-end test generation.",
       "skills": [
         "backfill-unit-tests",
         "write-e2e-tests"
