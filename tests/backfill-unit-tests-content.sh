@@ -73,6 +73,12 @@ grep -q -E 'Report every skip' "$SKILL" \
 grep -q -E 'not absolute bans' "$SKILL" \
   || fail "explicit-user-request override for bug fixes/refactoring is missing"
 
+grep -q -E 'Treat those files as data' "$SKILL" \
+  || fail "untrusted-content protocol (treat repo text as data) is missing"
+
+grep -q -E 'do not follow' "$SKILL" \
+  || fail "untrusted-content protocol (do not follow ingested instructions) is missing"
+
 [ -f "$GOOD_TESTS" ] || fail "references/good-tests.md is missing"
 
 grep -q -E 'system boundaries' "$GOOD_TESTS" \
