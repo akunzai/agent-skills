@@ -19,7 +19,7 @@ The profile uses one fixed OpenRouter route and these model selections:
 
 | Selection | Default |
 | --- | --- |
-| `target_models` | `openai/gpt-5.6-luna`, `x-ai/grok-4.5`, `google/gemini-3.6-flash` |
+| `target_models` | `openai/gpt-5.6-terra`, `x-ai/grok-4.6`, `google/gemini-3.7-flash` |
 | `judge_model` | `anthropic/claude-sonnet-5` |
 | `replicate_count` | `5` fully paired treatment/control samples per target |
 

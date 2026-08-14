@@ -16,7 +16,7 @@ grep -q '^      target_models:' "$WORKFLOW" || fail "workflow must expose target
 grep -q '^      judge_model:' "$WORKFLOW" || fail "workflow must expose judge_model"
 [ "$(grep -c '^      replicate_count:' "$WORKFLOW")" -eq 2 ] \
   || fail "manual and reusable workflows must expose replicate_count"
-grep -q 'default: openai/gpt-5.6-luna,x-ai/grok-4.5,google/gemini-3.6-flash' "$WORKFLOW" \
+grep -q 'default: openai/gpt-5.6-terra,x-ai/grok-4.6,google/gemini-3.7-flash' "$WORKFLOW" \
   || fail "workflow must use the default target model set"
 grep -q 'default: anthropic/claude-sonnet-5' "$WORKFLOW" \
   || fail "workflow must use the default judge model"
