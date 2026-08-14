@@ -45,8 +45,10 @@ Firefox; the converted spec uses the browser chosen in *toolchain*.
 
 ## Webwright skill
 
-Webwright is a Claude Code skill
-(https://github.com/microsoft/Webwright). If it is not installed, install
-it the way this environment already installs skills — typically
-`npx skills add microsoft/webwright`. Workspace paths live in that
-skill's `SKILL.md`.
+Install the way this environment already installs skills — typically
+`npx skills add microsoft/webwright`
+(https://github.com/microsoft/Webwright). The skill file is
+`~/.agents/skills/webwright/SKILL.md` (user) or
+`.agents/skills/webwright/SKILL.md` at the git root (project).
+Workspace paths live in that `SKILL.md`. Node `@playwright/test` does
+not satisfy webwright's browser runtime.
