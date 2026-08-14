@@ -1,57 +1,59 @@
 # Templates & Formatting for `AGENTS.md`
 
-This document provides starter structures, formatting rules, and progressive disclosure configurations for `AGENTS.md` files.
+Starter skeletons only. Fill every placeholder from repo evidence. Skip
+init-script dumps. https://agents.md/ is the format: plain Markdown acting as
+an index. Keep the root file under 100 lines.
 
-Reference the open AGENTS.md format at https://agents.md/. AGENTS.md is plain Markdown acting as an **Index-Driven Entrypoint**; common useful sections include project overview, build/test commands, code style, testing instructions, and security considerations. Keep root files under 100 lines. Offload multi-step SOPs to dedicated Skills or auxiliary Markdown files (*Context Offloading*).
-
----
-
-## 1. Progressive Disclosure Starter Template
-
-Use this starter template when creating a new `AGENTS.md` file. Prefer **Rich References** (pointers to type schemas and gold-standard tests) over long prose specifications.
+## 1. Root starter
 
 ```markdown
 # [Project Name] Developer Guidelines
 
-## Quick Commands
-- Build: <command> (e.g., npm run build)
-- Test All: <command> (e.g., pytest)
-- Single Test: <command> <filepath> (e.g., npx vitest run src/utils.test.ts)
-- Lint/Format: <command> (e.g., npx eslint .)
+This is a <one-sentence project description>.
 
-## Rich References & Core Schemas
-- Domain Schemas: @src/types/index.ts
-- API Contracts: @src/api/schema.ts
-- Gold-Standard Test Spec: @tests/example.spec.ts
+This project uses <package manager>.
 
-## Architecture Overview
-- `/src`: Main application logic
-  - `/src/components`: UI components
-  - `/src/hooks`: Custom React hooks
-- `/tests`: Automated test suites
+## Commands
+- <only non-standard or expensive-to-discover commands, e.g. a single-test invocation>
 
-## Code Style & Conventions
-- <Language/framework conventions verified from repo files, e.g. package manifests, config files, and existing code>
-- <Formatting/linting conventions backed by config or nearby code>
-- <Module boundaries or file organization rules that are specific to this repository>
-
-## Workflows & Context Offloading
-- **Single-Test Run**: Always target single test files during iteration for speed.
-- **Complex SOPs**: For database migration or deployment procedures, see @docs/deploy-sop.md or invoke relevant skills.
+## Pointers
+- Domain schemas: @src/types/index.ts
+- Gold-standard test: @tests/example.spec.ts
+- <Domain> conventions: docs/<domain>.md
 
 ## Self-Reflection
-- **Candidate**: Distill non-obvious gotchas, hidden configurations, or project patterns into concise, non-derivable rules (≤ 2 bullets, context-tagged, no drifting metrics). Propose the candidate to the user before writing anything.
-- **Promote**: On confirmation, write it to a dedicated file — never inline in `AGENTS.md` itself. Merge into an existing topic doc if one covers the subject, otherwise create `docs/<topic>.md`; fall back to `docs/lessons-learned.md` for miscellaneous items. Add or update a single `@path` reference line per file under Rich References.
-- **Prune**: Drop entries once stale (obsolete version, now enforced by a linter/type/test, duplicated elsewhere, or a debugging transcript) — not by a fixed entry count.
+- **Candidate**: Distill a non-obvious gotcha into ≤ 2 context-tagged bullets. Propose it before writing.
+- **Promote**: On confirmation, write it to a dedicated file — merge an existing topic doc, else `docs/<topic>.md`, else `docs/lessons-learned.md`. Add or update one `@path` line under Pointers.
+- **Prune**: Drop entries once stale (obsolete version, now enforced, duplicated, or a transcript) — not by a fixed count.
 ```
 
-Don't add a Rich Reference line for a lessons-learned or topic file in a brand-new `AGENTS.md` — there's no history to document yet. Add it later, per Section 4 below, once the first candidate is confirmed and promoted.
+Omit the package-manager line when it is the ecosystem default. Omit a
+lessons-learned `@path` until the first candidate is confirmed and promoted.
+Language-specific rules belong in `docs/<domain>.md`, reached by a light-touch
+pointer (`For TypeScript conventions, see docs/TYPESCRIPT.md`).
 
----
+Code style bullets belong here only when a nearby file or config proves them.
 
-## 2. Claude Code Compatibility Section
+## 2. Monorepo split
 
-If the user requests compatibility with Claude Code, append this concise section to the bottom of `AGENTS.md`:
+Root file — repo-wide facts only:
+
+```markdown
+This is a monorepo of <services>.
+This project uses <workspace tool>.
+See each package's AGENTS.md for package-specific guidance.
+```
+
+Package file — that package's purpose, stack, and pointers:
+
+```markdown
+This package is a <one-sentence description>.
+Follow docs/<package>-conventions.md for design patterns.
+```
+
+## 3. Claude Code compatibility
+
+If the user requests compatibility with Claude Code, append:
 
 ```markdown
 ## Claude Code Compatibility
@@ -59,46 +61,37 @@ If the user requests compatibility with Claude Code, append this concise section
 `CLAUDE.md` is a symbolic link pointing to `AGENTS.md`. Edit `AGENTS.md` directly.
 ```
 
-Create the symbolic link in the repository root only when `CLAUDE.md` is absent or already points to `AGENTS.md`:
+Create the symbolic link in the repository root only when `CLAUDE.md` is absent
+or already points to `AGENTS.md`:
+
 ```bash
 ln -s AGENTS.md CLAUDE.md
 ```
 
-If `CLAUDE.md` already exists and is not the intended symlink, do not replace it blindly. Read it, summarize any unique instructions, propose a migration into `AGENTS.md`, and ask for explicit approval before moving or replacing the file.
+If `CLAUDE.md` already exists and is not the intended symlink, do not replace it
+blindly. Read it, summarize any unique instructions, propose a migration into
+`AGENTS.md`, and ask for explicit approval before moving or replacing the file.
 
----
-
-## 3. Advanced Imports & Progressive Disclosure (Lazy Loading)
-
-To maintain modularity and avoid overloading `AGENTS.md` with every detail, use imports for auxiliary guidelines (supported by agent systems including Claude Code):
+## 4. Pointers & lazy loading
 
 ```markdown
-# Auxiliary Instructions (Loaded On-Demand)
 - Deployment SOP: @docs/deploy.md
-- Database Migration: @docs/db-migration.md
-- Personal Overrides: @~/.claude/my-project-instructions.md
+- Database migration: @docs/db-migration.md
 ```
-- `@path/to/file` tells the agent to load the referenced file on-demand (*Lazy Loading*).
-- Keep root `AGENTS.md` lean (< 100 lines) by offloading deep specs to sub-documents.
 
----
+`@path/to/file` is the on-demand load. A domain doc may itself point deeper.
 
-## 4. Self-Reflection Reference Files (Optional)
+## 5. Self-Reflection entry shape
 
-Create these files only once the project has accumulated non-obvious institutional knowledge discovered through problem-solving (see Section 4 of `SKILL.md`). Always include context tags (e.g. library version or OS scope).
-
-Write the entry into the relevant file — merge into an existing topic doc if one covers the subject, otherwise create `docs/<topic>.md`; use `docs/lessons-learned.md` as the fallback for miscellaneous items:
+Create the topic file only after a confirmed candidate (see `SKILL.md` §4).
+Gates live in [quality-criteria.md](quality-criteria.md).
 
 ```markdown
 - [Node 20+] Running `npm test` without `--forceExit` hangs in CI due to an unclosed DB connection in `src/db/client.ts`.
 ```
 
-Then reference the file from `AGENTS.md`'s Rich References section — never inline the entry in `AGENTS.md` itself:
+Then add one pointer from the root file:
 
 ```markdown
-## Rich References & Core Schemas
 - Lessons Learned: @docs/lessons-learned.md
 ```
-
-> [!IMPORTANT]
-> **Pruning Hygiene**: Periodically review these files and drop entries once stale — obsolete package version, now enforced by a linter/type/test, duplicated elsewhere, or a one-off debugging transcript. There is no fixed entry-count cap; prune by relevance, not size.
