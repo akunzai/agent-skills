@@ -11,7 +11,7 @@ DEFAULT_PROVIDER="openrouter"
 DEFAULT_GATEWAY="openrouter-chat-completions"
 DEFAULT_BASE_URL="https://openrouter.ai/api/v1"
 DEFAULT_TARGET_MODELS=(
-  "openai/gpt-5.6-luna"
+  "openai/gpt-5.6-terra"
   "x-ai/grok-4.6"
   "google/gemini-3.7-flash"
 )
