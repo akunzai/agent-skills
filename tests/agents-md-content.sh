@@ -34,4 +34,36 @@ grep -R -q -E 'plain Markdown|no required fields' "$SKILL_DIR" \
 grep -R -q -E 'closest .*AGENTS\.md|nearest .*AGENTS\.md' "$SKILL_DIR" \
   || fail "closest AGENTS.md precedence guidance is missing"
 
+grep -q -F 'instruction budget' "$SKILL_DIR/SKILL.md" \
+  || fail "SKILL.md must name the instruction budget"
+
+grep -q -E 'every single task|every-task' "$SKILL_DIR/SKILL.md" \
+  || fail "SKILL.md must define the every-task placement test"
+
+grep -R -q -E 'one-sentence project description|One-sentence project description' "$SKILL_DIR" \
+  || fail "one-sentence project description guidance is missing"
+
+grep -R -q -E 'package manager' "$SKILL_DIR/SKILL.md" \
+  || fail "SKILL.md must mention package manager placement"
+
+grep -R -q -E 'capabilities' "$SKILL_DIR" \
+  || fail "capabilities-over-paths guidance is missing"
+
+grep -R -q -E 'contradict' "$SKILL_DIR" \
+  || fail "contradiction-finding guidance is missing"
+
+grep -R -q -E 'init-script|initialization script|auto-generate' "$SKILL_DIR" \
+  || fail "hand-author / no init-script dump guidance is missing"
+
+grep -R -q -E 'light-touch|light touch' "$SKILL_DIR" \
+  || fail "light-touch pointer language guidance is missing"
+
+if grep -n -E 'directory mappings' "$SKILL_DIR/references/quality-criteria.md"; then
+  fail "quality rubric must not require file-by-file directory mappings"
+fi
+
+if grep -n -E '/src/components|/src/hooks' "$SKILL_DIR/references/templates.md"; then
+  fail "starter template must not ship a file-tree cache"
+fi
+
 echo "agents-md content checks passed"

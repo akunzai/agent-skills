@@ -48,12 +48,14 @@ Manage multi-issue epics and task hierarchies on GitLab (supporting Premium/Ulti
 
 #### [`agents-md`](skills/agents-md/SKILL.md)
 
-Audit, create, and improve `AGENTS.md` files to give AI assistants persistent project memory.
+Audit, create, slim, and maintain `AGENTS.md` as a small index: one-sentence
+project description, non-default package manager, non-standard commands, and
+pointers. Spends the instruction budget on every-task facts; offloads the rest.
 
 Use it when you want to:
 
-- Bootstrap an `AGENTS.md` for a new project
-- Audit and score an existing `AGENTS.md` for quality
+- Bootstrap an `AGENTS.md` from repo evidence (not an init-script dump)
+- Audit, score, and slim an existing `AGENTS.md` (contradictions, bloat, micromanagement)
 - Keep `AGENTS.md` in sync with Claude Code via a `CLAUDE.md` symlink
 - Surface discovered knowledge (gotchas, quirks) as a candidate after solving
   a problem, then write it back to `AGENTS.md`'s references once you confirm

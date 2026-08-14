@@ -32,21 +32,19 @@ The codebase does not contain an `AGENTS.md` or `CLAUDE.md`. The agent discovers
    ```bash
    ln -s AGENTS.md CLAUDE.md
    ```
-   And writes `AGENTS.md` incorporating the starter template along with the compatibility explanation block:
+   And writes `AGENTS.md` from repo evidence — one-sentence description, non-default package manager, non-standard commands, pointers — plus the compatibility explanation block:
 
    ```markdown
    # Project Developer Guidelines
 
-   ## Quick Commands
-   - Build: npm run build
-   - Test: npm test
+   This is a <one-sentence project description>.
+
+   ## Commands
+   - Test one file: npm test -- <filepath>
 
    ## Claude Code Compatibility
 
-   > [!NOTE]
-   > This repository maintains compatibility with Claude Code. The file `CLAUDE.md` is a symbolic link pointing to `AGENTS.md`. 
-   > All commands, style guides, and workflows defined in `AGENTS.md` apply to both Antigravity and Claude Code.
-   > **DO NOT** delete the `CLAUDE.md` symbolic link or edit it independently; all guidelines must be updated directly in `AGENTS.md`.
+   `CLAUDE.md` is a symbolic link pointing to `AGENTS.md`. Edit `AGENTS.md` directly.
    ```
 
 ---
@@ -70,13 +68,15 @@ An `AGENTS.md` exists but is over-constrained with defensive micromanagement ("a
    > - **Prose Specs**: Contains a 30-line text tutorial on React state instead of pointing to Rich References.
    > - **Legacy Inline Lessons Learned**: An inline `## Lessons Learned` section (old writeback format) holds 8 entries — several stale and missing context tags — that should be promoted to dedicated Self-Reflection reference files instead.
    > - **SOP Bloat**: Includes a 12-step DB migration script directly in root `AGENTS.md`.
+   > - **Instruction budget**: Language-specific rules and a file-by-file map fail the every-task test.
 
 3. **Apply Improvements (Progressive Disclosure & Context Offloading)**
-   The agent rewrites `AGENTS.md` to function as an Index-driven Entrypoint (< 100 lines):
-   - Removes all generic micromanagement rules (trusts model reasoning).
-   - Replaces prose specs with Rich References (`Domain Schemas: @src/types/index.ts`).
-   - Offloads DB Migration SOP to `@docs/db-migration.md` (*Context Offloading*).
-   - Migrates the inline `Lessons Learned` entries out per Self-Reflection: merges each into an existing topic doc where one covers the subject, otherwise creates `docs/<topic>.md` (or `docs/lessons-learned.md` as fallback), drops stale/duplicate entries, and replaces the section with `@path` reference line(s) under Rich References.
+   The agent rewrites `AGENTS.md` to function as an index (< 100 lines):
+   - Asks which of any contradictory pair to keep, then deletes no-ops / vague / obvious lines.
+   - Removes generic micromanagement (Trust Model Judgment).
+   - Replaces prose specs and path maps with Rich References and capabilities.
+   - Offloads DB Migration SOP to `@docs/db-migration.md`.
+   - Migrates the inline `Lessons Learned` entries out per Self-Reflection: merges each into an existing topic doc where one covers the subject, otherwise creates `docs/<topic>.md` (or `docs/lessons-learned.md` as fallback), drops stale/duplicate entries, and replaces the section with `@path` reference line(s) under Pointers.
 
 ---
 
@@ -122,3 +122,32 @@ A repository has `AGENTS.md` and a regular `CLAUDE.md` file with separate instru
    ```bash
    ln -s AGENTS.md CLAUDE.md
    ```
+
+---
+
+## Example 5: Refactor a ball-of-mud `AGENTS.md`
+
+### Scenario
+A large root file mixes TypeScript style, deploy SOP, testing, and two contradictory package-manager lines.
+
+### Flow
+
+1. **Find contradictions** — surface both package-manager lines and ask which to keep.
+2. **Extract essentials** — one-sentence project description, non-default package manager, non-standard commands, every-task facts.
+3. **Group the rest** — TypeScript → `docs/TYPESCRIPT.md`, testing → `docs/TESTING.md`, deploy SOP → `docs/deploy.md`.
+4. **Rewrite the root** as a light-touch index with markdown links / `@path` pointers.
+5. **Flag for deletion** — generic hygiene, vague lines, and any init-script dump.
+
+---
+
+## Example 6: Monorepo root vs package
+
+### Scenario
+A workspace has a root `AGENTS.md` and `packages/api/AGENTS.md`.
+
+### Flow
+
+1. Discovery lists both files. The agent names the target from the user's path.
+2. Root keeps repo purpose, workspace tool, and a pointer to package files.
+3. `packages/api/AGENTS.md` keeps that package's one-sentence description, stack, and domain pointers.
+4. Neither file repeats the other. The closest file still wins for files under `packages/api`.

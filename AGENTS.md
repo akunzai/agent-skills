@@ -1,55 +1,33 @@
 # agent-skills Developer Guidelines
 
-## Quick Commands
-- Test All: `mise run test`
-- Single Test: `bash tests/<name>.sh` (e.g., `bash tests/agents-md-content.sh`)
-- Lint All: `mise run lint`
-- Lint Shell Scripts: `mise run lint-shell`
-- Lint Workflows: `mise run lint-actions`
+This is a repository of reusable agent skills (Memory, Git, Toolchain, Testing)
+for AI coding assistants.
 
-## Rich References & Specs
-- Contribution Guidelines & Skill Structure Spec: @CONTRIBUTING.md
-- Gold-Standard Test Spec: @tests/agents-md-content.sh
+This project uses mise for the toolchain and task runner.
 
-## Architecture Overview
-- `/skills`: Agent skills directory (`/skills/<skill-name>/SKILL.md`)
-- `/tests`: Bash automated test scripts (`tests/*.sh`)
-- `.github/workflows`: CI workflows
+## Commands
 
-## Workflows & Conventions
-- **Skill Requirements**: Every skill lives in `skills/<name>/` and must contain `SKILL.md` with valid YAML frontmatter (`name`, `description`).
-- **Skill Documentation**: When creating or updating a skill in `skills/`, always update `README.md` to document its description and link. If the skill is stable/recommended, also add or move its slug in the matching group in `skills.sh.json` — `tests/skill-catalog-sync.sh` enforces that the two stay in sync.
-- **Shell Scripts**: Shell script style and linting standards are defined in @CONTRIBUTING.md.
-- **Single Test Execution**: Always run a targeted single test (`bash tests/<name>.sh`) during fast iteration.
-- **Self-Reflection**: When non-obvious gotchas or framework quirks are discovered, propose a concise, context-tagged Candidate to the user; on confirmation, promote it into the relevant `docs/agents/<topic>.md` (merge if one exists, else create) or `docs/agents/lessons-learned.md` as fallback, and add/update its `@path` line under Rich References & Specs. Prune entries when stale (version upgraded past the tagged context, enforced by lint/type/test, duplicated, or a debugging transcript) rather than by a fixed count.
+- Test one file: `bash tests/<name>.sh` (e.g. `bash tests/agents-md-content.sh`)
+
+Tasks live in `mise.toml` (`mise run test`, `mise run lint`).
+
+## Pointers
+
+- Skill structure and shell style: @CONTRIBUTING.md
+- Gold-standard test spec: @tests/agents-md-content.sh
+- Skill catalog (`README.md` + `skills.sh.json`): @tests/skill-catalog-sync.sh
+- Issue tracker: @docs/agents/issue-tracker.md
+- Triage labels: @docs/agents/triage-labels.md
+- Domain docs: @docs/agents/domain.md
+- When changing a covered skill: @docs/evals/api-paired.md (credential-free
+  fixture tests locally; live run via `.github/workflows/api-paired-eval.yml`)
+
+## Self-Reflection
+
+- **Candidate**: Distill a non-obvious gotcha into ≤ 2 context-tagged bullets. Propose it before writing.
+- **Promote**: On confirmation, write it to a dedicated file — merge an existing topic doc, else `docs/agents/<topic>.md`, else `docs/agents/lessons-learned.md`. Add or update one `@path` line under Pointers.
+- **Prune**: Drop entries once stale (obsolete version, now enforced, duplicated, or a transcript) — not by a fixed count.
 
 ## Claude Code Compatibility
 
-> [!NOTE]
-> This repository maintains compatibility with Claude Code. The file `CLAUDE.md` is a symbolic link pointing to `AGENTS.md`. 
-> All commands, style guides, and workflows defined in `AGENTS.md` apply to both Antigravity (and other agentic assistants) and Claude Code.
-> **DO NOT** delete the `CLAUDE.md` symbolic link or edit it independently; all guidelines must be updated directly in `AGENTS.md`.
-
-## Agent skills
-
-### Issue tracker
-
-Issues and PRDs are tracked in GitHub Issues. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Use the repository's default canonical triage labels. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-This is a single-context repository. See `docs/agents/domain.md`.
-
-### Skill evaluation
-
-The API-level response evaluation is manual-only and diagnostic; see
-`docs/evals/api-paired.md`. When changing a covered skill, run the
-credential-free fixture and paired-runner contract tests locally. For
-real model-backed evidence, dispatch `.github/workflows/api-paired-eval.yml`
-with the `skills-evals` environment-scoped secret. Spend is governed by the
-OpenRouter account budget; the workflow does not add a local cost gate. It is
-not a pull-request or release gate.
+`CLAUDE.md` is a symbolic link pointing to `AGENTS.md`. Edit `AGENTS.md` directly.
