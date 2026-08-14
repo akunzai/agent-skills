@@ -95,10 +95,11 @@ feature-first development, use `tdd` instead.
 
 #### [`write-e2e-tests`](skills/write-e2e-tests/SKILL.md)
 
-Convert a completed [webwright](https://github.com/microsoft/Webwright)
-browser-exploration run into a durable, checked-in Playwright Test e2e spec —
-mapping its Critical Points to assertions and validating the result is
-stable and CI-discoverable.
+Turn a browser UI flow into a durable, checked-in Playwright Test e2e
+spec. Unblocks a missing Playwright toolchain or
+[webwright](https://github.com/microsoft/Webwright) run after
+confirmation, converts Critical Points to assertions, and validates the
+result is stable and CI-discoverable.
 
 ## Plugins
 

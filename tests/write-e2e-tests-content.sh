@@ -5,6 +5,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILL_DIR="$ROOT_DIR/skills/write-e2e-tests"
 SKILL="$SKILL_DIR/SKILL.md"
 SECURITY="$SKILL_DIR/references/security.md"
+SETUP="$SKILL_DIR/references/setup.md"
+CI="$SKILL_DIR/references/ci.md"
 SCANNER="$SKILL_DIR/scripts/scan-secrets.sh"
 
 fail() {
@@ -23,14 +25,17 @@ grep -q -E '^description: >-' "$SKILL" \
 grep -q -E 'Use when' "$SKILL" \
   || fail "description should start triggers with 'Use when'"
 
-grep -q -E 'Browser-driven UI flows only' "$SKILL" \
-  || fail "browser-UI-only scope statement is missing"
+grep -q -E 'converting a completed webwright' "$SKILL" \
+  || fail "description branch: convert a completed run is missing"
 
-grep -q -E 'not API-level end-to-end tests' "$SKILL" \
+grep -q -E 'unblocking a missing' "$SKILL" \
+  || fail "description branch: unblock missing toolchain/run is missing"
+
+grep -q --fixed-strings 'API-level end-to-end' "$SKILL" \
   || fail "API-level e2e exclusion is missing"
 
-grep -q -E 'exploration engine, unchanged' "$SKILL" \
-  || fail "reuses-webwright's-workflow-unchanged statement is missing"
+grep -q -E 'exploration engine' "$SKILL" \
+  || fail "webwright-as-exploration-engine statement is missing"
 
 grep -q -E 'one-to-one to an' "$SKILL" \
   || fail "Critical-Point-to-assertion mapping rule is missing"
@@ -63,10 +68,7 @@ grep -q -E 'stop and report' "$SKILL" \
   || fail "stop-and-report rule is missing"
 
 grep -q --fixed-strings '@playwright/test' "$SKILL" \
-  || fail "missing-Playwright-Test-infrastructure check is missing"
-
-grep -q -E 'explicit confirmation before proceeding' "$SKILL" \
-  || fail "webwright-install-confirmation rule is missing"
+  || fail "Playwright Test infrastructure check is missing"
 
 grep -q --fixed-strings 'webwright' "$SKILL" \
   || fail "webwright reference is missing"
@@ -74,6 +76,47 @@ grep -q --fixed-strings 'webwright' "$SKILL" \
 grep -q --fixed-strings 'https://github.com/microsoft/Webwright' "$SKILL" \
   || fail "webwright repo URL is missing"
 
+# Orchestration + confirmations (leading words, not letter codes)
+grep -q --fixed-strings '**Toolchain.**' "$SKILL" \
+  || fail "toolchain confirmation step is missing"
+
+grep -q --fixed-strings '**Explore.**' "$SKILL" \
+  || fail "explore confirmation step is missing"
+
+grep -q -E 'Confirm on its own' "$SKILL" \
+  || fail "explore must stay a separate confirmation"
+
+grep -q -E 'qualifying run' "$SKILL" \
+  || fail "qualifying-run detection step is missing"
+
+grep -q -E 'reuse it' "$SKILL" \
+  || fail "reuse qualifying run by default is missing"
+
+grep -q -E 'Convert is the next step' "$SKILL" \
+  || fail "auto-convert after webwright Done is missing"
+
+grep -q -E 'Exploration stays in webwright' "$SKILL" \
+  || fail "exploration must stay in webwright"
+
+grep -q --fixed-strings '.gitignore' "$SKILL" \
+  || fail "gitignore ask is missing"
+
+grep -q --fixed-strings 'git rm --cached' "$SKILL" \
+  || fail "must forbid git rm --cached"
+
+grep -q -E 'Cypress' "$SKILL" \
+  || fail "existing Cypress/Selenium coexistence rule is missing"
+
+grep -q --fixed-strings 'references/setup.md' "$SKILL" \
+  || fail "link to references/setup.md is missing"
+
+grep -q --fixed-strings 'references/ci.md' "$SKILL" \
+  || fail "link to references/ci.md is missing"
+
+grep -q -E 'every item is marked' "$SKILL" \
+  || fail "inventory completion criterion is missing"
+
+# Security gates
 [ -f "$SECURITY" ] || fail "references/security.md is missing"
 [ -x "$SCANNER" ] || fail "scripts/scan-secrets.sh is missing or not executable"
 
@@ -101,7 +144,41 @@ grep -q --fixed-strings 'file:line:category' "$SECURITY" \
 grep -q --fixed-strings 'process.env' "$SECURITY" \
   || fail "security.md must require process.env mappings"
 
-grep -q --fixed-strings 'Claude Code skill' "$SKILL" \
-  || fail "webwright-is-itself-a-skill clarification is missing"
+# Setup + CI references own the scaffold / platform details
+[ -f "$SETUP" ] || fail "references/setup.md is missing"
+[ -f "$CI" ] || fail "references/ci.md is missing"
+
+grep -q --fixed-strings 'Claude Code skill' "$SETUP" \
+  || fail "setup.md must say webwright is a Claude Code skill"
+
+grep -q --fixed-strings 'aube add' "$SETUP" \
+  || fail "setup.md must follow aube when the project uses it"
+
+grep -q --fixed-strings 'Desktop Firefox' "$SETUP" \
+  || fail "setup.md must default new config to Firefox"
+
+grep -q --fixed-strings 'Desktop Chrome' "$SETUP" \
+  || fail "setup.md must document the Chromium switch"
+
+grep -q --fixed-strings 'playwright install firefox chromium' "$SETUP" \
+  || fail "setup.md must install both browser binaries"
+
+grep -q --fixed-strings 'npx skills add microsoft/webwright' "$SETUP" \
+  || fail "setup.md must name the webwright install command"
+
+grep -q --fixed-strings 'Leave an existing' "$SETUP" \
+  || fail "setup.md must leave an existing playwright.config"
+
+grep -q --fixed-strings 'playwright install --with-deps' "$CI" \
+  || fail "ci.md must install browsers with OS deps"
+
+grep -q --fixed-strings 'upload-artifact' "$CI" \
+  || fail "ci.md must upload the Playwright report on GitHub"
+
+grep -q --fixed-strings 'GitHub Actions' "$CI" \
+  || fail "ci.md must cover GitHub Actions"
+
+grep -q --fixed-strings '.gitlab-ci.yml' "$CI" \
+  || fail "ci.md must cover GitLab CI"
 
 echo "write-e2e-tests content checks passed"
