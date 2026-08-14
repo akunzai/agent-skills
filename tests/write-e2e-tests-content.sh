@@ -116,6 +116,25 @@ grep -q --fixed-strings 'references/ci.md' "$SKILL" \
 grep -q -E 'every item is marked' "$SKILL" \
   || fail "inventory completion criterion is missing"
 
+# shellcheck disable=SC2088
+grep -q -E '~/.agents/skills/webwright/SKILL.md' "$SKILL" \
+  || fail "inventory must check the user-level webwright path"
+
+grep -q --fixed-strings '<repo>/.agents/skills/webwright/SKILL.md' "$SKILL" \
+  || fail "inventory must check the project-level webwright path"
+
+grep -q -E 'loaded-skill list is not evidence' "$SKILL" \
+  || fail "inventory must not treat the loaded-skill list as presence"
+
+grep -q -E 'qualifying run from step 3 is on disk' "$SKILL" \
+  || fail "explore completion must require a qualifying run on disk"
+
+grep -q -E 'Reading source is not' "$SKILL" \
+  || fail "explore must treat source-reading as not explore"
+
+grep -q -E 'return to Explore' "$SKILL" \
+  || fail "convert must return to explore when the qualifying run is missing"
+
 # Security gates
 [ -f "$SECURITY" ] || fail "references/security.md is missing"
 [ -x "$SCANNER" ] || fail "scripts/scan-secrets.sh is missing or not executable"
@@ -148,8 +167,18 @@ grep -q --fixed-strings 'process.env' "$SECURITY" \
 [ -f "$SETUP" ] || fail "references/setup.md is missing"
 [ -f "$CI" ] || fail "references/ci.md is missing"
 
-grep -q --fixed-strings 'Claude Code skill' "$SETUP" \
-  || fail "setup.md must say webwright is a Claude Code skill"
+grep -q --fixed-strings 'npx skills add microsoft/webwright' "$SETUP" \
+  || fail "setup.md must name the webwright install command"
+
+# shellcheck disable=SC2088
+grep -q -E '~/.agents/skills/webwright/SKILL.md' "$SETUP" \
+  || fail "setup.md must name the user-level webwright path"
+
+grep -q --fixed-strings 'git root (project)' "$SETUP" \
+  || fail "setup.md must name the project-level webwright path"
+
+grep -q --fixed-strings 'not satisfy webwright' "$SETUP" \
+  || fail "setup.md must say Node Playwright does not satisfy webwright"
 
 grep -q --fixed-strings 'aube add' "$SETUP" \
   || fail "setup.md must follow aube when the project uses it"
@@ -162,9 +191,6 @@ grep -q --fixed-strings 'Desktop Chrome' "$SETUP" \
 
 grep -q --fixed-strings 'playwright install firefox chromium' "$SETUP" \
   || fail "setup.md must install both browser binaries"
-
-grep -q --fixed-strings 'npx skills add microsoft/webwright' "$SETUP" \
-  || fail "setup.md must name the webwright install command"
 
 grep -q --fixed-strings 'Leave an existing' "$SETUP" \
   || fail "setup.md must leave an existing playwright.config"

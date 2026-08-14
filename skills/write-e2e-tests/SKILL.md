@@ -26,8 +26,12 @@ Selenium suite stays; confirm before adding Playwright beside it.
    absent: a JS package manifest and its package manager; `@playwright/test`
    and `playwright.config`; the webwright skill; a qualifying run; another
    e2e stack (Cypress, Selenium); existing CI files; webwright artifact
-   paths git still tracks. Leave this step when every item is marked. No
-   package manifest — stop and report.
+   paths git still tracks. Webwright is present when
+   `~/.agents/skills/webwright/SKILL.md` or
+   `<repo>/.agents/skills/webwright/SKILL.md` exists (follow
+   symlinks). The session's loaded-skill list is not evidence. Leave
+   this step when every item is marked. No package manifest — stop and
+   report.
 
 2. **Toolchain.** If Playwright, browsers, or webwright are missing, confirm
    once for those items and follow
@@ -41,7 +45,9 @@ Selenium suite stays; confirm before adding Playwright beside it.
 
 4. **Explore.** Confirm on its own before driving the real site. If the
    user has not named the flow, ask. Load webwright's `SKILL.md` and run
-   it to Done. Convert is the next step. Exploration stays in webwright.
+   it to Done. Leave this step when webwright reports Done and a
+   qualifying run from step 3 is on disk. Reading source is not
+   Explore. Convert is the next step. Exploration stays in webwright.
 
 5. **Repo — gitignore.** Propose `.gitignore` rules when unignored
    webwright artifacts exist (`outputs/`, `final_runs/`, screenshots/logs)
@@ -49,9 +55,10 @@ Selenium suite stays; confirm before adding Playwright beside it.
    `playwright-report/`). Write only after confirmation. Add rules only;
    do not `git rm --cached` already-tracked files.
 
-6. **Convert.** Take the qualifying run's `plan.md` and `final_script.py`
-   and produce a standalone Playwright Test spec file. How to handle a
-   scan hit is in [references/security.md](references/security.md).
+6. **Convert.** Start only when step 3's `plan.md` and `final_script.py`
+   exist; missing — return to Explore. Take those files and produce a
+   standalone Playwright Test spec file. How to handle a scan hit is in
+   [references/security.md](references/security.md).
    - **Scan input.** Run `scripts/scan-secrets.sh` on `final_script.py`.
      Non-zero exit: follow that doc. A visual read of the script is not
      a scan.
