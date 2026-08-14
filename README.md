@@ -68,7 +68,7 @@ Self-Reflection mechanism.
 
 #### [`agentsview-extract`](skills/agentsview-extract/SKILL.md)
 
-Analyze conversation history across AI agents using `agentsview` (CLI or MCP) to extract reusable gotchas/preferences into `AGENTS.md` or construct new skills.
+Persist gotchas, preferences, or a repeated workflow from recorded agent history into `AGENTS.md` or a new skill. After confirmation, installs AgentsView and the official `agentsview-finding-history` skill when they are missing.
 
 ### Toolchain
 

@@ -1,6 +1,6 @@
 # Security & Secrets Redaction Rules
 
-When parsing or reading session transcripts via `agentsview` (CLI or MCP), transcripts may contain sensitive credentials, API keys, environment variables, or private infrastructure details. Always scrub all output before displaying summaries to the user or persisting data into `AGENTS.md` or `SKILL.md`.
+When parsing or reading session transcripts via `agentsview`, transcripts may contain sensitive credentials, API keys, environment variables, or private infrastructure details. Always scrub all output before displaying summaries to the user or persisting data into `AGENTS.md` or `SKILL.md`.
 
 ## Sensitive Pattern Reference
 
