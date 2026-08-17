@@ -51,6 +51,8 @@ Tracking issue description:
 - [ ] #102 JWT validation middleware
 ```
 Child issue descriptions: `Part of #100` / `Relates to #105`.
+Do not write `Closes`/`Fixes`/`Resolves` next to a tracking issue
+even to say not to close it — GitLab still treats that as a closer.
 
 #### 2. Scoped Labels (`key::value`)
 - `type::epic`: Tracking issue.

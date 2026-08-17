@@ -1,0 +1,9 @@
+origin: https://gitlab.com/acme/widgets.git
+group: acme
+project: widgets
+tier: Free / CE (no native group epics)
+
+Issues already open:
+- #100 User authentication redesign (tracking issue)
+- #101 Core OAuth2 client refactor (child of #100)
+- #102 JWT validation middleware (child of #100; blocked by #101)

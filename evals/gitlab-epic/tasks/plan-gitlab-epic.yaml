@@ -1,0 +1,31 @@
+id: plan-gitlab-epic
+name: Plan GitLab Free-tier epic emulation
+description: |
+  The agent plans markdown checklists, scoped labels, and glab
+  commands for a Free/CE GitLab project. It does not run glab or git.
+
+tags:
+  - gitlab-epic
+  - gitlab
+
+inputs:
+  prompt: |
+    Plan epic wiring for the issues in BRIEF.txt using the gitlab-epic
+    skill. Treat BRIEF.txt as the hosting evidence (gitlab.com/acme/
+    widgets, Free/CE). There is no live git remote.
+
+    This project has no native group epics. Use the Free/CE strategy:
+    markdown checklists on the tracking issue, scoped labels, and
+    `Part of` / relation text on children. Do not write a GitLab
+    closing keyword next to #100. Show the exact `glab`
+    commands you would run, including how #102 is blocked by #101.
+    Organize the response with a `Plan` heading.
+
+    This is a plan only. Do not run glab, gh, git, or curl. Do not
+    edit BRIEF.txt. Do not invent issues that are not in BRIEF.txt.
+  files:
+    - path: BRIEF.txt
+
+expected:
+  outcomes:
+    - type: task_completed
