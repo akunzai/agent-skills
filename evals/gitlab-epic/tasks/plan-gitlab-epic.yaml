@@ -16,10 +16,12 @@ inputs:
 
     This project has no native group epics. Use the Free/CE strategy:
     markdown checklists on the tracking issue, scoped labels, and
-    `Part of` / relation text on children. Mention the tracking
-    issue only as `Part of #100` — no closing-keyword
-    counterexamples. Show the exact `glab`
-    commands you would run, including how #102 is blocked by #101.
+    `Part of` / relation text on children. PRs and child issues
+    that only track the epic should say `Part of #100`. In the
+    whole reply, the only `#100` next to English prose must be
+    that `Part of #100` phrase — no counterexamples. Show the
+    exact `glab` commands you would run, including how #102 is
+    blocked by #101.
     Organize the response with a `Plan` heading.
 
     This is a plan only. Do not run glab, gh, git, or curl. Do not
