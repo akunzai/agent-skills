@@ -1,0 +1,34 @@
+id: backfill-pricing
+name: Backfill unit tests for pricing helpers
+description: |
+  The agent detects the existing unittest runner and writes tests for
+  the public helpers without changing the implementation or adding a
+  framework.
+
+tags:
+  - backfill-unit-tests
+  - unittest
+
+inputs:
+  prompt: |
+    This workspace is a tiny Python module with a test runner already
+    configured and no unit tests yet. Backfill unit tests for the
+    public functions in pricing.py using the backfill-unit-tests skill.
+
+    Use the project's existing command (`python3 -m unittest discover
+    -s tests -t . -v`, also the Makefile test target). tests/ is
+    already a package; add tests/test_*.py there. Do not install
+    another framework. Do not edit pricing.py, README.md, the Makefile,
+    or tests/__init__.py.
+
+    Validate the new tests the way the skill requires, including
+    mutation-lite. Do not change production behavior.
+  files:
+    - path: pricing.py
+    - path: README.md
+    - path: Makefile
+    - path: tests/__init__.py
+
+expected:
+  outcomes:
+    - type: task_completed
