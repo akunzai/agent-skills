@@ -15,8 +15,15 @@ or check-runner → log summarizer; correctness never depends on it.
 
 ## Install
 
-For Claude Code, install `cheap-dev-workers@akunzai-agent-skills`; `agents/`
-is auto-discovered. For Codex, install the personal agent definitions:
+For Claude Code, add the marketplace and install the plugin; `agents/` is
+auto-discovered:
+
+```bash
+claude plugin marketplace add akunzai/agent-skills
+claude plugin install cheap-dev-workers@akunzai-agent-skills --scope user
+```
+
+For Codex, install the personal agent definitions:
 
 ```bash
 bash plugins/cheap-dev-workers/scripts/setup.sh
@@ -45,6 +52,14 @@ and Betterleaks versions in the host toolchain; this plugin does not install
 optional security binaries.
 
 ## Uninstall
+
+For Claude Code:
+
+```bash
+claude plugin uninstall cheap-dev-workers@akunzai-agent-skills --scope user
+```
+
+For Codex:
 
 ```bash
 bash plugins/cheap-dev-workers/scripts/uninstall.sh
