@@ -58,4 +58,25 @@ for ((i = 0; i < GROUP_COUNT; i++)); do
     || fail "README.md group '$TITLE' skills ($ACTUAL) do not match skills.sh.json ($EXPECTED)"
 done
 
+# --- Claude plugin: name kebab-cases to "Charley Skills" in `npx skills add` ---
+PLUGIN_JSON="$ROOT_DIR/.claude-plugin/plugin.json"
+MARKETPLACE_JSON="$ROOT_DIR/.claude-plugin/marketplace.json"
+
+[ -f "$PLUGIN_JSON" ] || fail ".claude-plugin/plugin.json is missing"
+jq empty "$PLUGIN_JSON" 2>/dev/null || fail ".claude-plugin/plugin.json is not valid JSON"
+
+PLUGIN_NAME="$(jq -r '.name // empty' "$PLUGIN_JSON")"
+[ "$PLUGIN_NAME" = "charley-skills" ] \
+  || fail ".claude-plugin/plugin.json name is '$PLUGIN_NAME', expected 'charley-skills'"
+
+PLUGIN_SKILLS="$(jq -r '.skills // [] | sort | join(",")' "$PLUGIN_JSON")"
+ON_DISK_SKILLS="$(find "$ROOT_DIR/skills" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; \
+  | sort | sed 's|^|./skills/|' | paste -sd, -)"
+[ "$PLUGIN_SKILLS" = "$ON_DISK_SKILLS" ] \
+  || fail ".claude-plugin/plugin.json skills ($PLUGIN_SKILLS) do not match skills/* ($ON_DISK_SKILLS)"
+
+MARKETPLACE_ENTRY="$(jq -r '.plugins[] | select(.name == "charley-skills") | .source' "$MARKETPLACE_JSON")"
+[ "$MARKETPLACE_ENTRY" = "./" ] \
+  || fail "Claude marketplace is missing charley-skills with source './' (got: '$MARKETPLACE_ENTRY')"
+
 echo "skill-catalog-sync checks passed"

@@ -22,6 +22,14 @@ validation workflows).
 npx skills add akunzai/agent-skills
 ```
 
+The interactive picker groups the catalog as **Charley Skills**. The same set
+is also a Claude Code plugin:
+
+```bash
+claude plugin marketplace add akunzai/agent-skills
+claude plugin install charley-skills@akunzai-agent-skills --scope user
+```
+
 ## Skills
 
 ### Git
