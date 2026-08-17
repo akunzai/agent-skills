@@ -56,15 +56,16 @@ Selenium suite stays; confirm before adding Playwright beside it.
    do not `git rm --cached` already-tracked files.
 
 6. **Convert.** Start only when step 3's `plan.md` and `final_script.py`
-   exist; missing — return to Explore. Take those files and produce a
-   standalone Playwright Test spec file. How to handle a scan hit is in
+   exist; missing — return to Explore. How to handle a scan hit is in
    [references/security.md](references/security.md).
    - **Scan input.** Run `scripts/scan-secrets.sh` on `final_script.py`.
      Non-zero exit: follow that doc. A visual read of the script is not
-     a scan.
+     a scan. Draft only after the scan exits 0, or after every hit has a
+     confirmed `process.env` mapping.
    - **Map and draft.** Map each Critical Point in `plan.md` one-to-one to an
      `expect()` assertion; that mapping is the whole of the conversion.
-     Put credential values in `process.env`; leave selectors and
+     Use `final_script.py` for selectors and action order only. Write
+     credential fields as `process.env` names; leave selectors and
      non-credential fixtures as literals.
    - **Scan output.** Run `scripts/scan-secrets.sh` on the drafted spec
      before writing it. Non-zero exit: follow that doc. Write only a spec
