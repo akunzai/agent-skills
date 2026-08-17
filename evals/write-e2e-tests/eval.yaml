@@ -1,0 +1,68 @@
+name: write-e2e-tests-eval
+description: |
+  Isolated-workspace suite for write-e2e-tests. The agent converts a
+  qualifying webwright run into a Playwright spec and does not run a
+  browser.
+skill: write-e2e-tests
+schemaVersion: "1.0"
+version: "1.0"
+
+config:
+  trials_per_task: 1
+  timeout_seconds: 420
+  parallel: false
+  executor: copilot-sdk
+  model: mai-code-1.1-flash
+  inject_skill_body: true
+
+metrics:
+  - name: convert_quality
+    weight: 1.0
+    threshold: 1.0
+    description: Isolated-workspace graders for a webwright-to-Playwright convert
+
+graders:
+  - type: file
+    name: toolchain-kept
+    config:
+      must_exist:
+        - package.json
+        - playwright.config.js
+        - final_runs/run_1/plan.md
+        - final_runs/run_1/final_script.py
+      must_not_exist:
+        - cypress.config.js
+        - .env
+
+  - type: diff
+    name: inputs-unmutated
+    config:
+      expected_files:
+        - path: package.json
+          snapshot: evals/write-e2e-tests/fixtures/package.json
+        - path: playwright.config.js
+          snapshot: evals/write-e2e-tests/fixtures/playwright.config.js
+        - path: final_runs/run_1/plan.md
+          snapshot: evals/write-e2e-tests/fixtures/final_runs/run_1/plan.md
+        - path: final_runs/run_1/final_script.py
+          snapshot: evals/write-e2e-tests/fixtures/final_runs/run_1/final_script.py
+
+  - type: program
+    name: spec-converted
+    config:
+      command: bash
+      args:
+        - -c
+        - |
+          for script in evals/write-e2e-tests/graders/spec-converted.sh \
+            graders/spec-converted.sh; do
+            if [ -f "$script" ]; then
+              exec bash "$script"
+            fi
+          done
+          echo "spec-converted.sh not found" >&2
+          exit 1
+      timeout: 30
+
+tasks:
+  - "tasks/*.yaml"
