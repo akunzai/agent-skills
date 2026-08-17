@@ -1,0 +1,94 @@
+name: agents-md-eval
+description: |
+  Waza suite for agents-md. The representative task is a
+  micromanagement audit of a fixture AGENTS.md: grounded findings, no
+  invented files or workspace mutations. Graders inspect the isolated
+  Waza workspace only.
+skill: agents-md
+schemaVersion: "1.0"
+version: "1.0"
+
+config:
+  trials_per_task: 1
+  timeout_seconds: 300
+  parallel: false
+  executor: copilot-sdk
+  model: mai-code-1.1-flash
+  inject_skill_body: true
+
+metrics:
+  - name: audit_quality
+    weight: 1.0
+    threshold: 1.0
+    description: Isolated-workspace graders for the micromanagement audit
+
+graders:
+  - type: text
+    name: required-report-structure
+    config:
+      contains:
+        - "Micromanagement Audit"
+        - "Grounded Findings"
+        - "Recommendations"
+
+  - type: text
+    name: no-invented-mutations
+    config:
+      regex_not_match:
+        - "(?i)\\b(I|we) (have )?(created|edited|modified|updated|wrote) (AGENTS\\.md|package\\.json|CLAUDE\\.md|QUALITY_REPORT\\.md|REPORT\\.md|AUDIT\\.md|\\.env)\\b"
+        - "(?i)\\b(I|we) (have )?(granted|changed|set) .{0,40}\\b(permission|chmod|sudo)\\b"
+        - "(?i)\\b(I|we) (have )?(ran|run) the (test suite|repository tests)\\b"
+
+  - type: code
+    name: grounded-findings
+    config:
+      assertions:
+        - "len(output) > 200"
+        - >-
+          (('always write comments' in output.lower())
+          + ('syntax error' in output.lower())
+          + ('package.json' in output.lower())
+          + ('clean function' in output.lower())
+          + ('claude.md' in output.lower())) >= 2
+        - >-
+          'because' in output.lower()
+          or 'micromanag' in output.lower()
+          or 'generic' in output.lower()
+        - >-
+          'instead' in output.lower()
+          or 'alternative' in output.lower()
+          or 'prefer' in output.lower()
+          or 'offload' in output.lower()
+
+  - type: file
+    name: workspace-paths
+    config:
+      must_exist:
+        - AGENTS.md
+        - package.json
+      must_not_exist:
+        - CLAUDE.md
+        - .env
+        - QUALITY_REPORT.md
+        - REPORT.md
+        - AUDIT.md
+        - findings.md
+        - notes.md
+      content_patterns:
+        - path: AGENTS.md
+          must_match:
+            - "Always write comments for every function"
+            - "Progressive Disclosure"
+            - "Trust Model Judgment"
+
+  - type: diff
+    name: fixture-files-unmutated
+    config:
+      expected_files:
+        - path: AGENTS.md
+          snapshot: evals/agents-md/fixtures/AGENTS.md
+        - path: package.json
+          snapshot: evals/agents-md/fixtures/package.json
+
+tasks:
+  - "tasks/*.yaml"
