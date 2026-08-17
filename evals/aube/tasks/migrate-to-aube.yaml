@@ -1,0 +1,31 @@
+id: migrate-to-aube
+name: Migrate a pnpm Node project to aube
+description: |
+  The agent pins aube through mise, drops package.json packageManager,
+  and keeps the existing pnpm-lock.yaml instead of switching to
+  aube-lock.yaml.
+
+tags:
+  - aube
+  - toolchain
+
+inputs:
+  prompt: |
+    Migrate this Node project to aube using the aube skill.
+
+    Install and pin aube through mise, not standalone. Keep the existing
+    pnpm-lock.yaml so Dependabot can still maintain it. Remove
+    package.json packageManager so mise.toml is the only version source.
+    Do not create aube-lock.yaml.
+
+    Describe the daily command (aubr) and the CI install command
+    (aube ci). Do not invent extra files beyond mise.toml and
+    package.json.
+  files:
+    - path: mise.toml
+    - path: package.json
+    - path: pnpm-lock.yaml
+
+expected:
+  outcomes:
+    - type: task_completed
