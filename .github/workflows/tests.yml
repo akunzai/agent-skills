@@ -31,116 +31,14 @@ jobs:
       - name: Run ShellCheck
         run: mise run lint-shell
 
-  agents-md:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Run agents-md name checks
-        run: bash tests/agents-md-name.sh
-
-      - name: Run agents-md content checks
-        run: bash tests/agents-md-content.sh
-
-  api-evaluation-profile:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Run API evaluation profile checks
-        run: bash tests/api-evaluation-profile.sh
-
-      - name: Run API evaluation profile workflow checks
-        run: bash tests/api-evaluation-profile-workflow.sh
-
-      - name: Run API response-level fixture checks
-        run: bash tests/api-fixtures.sh
-
-      - name: Run API paired runner checks
-        run: bash tests/api-paired-runner.sh
-
-      - name: Run manual API evaluation workflow checks
-        run: bash tests/api-paired-eval-workflow.sh
-
-      - name: Run API evaluation cleanup checks
-        run: bash tests/api-eval-cleanup.sh
-
   to-memory:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Run to-memory content checks
-        run: bash tests/to-memory-content.sh
-
       - name: Run to-memory project storage checks
         run: bash tests/to-memory-storage.sh
-
-  tidy-commits:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Run tidy-commits content checks
-        run: bash tests/tidy-commits-content.sh
-
-  github-epic:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Run github-epic content checks
-        run: bash tests/github-epic-content.sh
-
-  gitlab-epic:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Run gitlab-epic content checks
-        run: bash tests/gitlab-epic-content.sh
-
-  pr-workflow:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Run pr-workflow content checks
-        run: bash tests/pr-workflow-content.sh
-
-  mise:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Run mise content checks
-        run: bash tests/mise-content.sh
-
-  aube:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Run aube content checks
-        run: bash tests/aube-content.sh
-
-  backfill-unit-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Run backfill-unit-tests content checks
-        run: bash tests/backfill-unit-tests-content.sh
 
   write-e2e-tests:
     runs-on: ubuntu-latest
@@ -148,20 +46,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Run write-e2e-tests content checks
-        run: bash tests/write-e2e-tests-content.sh
-
       - name: Run write-e2e-tests scan-secrets checks
         run: bash tests/write-e2e-tests-scan-secrets.sh
-
-  agentsview-extract:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Run agentsview-extract content checks
-        run: bash tests/agentsview-extract-content.sh
 
   skill-catalog:
     runs-on: ubuntu-latest
@@ -171,6 +57,9 @@ jobs:
 
       - name: Run skill-catalog-sync checks
         run: bash tests/skill-catalog-sync.sh
+
+      - name: Run waza spec workflow checks
+        run: bash tests/waza-spec-workflow.sh
 
   codexbar-quota-handoff:
     runs-on: ubuntu-latest

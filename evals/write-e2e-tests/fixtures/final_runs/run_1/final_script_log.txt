@@ -1,0 +1,4 @@
+step 1 action: open catalog and wait for heading Fixture Widgets
+step 2 action: fill Discount percent with 10 and click Apply
+step 3 action: read price-result
+$90.00

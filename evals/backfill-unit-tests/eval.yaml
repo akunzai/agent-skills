@@ -1,0 +1,87 @@
+name: backfill-unit-tests-eval
+description: |
+  Isolated-workspace suite for backfill-unit-tests. The agent backfills
+  unittest coverage for a fixture that already has a runner and no
+  tests. Graders re-run the tests and a mutation-lite break.
+skill: backfill-unit-tests
+schemaVersion: "1.0"
+version: "1.0"
+
+config:
+  trials_per_task: 1
+  timeout_seconds: 420
+  parallel: false
+  executor: copilot-sdk
+  model: mai-code-1.1-flash
+  inject_skill_body: true
+
+metrics:
+  - name: backfill_quality
+    weight: 1.0
+    threshold: 1.0
+    description: Isolated-workspace graders for backfilled unittest coverage
+
+graders:
+  - type: file
+    name: source-kept
+    config:
+      must_exist:
+        - pricing.py
+        - README.md
+        - Makefile
+        - tests/__init__.py
+      must_not_exist:
+        - pytest.ini
+        - conftest.py
+        - requirements.txt
+        - .env
+
+  - type: diff
+    name: implementation-unmutated
+    config:
+      expected_files:
+        - path: pricing.py
+          snapshot: evals/backfill-unit-tests/fixtures/pricing.py
+        - path: README.md
+          snapshot: evals/backfill-unit-tests/fixtures/README.md
+        - path: Makefile
+          snapshot: evals/backfill-unit-tests/fixtures/Makefile
+        - path: tests/__init__.py
+          snapshot: evals/backfill-unit-tests/fixtures/tests/__init__.py
+
+  - type: program
+    name: tests-pass
+    config:
+      command: bash
+      args:
+        - -c
+        - |
+          for script in evals/backfill-unit-tests/graders/tests-pass.sh \
+            graders/tests-pass.sh; do
+            if [ -f "$script" ]; then
+              exec bash "$script"
+            fi
+          done
+          echo "tests-pass.sh not found" >&2
+          exit 1
+      timeout: 60
+
+  - type: program
+    name: mutation-lite
+    config:
+      command: bash
+      args:
+        - -c
+        - |
+          for script in evals/backfill-unit-tests/graders/mutation-lite.sh \
+            graders/mutation-lite.sh; do
+            if [ -f "$script" ]; then
+              exec bash "$script"
+            fi
+          done
+          echo "mutation-lite.sh not found" >&2
+          exit 1
+      timeout: 60
+
+tasks:
+  - "tasks/*.yaml"

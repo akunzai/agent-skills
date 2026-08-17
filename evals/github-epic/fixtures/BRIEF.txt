@@ -1,0 +1,8 @@
+origin: https://github.com/acme/widgets.git
+owner: acme
+repo: widgets
+
+Issues already open:
+- #10 Pricing overhaul (epic / tracking; must not auto-close)
+- #42 Add catalog discount (child of #10)
+- #43 Add tax helper (child of #10; blocked by #42)

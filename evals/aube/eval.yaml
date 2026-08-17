@@ -1,0 +1,65 @@
+name: aube-eval
+description: |
+  Isolated-workspace suite for aube. The agent migrates a pnpm Node
+  project to aube through mise and keeps a Dependabot-compatible lockfile.
+skill: aube
+schemaVersion: "1.0"
+version: "1.0"
+
+config:
+  trials_per_task: 1
+  timeout_seconds: 300
+  parallel: false
+  executor: copilot-sdk
+  model: mai-code-1.1-flash
+  inject_skill_body: true
+
+metrics:
+  - name: aube_migration
+    weight: 1.0
+    threshold: 1.0
+    description: Isolated-workspace graders for aube conventions
+
+graders:
+  - type: file
+    name: aube-via-mise
+    config:
+      must_exist:
+        - mise.toml
+        - package.json
+        - pnpm-lock.yaml
+      must_not_exist:
+        - aube-lock.yaml
+        - .env
+      content_patterns:
+        - path: mise.toml
+          must_match:
+            - "(?m)^\\[tools\\]"
+            - "aube"
+        - path: package.json
+          must_not_match:
+            - "packageManager"
+
+  - type: text
+    name: cites-commands
+    config:
+      contains:
+        - "aube ci"
+        - "aubr"
+
+  - type: code
+    name: has-explanation
+    config:
+      assertions:
+        - "len(output) > 80"
+        - "'dependabot' in output.lower() or 'pnpm-lock' in output.lower()"
+
+  - type: diff
+    name: lockfile-kept
+    config:
+      expected_files:
+        - path: pnpm-lock.yaml
+          snapshot: evals/aube/fixtures/pnpm-lock.yaml
+
+tasks:
+  - "tasks/*.yaml"

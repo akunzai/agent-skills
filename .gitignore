@@ -31,5 +31,8 @@ Icon
 # Built Visual Studio Code Extensions
 *.vsix
 
-# Local short-term project memory
-.memories/
+
+# Waza local evaluation artifacts
+.waza-cache/
+/results.json
+/transcripts/

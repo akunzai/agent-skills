@@ -35,5 +35,5 @@ gh api --method POST repos/<owner>/<repo>/issues/<child_number>/dependencies/blo
 ## Issue Linking Conventions
 
 - **Auto-close**: Use `Closes #N`, `Fixes #N`, or `Resolves #N` solely when merging auto-closes issue `#N`.
-- **Part-of**: Tag `Part of #N` or `See #N` for multi-PR epics. Never pair closing keywords with tracking issues.
+- **Part-of**: Tag `Part of #N` or `See #N` for multi-PR epics. Never pair closing keywords with tracking issues. GitHub matches those tokens even inside negation — do not write `Closes #N` (or Fix/Resolve) next to a tracking issue to say not to close it.
 - **Dual References**: Combine native API wiring with markdown prose links for cross-interface readability.

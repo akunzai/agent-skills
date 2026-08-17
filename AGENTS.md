@@ -7,20 +7,20 @@ This project uses mise for the toolchain and task runner.
 
 ## Commands
 
-- Test one file: `bash tests/<name>.sh` (e.g. `bash tests/agents-md-content.sh`)
+- Test one file: `bash tests/<name>.sh` (e.g. `bash tests/to-memory-storage.sh`)
 
 Tasks live in `mise.toml` (`mise run test`, `mise run lint`).
 
 ## Pointers
 
 - Skill structure and shell style: @CONTRIBUTING.md
-- Gold-standard test spec: @tests/agents-md-content.sh
+- Gold-standard test spec: @tests/to-memory-storage.sh
 - Skill catalog (`README.md` + `skills.sh.json`): @tests/skill-catalog-sync.sh
 - Issue tracker: @docs/agents/issue-tracker.md
 - Triage labels: @docs/agents/triage-labels.md
 - Domain docs: @docs/agents/domain.md
-- When changing a covered skill: @docs/evals/api-paired.md (credential-free
-  fixture tests locally; live run via `.github/workflows/api-paired-eval.yml`)
+- When changing a covered skill: @docs/evals/waza.md (live Copilot eval via
+  `.github/workflows/waza-eval.yml`)
 
 ## Self-Reflection
 

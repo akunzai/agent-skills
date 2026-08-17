@@ -1,0 +1,64 @@
+name: tidy-commits-eval
+description: |
+  Isolated-workspace suite for tidy-commits. The agent plans a rewrite
+  of a supplied commit listing and does not run rebase or push.
+skill: tidy-commits
+schemaVersion: "1.0"
+version: "1.0"
+
+config:
+  trials_per_task: 1
+  timeout_seconds: 300
+  parallel: false
+  executor: copilot-sdk
+  model: mai-code-1.1-flash
+  inject_skill_body: true
+
+metrics:
+  - name: tidy_plan
+    weight: 1.0
+    threshold: 1.0
+    description: Isolated-workspace graders for a tidy-commits plan
+
+graders:
+  - type: text
+    name: required-plan-structure
+    config:
+      contains:
+        - "Plan"
+        - "backup"
+
+  - type: text
+    name: uses-skill-operations
+    config:
+      contains:
+        - "fixup"
+      regex_match:
+        - "(?i)GIT_SEQUENCE_EDITOR|non-interactive|GIT_EDITOR=true"
+
+  - type: code
+    name: classifies-history
+    config:
+      assertions:
+        - "len(output) > 200"
+        - "'parser' in output.lower() or 'cli' in output.lower()"
+        - "'drop' in output.lower() or 'debug' in output.lower()"
+
+  - type: file
+    name: workspace-unmutated
+    config:
+      must_exist:
+        - HISTORY.txt
+      must_not_exist:
+        - .env
+        - rebase-todo
+
+  - type: diff
+    name: history-listing-unmutated
+    config:
+      expected_files:
+        - path: HISTORY.txt
+          snapshot: evals/tidy-commits/fixtures/HISTORY.txt
+
+tasks:
+  - "tasks/*.yaml"

@@ -1,0 +1,28 @@
+id: plan-branch-tidy
+name: Plan a tidy of a mixed commit listing
+description: |
+  The agent classifies each supplied commit and writes a non-interactive
+  tidy plan. It does not run rebase, reset, or push.
+
+tags:
+  - tidy-commits
+  - git
+
+inputs:
+  prompt: |
+    Plan a tidy of the local branch whose commits are listed in
+    HISTORY.txt. The base is origin/main. The working tree is clean.
+
+    Classify every commit (keep, squash/fixup, reorder, split, or drop).
+    Show a backup ref name and the exact non-interactive commands you
+    would run. Organize the response with a `Plan` heading.
+
+    This is a plan only. Do not run git rebase, git reset, or git push.
+    Do not edit HISTORY.txt. Do not invent a rewrite that has already
+    happened.
+  files:
+    - path: HISTORY.txt
+
+expected:
+  outcomes:
+    - type: task_completed

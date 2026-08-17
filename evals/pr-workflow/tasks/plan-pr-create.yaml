@@ -1,0 +1,32 @@
+id: plan-pr-create
+name: Plan a GitHub PR with correct issue links
+description: |
+  The agent plans gh pr create for a feature branch, using Closes for
+  the implementing issue and Part of for the epic. It does not run gh
+  or push.
+
+tags:
+  - pr-workflow
+  - github
+
+inputs:
+  prompt: |
+    Plan opening a pull request for this workspace using the
+    pr-workflow skill. Hosting and issue facts are in BRIEF.txt.
+    The working tree is clean and local checks already passed.
+
+    Show the PR title, body, and the exact `gh pr create` command.
+    Link #42 so merge auto-closes it. Mention epic #10 only as
+    `Part of #10` — no other prose next to `#10`. Include the jq
+    release URL from BRIEF.txt.
+    Organize the response with a `Plan` heading.
+
+    This is a plan only. Do not run gh, git push, git merge, or
+    git rebase. Do not edit BRIEF.txt. Do not invent a PR that has
+    already been opened.
+  files:
+    - path: BRIEF.txt
+
+expected:
+  outcomes:
+    - type: task_completed

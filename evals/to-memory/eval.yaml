@@ -1,0 +1,48 @@
+name: to-memory-eval
+description: |
+  Isolated-workspace suite for to-memory. After explicit confirmation,
+  the agent writes one project long-term note into AGENTS.md.
+skill: to-memory
+schemaVersion: "1.0"
+version: "1.0"
+
+config:
+  trials_per_task: 1
+  timeout_seconds: 300
+  parallel: false
+  executor: copilot-sdk
+  model: mai-code-1.1-flash
+  inject_skill_body: true
+
+metrics:
+  - name: memory_write
+    weight: 1.0
+    threshold: 1.0
+    description: Isolated-workspace graders for a confirmed project long-term note
+
+graders:
+  - type: file
+    name: agents-md-updated
+    config:
+      must_exist:
+        - AGENTS.md
+      must_not_exist:
+        - .env
+        - secrets.md
+      content_patterns:
+        - path: AGENTS.md
+          must_match:
+            - "mise trust"
+            - "Fixture Widgets"
+
+  - type: diff
+    name: note-landed
+    config:
+      expected_files:
+        - path: AGENTS.md
+          contains:
+            - "+mise trust"
+            - "+Fixture Widgets"
+
+tasks:
+  - "tasks/*.yaml"

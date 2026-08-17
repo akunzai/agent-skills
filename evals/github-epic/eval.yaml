@@ -1,0 +1,72 @@
+name: github-epic-eval
+description: |
+  Isolated-workspace suite for github-epic. The agent plans gh api
+  sub-issue and blocked-by commands and does not call the API.
+skill: github-epic
+schemaVersion: "1.0"
+version: "1.0"
+
+config:
+  trials_per_task: 1
+  timeout_seconds: 300
+  parallel: false
+  executor: copilot-sdk
+  model: mai-code-1.1-flash
+  inject_skill_body: true
+
+metrics:
+  - name: epic_plan
+    weight: 1.0
+    threshold: 1.0
+    description: Isolated-workspace graders for a github-epic plan
+
+graders:
+  - type: text
+    name: required-plan-structure
+    config:
+      contains:
+        - "Plan"
+        - "gh api"
+        - "sub_issues"
+        - "blocked_by"
+        - "Part of #10"
+
+  - type: text
+    name: uses-database-ids
+    config:
+      regex_match:
+        - "--jq \\.id|sub_issue_id"
+
+  - type: text
+    name: no-forbidden-actions
+    config:
+      regex_not_match:
+        - "(?i)\\b(close[sd]?|fixe[sd]?|fix|resolve[sd]?)\\s*#10\\b"
+        - "(?i)\\bglab\\b"
+        - "(?i)git push"
+
+  - type: code
+    name: cites-children
+    config:
+      assertions:
+        - "len(output) > 150"
+        - "'#42' in output or '42' in output"
+        - "'#43' in output or '43' in output"
+
+  - type: file
+    name: workspace-unmutated
+    config:
+      must_exist:
+        - BRIEF.txt
+      must_not_exist:
+        - .env
+
+  - type: diff
+    name: brief-unmutated
+    config:
+      expected_files:
+        - path: BRIEF.txt
+          snapshot: evals/github-epic/fixtures/BRIEF.txt
+
+tasks:
+  - "tasks/*.yaml"

@@ -40,6 +40,7 @@ mise run lint
 | Bash 4+ | Tests and hook scripts |
 | [ShellCheck](https://www.shellcheck.net/) | Shell linting (`mise run lint-shell`) |
 | [actionlint](https://github.com/rhysd/actionlint) | GitHub Actions linting (`mise run lint-actions`) |
+| [waza](https://github.com/microsoft/waza) | Skill spec + eval schema (`mise run lint-skills`) |
 
 ## Writing a Skill
 
@@ -71,14 +72,16 @@ Also add `./skills/<name>` to the `skills` array in
 
 ### Adding Tests
 
-Create one or more test scripts in `tests/<name>-*.sh`:
+Do not add grep-the-SKILL.md phrase locks. Skill structure is
+`mise run lint-skills` (`waza check`); behavior is a Waza suite under
+`evals/<name>/`. For helper scripts, add a test that actually runs the
+script:
 
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ... assertions using grep, diff, etc.
-# Exit non-zero on failure.
+# ... invoke the script, assert exit codes and outputs
 ```
 
 Register the test in `.github/workflows/tests.yml` under an appropriate job.

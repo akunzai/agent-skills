@@ -1,0 +1,8 @@
+{
+  "name": "fixture-widgets",
+  "private": true,
+  "scripts": {
+    "test": "echo tests-ok",
+    "lint": "echo lint-ok"
+  }
+}

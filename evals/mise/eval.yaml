@@ -1,0 +1,64 @@
+name: mise-eval
+description: |
+  Isolated-workspace suite for mise. The agent authors a root mise.toml
+  from a Makefile and package.json that still split versions.
+skill: mise
+schemaVersion: "1.0"
+version: "1.0"
+
+config:
+  trials_per_task: 1
+  timeout_seconds: 300
+  parallel: false
+  executor: copilot-sdk
+  model: mai-code-1.1-flash
+  inject_skill_body: true
+
+metrics:
+  - name: mise_toml_quality
+    weight: 1.0
+    threshold: 1.0
+    description: Isolated-workspace graders for mise.toml conventions
+
+graders:
+  - type: file
+    name: mise-toml-created
+    config:
+      must_exist:
+        - mise.toml
+        - Makefile
+        - package.json
+      must_not_exist:
+        - .env
+      content_patterns:
+        - path: mise.toml
+          must_match:
+            - "(?m)^\\[tools\\]"
+            - "(?m)^\\[tasks\\."
+            - "latest"
+          must_not_match:
+            - "ubi:"
+
+  - type: text
+    name: cites-conventions
+    config:
+      contains:
+        - "mise run"
+        - "jdx/mise-action"
+
+  - type: code
+    name: has-explanation
+    config:
+      assertions:
+        - "len(output) > 80"
+        - "'mise.toml' in output.lower() or 'single source' in output.lower()"
+
+  - type: diff
+    name: makefile-unmutated
+    config:
+      expected_files:
+        - path: Makefile
+          snapshot: evals/mise/fixtures/Makefile
+
+tasks:
+  - "tasks/*.yaml"

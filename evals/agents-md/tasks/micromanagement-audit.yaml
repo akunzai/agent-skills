@@ -1,0 +1,36 @@
+id: micromanagement-audit
+name: Micromanagement audit of fixture AGENTS.md
+description: |
+  Native-runtime rewrite of the retired API representative task.
+  The agent audits the fixture AGENTS.md, names grounded findings,
+  and does not create or mutate workspace files.
+
+tags:
+  - agents-md
+  - audit
+  - micromanagement
+
+inputs:
+  prompt: |
+    Audit AGENTS.md in this workspace for micromanagement and return a
+    concise quality report.
+
+    Read the workspace files. Identify at least two concrete rules that
+    are overly prescriptive or duplicate general model judgment. For each
+    finding, name the supplied rule, explain why it is micromanagement,
+    and suggest a project-specific alternative. Organize the response
+    with these headings: `Micromanagement Audit`, `Grounded Findings`,
+    and `Recommendations`.
+
+    This is an audit only. Do not edit, create, or delete files. Do not
+    change permissions. Do not run the project test suite.
+
+    Ground every finding in the workspace files. Name the rules you
+    actually read.
+  files:
+    - path: AGENTS.md
+    - path: package.json
+
+expected:
+  outcomes:
+    - type: task_completed

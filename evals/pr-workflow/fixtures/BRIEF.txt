@@ -1,0 +1,12 @@
+origin: https://github.com/acme/widgets.git
+default_branch: main
+current_branch: feat/widgets-discount
+working_tree: clean
+checks: lint and tests already passed locally
+
+Issues:
+- #10 Pricing overhaul (epic / tracking issue; must not auto-close)
+- #42 Add catalog discount (this PR implements it)
+
+Also in this branch: bump jq and cite
+https://github.com/jqlang/jq/releases/tag/jq-1.8.1

@@ -1,0 +1,73 @@
+name: gitlab-epic-eval
+description: |
+  Isolated-workspace suite for gitlab-epic. The agent plans Free/CE
+  label and markdown epic emulation and does not call GitLab.
+skill: gitlab-epic
+schemaVersion: "1.0"
+version: "1.0"
+
+config:
+  trials_per_task: 1
+  timeout_seconds: 300
+  parallel: false
+  executor: copilot-sdk
+  model: mai-code-1.1-flash
+  inject_skill_body: true
+
+metrics:
+  - name: epic_plan
+    weight: 1.0
+    threshold: 1.0
+    description: Isolated-workspace graders for a gitlab-epic plan
+
+graders:
+  - type: text
+    name: required-plan-structure
+    config:
+      contains:
+        - "Plan"
+        - "glab"
+        - "type::epic"
+        - "Part of #100"
+
+  - type: text
+    name: uses-free-tier-labels
+    config:
+      regex_match:
+        - "epic::|parent::"
+        - "#101"
+        - "#102"
+
+  - type: text
+    name: no-forbidden-actions
+    config:
+      regex_not_match:
+        - "(?i)\\b(close[sd]?|fixe[sd]?|fix|resolve[sd]?|implement[sd]?)\\s*#100\\b"
+        - "(?i)gh api"
+        - "(?i)git push"
+
+  - type: code
+    name: cites-relation
+    config:
+      assertions:
+        - "len(output) > 150"
+        - "'blocked' in output.lower() or 'blocks' in output.lower() or 'is_blocked_by' in output.lower()"
+        - "'100' in output and '101' in output and '102' in output"
+
+  - type: file
+    name: workspace-unmutated
+    config:
+      must_exist:
+        - BRIEF.txt
+      must_not_exist:
+        - .env
+
+  - type: diff
+    name: brief-unmutated
+    config:
+      expected_files:
+        - path: BRIEF.txt
+          snapshot: evals/gitlab-epic/fixtures/BRIEF.txt
+
+tasks:
+  - "tasks/*.yaml"
