@@ -1,0 +1,27 @@
+id: record-project-gotcha
+name: Record a confirmed project long-term note
+description: |
+  The agent classifies the request as project long-term, shows the
+  exact AGENTS.md addition, then writes it after the follow-up yes.
+
+tags:
+  - to-memory
+  - memory
+
+inputs:
+  prompt: |
+    Remember this for this project as long-term durable knowledge:
+
+    On a fresh checkout, mise install and tasks silently no-op until
+    you run `mise trust` once.
+
+    Decide scope and tier, show the exact AGENTS.md addition, and wait
+    for confirmation before writing.
+  follow_up_prompts:
+    - "Yes, write that into AGENTS.md now. In the same reply, name the scope and tier you used."
+  files:
+    - path: AGENTS.md
+
+expected:
+  outcomes:
+    - type: task_completed
