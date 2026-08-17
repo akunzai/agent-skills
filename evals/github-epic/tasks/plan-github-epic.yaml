@@ -18,9 +18,9 @@ inputs:
     Show the exact `gh api` commands, in order: look up numeric
     database IDs, link #42 and #43 as sub-issues of #10, and mark #43
     blocked by #42. PRs that only track the epic should say
-    `Part of #10`. Do not write a GitHub closing keyword next to
-    #10 — GitHub would still close it. Organize the response with
-    a `Plan` heading.
+    `Part of #10`. In the whole reply, the only `#10` next to
+    English prose must be that `Part of #10` phrase — no
+    counterexamples. Organize the response with a `Plan` heading.
 
     This is a plan only. Do not run gh, git, or curl. Do not edit
     BRIEF.txt. Do not invent issues that are not in BRIEF.txt.

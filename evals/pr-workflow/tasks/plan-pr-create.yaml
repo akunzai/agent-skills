@@ -17,9 +17,8 @@ inputs:
 
     Show the PR title, body, and the exact `gh pr create` command.
     Link #42 so merge auto-closes it. Mention epic #10 only as
-    `Part of #10`. Do not write a GitHub closing keyword next to
-    #10 — GitHub would still close it. Include the jq release URL
-    from BRIEF.txt.
+    `Part of #10` — no other prose next to `#10`. Include the jq
+    release URL from BRIEF.txt.
     Organize the response with a `Plan` heading.
 
     This is a plan only. Do not run gh, git push, git merge, or

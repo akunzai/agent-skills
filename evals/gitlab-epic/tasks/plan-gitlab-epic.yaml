@@ -16,8 +16,9 @@ inputs:
 
     This project has no native group epics. Use the Free/CE strategy:
     markdown checklists on the tracking issue, scoped labels, and
-    `Part of` / relation text on children. Do not write a GitLab
-    closing keyword next to #100. Show the exact `glab`
+    `Part of` / relation text on children. Mention the tracking
+    issue only as `Part of #100` — no closing-keyword
+    counterexamples. Show the exact `glab`
     commands you would run, including how #102 is blocked by #101.
     Organize the response with a `Plan` heading.
 
