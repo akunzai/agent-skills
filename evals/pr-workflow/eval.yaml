@@ -1,0 +1,66 @@
+name: pr-workflow-eval
+description: |
+  Isolated-workspace suite for pr-workflow. The agent plans a GitHub
+  PR with correct Closes vs Part-of links and does not run gh or push.
+skill: pr-workflow
+schemaVersion: "1.0"
+version: "1.0"
+
+config:
+  trials_per_task: 1
+  timeout_seconds: 300
+  parallel: false
+  executor: copilot-sdk
+  model: mai-code-1.1-flash
+  inject_skill_body: true
+
+metrics:
+  - name: pr_plan
+    weight: 1.0
+    threshold: 1.0
+    description: Isolated-workspace graders for a pr-workflow plan
+
+graders:
+  - type: text
+    name: required-plan-structure
+    config:
+      contains:
+        - "Plan"
+        - "gh pr create"
+        - "Closes #42"
+        - "Part of #10"
+
+  - type: text
+    name: no-forbidden-actions
+    config:
+      regex_not_match:
+        - "(?i)\\b(close[sd]?|fixe[sd]?|fix|resolve[sd]?)\\s*#10\\b"
+        - "(?i)git push"
+        - "(?i)git merge"
+
+  - type: code
+    name: cites-brief
+    config:
+      assertions:
+        - "len(output) > 150"
+        - "'jq-1.8.1' in output or 'jqlang/jq' in output.lower()"
+        - "'feat' in output.lower()"
+
+  - type: file
+    name: workspace-unmutated
+    config:
+      must_exist:
+        - BRIEF.txt
+      must_not_exist:
+        - .env
+        - PULL_REQUEST.md
+
+  - type: diff
+    name: brief-unmutated
+    config:
+      expected_files:
+        - path: BRIEF.txt
+          snapshot: evals/pr-workflow/fixtures/BRIEF.txt
+
+tasks:
+  - "tasks/*.yaml"

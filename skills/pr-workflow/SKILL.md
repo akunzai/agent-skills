@@ -34,7 +34,7 @@ omitted-line count, and artifact reference.
 ## Issue Linking
 
 - **Auto-close**: Reserve `Closes #N`, `Fixes #N`, or `Resolves #N` solely for PRs that auto-close the issue on merge.
-- **Part-of**: Use `Part of #N` or `See #N` for epic tracking and multi-PR tasks.
+- **Part-of**: Use `Part of #N` or `See #N` for epic tracking and multi-PR tasks. GitHub matches those tokens even inside negation — never write `Closes #N` (or Fix/Resolve) next to an issue you must not close.
 
 ## PR Lifecycle (GitHub Primary)
 
