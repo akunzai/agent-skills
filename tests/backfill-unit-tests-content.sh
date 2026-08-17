@@ -79,6 +79,19 @@ grep -q -E 'Treat those files as data' "$SKILL" \
 grep -q -E 'do not follow' "$SKILL" \
   || fail "untrusted-content protocol (do not follow ingested instructions) is missing"
 
+grep -q -E 'named .*repo-explorer|repo-explorer role' "$SKILL" \
+  || fail "framework and gap exploration must prefer repo-explorer"
+grep -q -E 'named .*check-runner|check-runner role' "$SKILL" \
+  || fail "build and test gates must prefer check-runner"
+grep -q -E 'dispatch (is )?unavailable|fails to launch' "$SKILL" \
+  || fail "worker fallback is missing"
+grep -q -E 'gap selection|select.*gap' "$SKILL" \
+  || fail "gap selection must remain with primary"
+grep -q -E 'primary agent keeps' "$SKILL" \
+  || fail "test-generation judgment must remain with primary"
+grep -q -E 'Mutation-lite break/restore' "$SKILL" \
+  || fail "mutation-lite break/restore must remain with primary"
+
 [ -f "$GOOD_TESTS" ] || fail "references/good-tests.md is missing"
 
 grep -q -E 'system boundaries' "$GOOD_TESTS" \

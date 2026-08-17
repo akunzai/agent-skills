@@ -59,4 +59,16 @@ grep -R -q -E 'git branch -D' "$SKILL_DIR" \
 grep -R -q -E 'do not delete|without explicit approval|explicit approval' "$SKILL_DIR" \
   || fail "must require explicit approval before deleting backup refs"
 
+grep -q -E 'named .*commit-writer|commit-writer role' "$SKILL_DIR/SKILL.md" \
+  || fail "large diff/history drafting must prefer commit-writer"
+for input in 'decided boundary' 'scoped diff' 'recent commit subjects' 'available intent'; do
+  grep -q "$input" "$SKILL_DIR/SKILL.md" || fail "commit-writer dispatch lacks $input"
+done
+grep -q -E 'named .*check-runner|check-runner role' "$SKILL_DIR/SKILL.md" \
+  || fail "post-rewrite checks must prefer check-runner"
+grep -q -E 'primary.*(boundaries|plan|rewrite)|boundaries.*primary' "$SKILL_DIR/SKILL.md" \
+  || fail "rewrite judgment must remain with primary"
+grep -q -E 'dispatch (is )?unavailable|fails to launch' "$SKILL_DIR/SKILL.md" \
+  || fail "worker fallback is missing"
+
 echo "tidy-commits content checks passed"

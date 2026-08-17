@@ -4,6 +4,10 @@
     {
       "name": "codexbar-quota-handoff",
       "source": { "source": "local", "path": "./plugins/codexbar-quota-handoff" }
+    },
+    {
+      "name": "cheap-dev-workers",
+      "source": { "source": "local", "path": "./plugins/cheap-dev-workers" }
     }
   ]
 }
