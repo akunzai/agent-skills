@@ -72,14 +72,16 @@ Also add `./skills/<name>` to the `skills` array in
 
 ### Adding Tests
 
-Create one or more test scripts in `tests/<name>-*.sh`:
+Do not add grep-the-SKILL.md phrase locks. Skill structure is
+`mise run lint-skills` (`waza check`); behavior is a Waza suite under
+`evals/<name>/`. For helper scripts, add a test that actually runs the
+script:
 
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ... assertions using grep, diff, etc.
-# Exit non-zero on failure.
+# ... invoke the script, assert exit codes and outputs
 ```
 
 Register the test in `.github/workflows/tests.yml` under an appropriate job.
