@@ -1,0 +1,79 @@
+name: Waza evaluation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "skills/**"
+      - "evals/**"
+      - ".github/workflows/waza-eval.yml"
+      - ".waza.yaml"
+      - "mise.toml"
+  workflow_dispatch:
+    inputs:
+      baseline:
+        description: Run waza --baseline (effectiveness). Allowed on dispatch only, not on the PR job.
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  copilot-requests: write
+
+jobs:
+  evaluate:
+    name: Evaluate skills with Waza
+    if: >
+      github.event_name == 'workflow_dispatch'
+      || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Fetch origin/main
+        run: git fetch --no-tags origin main:refs/remotes/origin/main
+
+      - name: Set up mise
+        uses: jdx/mise-action@v4
+        with:
+          install_args: github:microsoft/waza
+
+      - name: Check token budget
+        run: waza tokens compare origin/main --skills --threshold 10 --strict
+
+      - name: Run Waza evaluation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          extra=()
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] \
+            && [ "${{ inputs.baseline }}" = "true" ]; then
+            extra+=(--baseline)
+          fi
+          mkdir -p waza-results
+          failed=0
+          for spec in evals/*/eval.yaml; do
+            name="$(basename "$(dirname "$spec")")"
+            if ! waza run "$spec" --output "waza-results/${name}.json" "${extra[@]}"; then
+              failed=1
+            fi
+          done
+          exit "$failed"
+
+      - name: Upload Waza artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: waza-evaluation-${{ github.run_id }}
+          path: |
+            waza-results/
+            transcripts/
+          if-no-files-found: warn
+          retention-days: 30

@@ -1,0 +1,7 @@
+# copilot-requests is a GitHub-documented GITHUB_TOKEN scope
+# (https://docs.github.com/copilot/how-tos/copilot-cli/use-copilot-cli-in-actions).
+# actionlint 1.7.12 does not list it yet (rhysd/actionlint#686).
+paths:
+  .github/workflows/waza-eval.yml:
+    ignore:
+      - 'unknown permission scope "copilot-requests"'

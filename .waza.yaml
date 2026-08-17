@@ -1,0 +1,9 @@
+# Token budgets for `waza tokens compare --strict`.
+# Waza's built-in SKILL.md limit is 500; this catalog is larger.
+# Growth vs origin/main is still gated at 10% by the CI command.
+tokens:
+  warningThreshold: 2500
+  fallbackLimit: 3000
+  limits:
+    defaults:
+      "SKILL.md": 3000
