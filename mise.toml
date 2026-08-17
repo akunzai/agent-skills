@@ -4,9 +4,10 @@ actionlint = "latest"
 uv = "latest"
 jq = "latest"
 
-# CLI tags are vX.Y.Z. Without the prefix, latest can resolve to an azd-ext release.
+# Pin the CLI tag. GitHub /releases/latest is the azd-ext release, and
+# mise 2026.8.6 cannot resolve latest+version_prefix=v (empty version list).
 [tools."github:microsoft/waza"]
-version = "latest"
+version = "0.38.6"
 version_prefix = "v"
 
 [tasks.test]

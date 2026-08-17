@@ -12,9 +12,10 @@ Not covered here (needs AgentsView): `agentsview-extract`.
 
 ## Install
 
-Project-level via mise's `github:` backend. `version_prefix = "v"` so
-`latest` resolves to CLI tags (`v0.38.6`) instead of `azd-ext-*`
-releases.
+Project-level via mise's `github:` backend. Pin the CLI tag
+(`v0.38.6`). GitHub's `/releases/latest` is the `azd-ext-*` release,
+and `version = "latest"` with `version_prefix = "v"` currently
+resolves to no versions.
 
 ```bash
 mise install
