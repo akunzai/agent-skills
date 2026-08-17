@@ -114,6 +114,9 @@ part of the `skills.sh` catalog):
   own quota is nearly exhausted. Machine-specific (depends on your own
   CodexBar installation and account authorization) rather than something a
   visitor installs directly.
+- [`cheap-dev-workers`](plugins/cheap-dev-workers/README.md) — four narrow,
+  cheap-model workers for repository evidence, verification, safe-log
+  summaries, and caller-scoped commit or PR drafting on Claude Code and Codex.
 
 ## Contributing
 

@@ -24,6 +24,14 @@ Inspect state → refuse unclear or unrelated working-tree changes → create a 
 
 ## Cleanup plan
 
+The primary agent decides commit boundaries, the rewrite plan, and every Git
+mutation. For a large caller-scoped diff and history, it may ask an available
+named `commit-writer` to draft text only after those boundaries are decided.
+Include the decided boundary, scoped diff, relevant recent commit subjects, and
+available intent in its dispatch.
+If dispatch is unavailable or fails to launch, draft in primary without probing
+worker configuration.
+
 Classify each commit before rewriting.
 
 | Commit type | Default action |
@@ -77,6 +85,12 @@ If the repo uses a stacked-PR tool such as `gh stack`, prefer that tool's sync/r
 ## Verification
 
 After rewriting:
+
+Prefer an available named `check-runner` for caller-selected post-rewrite checks.
+The primary retains refs, index, commit, push, tree comparison, and Git-state
+inspection. If dispatch is unavailable or fails to launch, run checks in
+primary. A launched check-runner's failing check is the task result, not a reason
+to rerun it in primary.
 
 - Compare the final tree against the backup ref unless commits were intentionally dropped: `git diff --stat <backup-ref> HEAD` and `git diff <backup-ref> HEAD`.
 - Inspect per-commit file scope & file absence: Run `git diff --name-status <base>..HEAD` and verify that no unrelated files (or files not touched by the original feature branch) were accidentally deleted or added.

@@ -1,0 +1,8 @@
+{
+  "name": "cheap-dev-workers",
+  "description": "Cheap-model workers for bounded repository exploration, verification, sanitized-log summarization, and commit or PR drafting.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Charley Wu"
+  }
+}

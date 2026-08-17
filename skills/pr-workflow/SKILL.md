@@ -13,6 +13,13 @@ Standard operating procedure for preparing, opening, and managing Pull Requests 
 - **Clean Working Tree**: Verify `git status` is clean before editing or opening PRs.
 - **Verification**: Run local **tests** and **linters** before opening or updating PRs.
 
+For bounded, context-heavy local checks, prefer an available named `check-runner`
+and pass only commands selected by the primary agent. If dispatch is unavailable
+or fails to launch, run them in primary without probing worker configuration.
+Once launched, a check-runner failure is the task result; do not rerun it merely
+because it failed. Require its exact command, exit code, summary blocks,
+omitted-line count, and artifact reference.
+
 ## Branching & Guardrails
 
 - **Branch Guard**: Stay on feature branches; never push or merge directly into the default base branch without explicit approval.
@@ -32,6 +39,16 @@ Standard operating procedure for preparing, opening, and managing Pull Requests 
 ## PR Lifecycle (GitHub Primary)
 
 For GitLab, Gitea, Azure DevOps, or Bitbucket, see [platform-tools.md](references/platform-tools.md).
+
+For a caller-selected remote failure log, classify and scope the source before
+delegation. The primary downloads only that log to a local artifact; the worker
+never fetches remote logs or discovers unrelated runs. Low-risk build, lint,
+and test artifacts may go to a named `log-summarizer` after caller review.
+Potentially sensitive logs require a sanitized artifact and residual-secret
+gate first; otherwise keep them in primary.
+If summarizer dispatch is unavailable or fails to launch, summarize in primary.
+Once launched, its rejection or failure is the task result; do not rerun the
+same summarization merely because it failed.
 
 ### Create PR
 ```bash

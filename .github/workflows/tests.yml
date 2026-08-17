@@ -195,3 +195,21 @@ jobs:
 
       - name: Run codexbar-quota-handoff uninstall checks
         run: bash tests/codexbar-quota-handoff-uninstall.sh
+
+  cheap-dev-workers:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Run cheap-dev-workers manifest checks
+        run: bash tests/cheap-dev-workers-manifest.sh
+
+      - name: Run cheap-dev-workers agents content checks
+        run: bash tests/cheap-dev-workers-agents-content.sh
+
+      - name: Run cheap-dev-workers setup/uninstall checks
+        run: bash tests/cheap-dev-workers-setup-uninstall.sh
+
+      - name: Run cheap-dev-workers sanitization checks
+        run: bash tests/cheap-dev-workers-sanitize-log.sh
