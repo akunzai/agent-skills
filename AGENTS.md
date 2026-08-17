@@ -19,8 +19,8 @@ Tasks live in `mise.toml` (`mise run test`, `mise run lint`).
 - Issue tracker: @docs/agents/issue-tracker.md
 - Triage labels: @docs/agents/triage-labels.md
 - Domain docs: @docs/agents/domain.md
-- When changing a covered skill: @docs/evals/api-paired.md (credential-free
-  fixture tests locally; live run via `.github/workflows/api-paired-eval.yml`)
+- When changing a covered skill: @docs/evals/waza.md (live Copilot eval via
+  `.github/workflows/waza-eval.yml`)
 
 ## Self-Reflection
 

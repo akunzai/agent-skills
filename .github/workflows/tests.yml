@@ -43,30 +43,6 @@ jobs:
       - name: Run agents-md content checks
         run: bash tests/agents-md-content.sh
 
-  api-evaluation-profile:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Run API evaluation profile checks
-        run: bash tests/api-evaluation-profile.sh
-
-      - name: Run API evaluation profile workflow checks
-        run: bash tests/api-evaluation-profile-workflow.sh
-
-      - name: Run API response-level fixture checks
-        run: bash tests/api-fixtures.sh
-
-      - name: Run API paired runner checks
-        run: bash tests/api-paired-runner.sh
-
-      - name: Run manual API evaluation workflow checks
-        run: bash tests/api-paired-eval-workflow.sh
-
-      - name: Run API evaluation cleanup checks
-        run: bash tests/api-eval-cleanup.sh
-
   to-memory:
     runs-on: ubuntu-latest
     steps:

@@ -5,6 +5,9 @@
 [![skills.sh](https://skills.sh/b/akunzai/agent-skills)](https://skills.sh/akunzai/agent-skills)
 
 My personal agent skills for AI coding assistants — compatible with Antigravity, Claude Code, Codex, and more.
+Those assistants can load the skills; **effectiveness is measured only on
+GitHub Copilot** via [Waza](https://github.com/microsoft/waza). See
+[docs/evals/waza.md](docs/evals/waza.md).
 
 ## Why
 
