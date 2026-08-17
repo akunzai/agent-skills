@@ -27,8 +27,9 @@ graders:
       contains:
         - "Plan"
         - "gh pr create"
-        - "Closes #42"
         - "Part of #10"
+      regex_match:
+        - "(?i)\\b(close[sd]?|fixe[sd]?|fix|resolve[sd]?)\\s*#42\\b"
 
   - type: text
     name: no-forbidden-actions
