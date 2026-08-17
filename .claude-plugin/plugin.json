@@ -1,0 +1,21 @@
+{
+  "name": "charley-skills",
+  "description": "Charley Wu's agent skills for memory, git hygiene, toolchain, and testing.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Charley Wu"
+  },
+  "skills": [
+    "./skills/agents-md",
+    "./skills/agentsview-extract",
+    "./skills/aube",
+    "./skills/backfill-unit-tests",
+    "./skills/github-epic",
+    "./skills/gitlab-epic",
+    "./skills/mise",
+    "./skills/pr-workflow",
+    "./skills/tidy-commits",
+    "./skills/to-memory",
+    "./skills/write-e2e-tests"
+  ]
+}

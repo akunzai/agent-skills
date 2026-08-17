@@ -11,6 +11,11 @@
     {
       "name": "cheap-dev-workers",
       "source": "./plugins/cheap-dev-workers"
+    },
+    {
+      "name": "charley-skills",
+      "source": "./",
+      "description": "Charley Wu's agent skills for memory, git hygiene, toolchain, and testing."
     }
   ]
 }
