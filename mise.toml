@@ -32,9 +32,13 @@ run = "find tests skills evals plugins -name '*.sh' -type f -exec shellcheck {} 
 description = "Lint GitHub Actions workflows with actionlint"
 run = "actionlint"
 
+[tasks.lint-skills]
+description = "Validate SKILL.md spec via waza check"
+run = "bash tests/waza-spec.sh"
+
 [tasks.lint]
 description = "Run all linters"
-depends = ["lint-shell", "lint-actions"]
+depends = ["lint-shell", "lint-actions", "lint-skills"]
 
 [tasks.waza]
 description = "Run every Waza eval suite"

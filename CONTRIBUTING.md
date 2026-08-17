@@ -40,6 +40,7 @@ mise run lint
 | Bash 4+ | Tests and hook scripts |
 | [ShellCheck](https://www.shellcheck.net/) | Shell linting (`mise run lint-shell`) |
 | [actionlint](https://github.com/rhysd/actionlint) | GitHub Actions linting (`mise run lint-actions`) |
+| [waza](https://github.com/microsoft/waza) | Skill spec + eval schema (`mise run lint-skills`) |
 
 ## Writing a Skill
 
