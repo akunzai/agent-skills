@@ -61,6 +61,9 @@ jobs:
       - name: Run waza spec workflow checks
         run: bash tests/waza-spec-workflow.sh
 
+      - name: Run waza run-suites checks
+        run: bash tests/waza-run-suites.sh
+
   codexbar-quota-handoff:
     runs-on: ubuntu-latest
     steps:

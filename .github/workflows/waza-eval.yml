@@ -16,6 +16,11 @@ on:
         required: false
         type: boolean
         default: false
+      suite:
+        description: Suite directory under evals/ (empty = all suites)
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -52,20 +57,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          extra=()
+          args=()
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            args+=(--changed)
+          elif [ -n "${{ inputs.suite }}" ]; then
+            args+=("${{ inputs.suite }}")
+          fi
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] \
             && [ "${{ inputs.baseline }}" = "true" ]; then
-            extra+=(--baseline)
+            args+=(--baseline)
           fi
-          mkdir -p waza-results
-          failed=0
-          for spec in evals/*/eval.yaml; do
-            name="$(basename "$(dirname "$spec")")"
-            if ! waza run "$spec" --output "waza-results/${name}.json" "${extra[@]}"; then
-              failed=1
-            fi
-          done
-          exit "$failed"
+          bash evals/run-suites.sh "${args[@]}"
 
       - name: Upload Waza artifacts
         if: always()
