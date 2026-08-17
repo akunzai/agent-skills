@@ -151,6 +151,16 @@ grep -q --fixed-strings 'Scan output' "$SKILL" \
 grep -q --fixed-strings 'process.env' "$SKILL" \
   || fail "process.env credential writing rule is missing"
 
+if grep -q -E 'Take those files and produce|standalone Playwright' "$SKILL"; then
+  fail "Convert must not frame the spec as a transcription of final_script.py"
+fi
+
+grep -q -E 'selectors and action order' "$SKILL" \
+  || fail "final_script.py must be a selector/flow reference, not a transcription source"
+
+grep -q -E 'Draft only after' "$SKILL" \
+  || fail "Convert must wait for a resolved input scan before drafting"
+
 grep -q --fixed-strings 'references/security.md' "$SKILL" \
   || fail "link to references/security.md is missing"
 
