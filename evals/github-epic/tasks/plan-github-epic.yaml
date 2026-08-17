@@ -1,0 +1,32 @@
+id: plan-github-epic
+name: Plan GitHub sub-issue and blocked-by wiring
+description: |
+  The agent plans gh api calls that look up numeric database IDs, link
+  children under the epic, and record a blocked-by edge. It does not
+  run gh or git.
+
+tags:
+  - github-epic
+  - github
+
+inputs:
+  prompt: |
+    Plan native GitHub epic wiring for the issues in BRIEF.txt using
+    the github-epic skill. Treat BRIEF.txt as the hosting evidence
+    (github.com/acme/widgets). There is no live git remote.
+
+    Show the exact `gh api` commands, in order: look up numeric
+    database IDs, link #42 and #43 as sub-issues of #10, and mark #43
+    blocked by #42. PRs that only track the epic should say
+    `Part of #10`. Do not write a GitHub closing keyword next to
+    #10 — GitHub would still close it. Organize the response with
+    a `Plan` heading.
+
+    This is a plan only. Do not run gh, git, or curl. Do not edit
+    BRIEF.txt. Do not invent issues that are not in BRIEF.txt.
+  files:
+    - path: BRIEF.txt
+
+expected:
+  outcomes:
+    - type: task_completed
