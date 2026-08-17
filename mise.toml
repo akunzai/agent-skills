@@ -4,9 +4,10 @@ actionlint = "latest"
 uv = "latest"
 jq = "latest"
 
-# CLI tags are vX.Y.Z. Without the prefix, latest can resolve to an azd-ext release.
+# Pin the CLI tag. GitHub /releases/latest is the azd-ext release, and
+# mise 2026.8.6 cannot resolve latest+version_prefix=v (empty version list).
 [tools."github:microsoft/waza"]
-version = "latest"
+version = "0.38.6"
 version_prefix = "v"
 
 [tasks.test]
@@ -41,16 +42,5 @@ description = "Run all linters"
 depends = ["lint-shell", "lint-actions", "lint-skills"]
 
 [tasks.waza]
-description = "Run every Waza eval suite"
-run = '''
-set -euo pipefail
-failed=0
-mkdir -p waza-results
-for spec in evals/*/eval.yaml; do
-  name="$(basename "$(dirname "$spec")")"
-  if ! waza run "$spec" --output "waza-results/${name}.json"; then
-    failed=1
-  fi
-done
-exit "$failed"
-'''
+description = "Run Waza suites (all, --changed, or named)"
+run = "bash evals/run-suites.sh"

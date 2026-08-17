@@ -12,16 +12,34 @@ Not covered here (needs AgentsView): `agentsview-extract`.
 
 ## Install
 
-Project-level via mise's `github:` backend. `version_prefix = "v"` so
-`latest` resolves to CLI tags (`v0.38.6`) instead of `azd-ext-*`
-releases.
+Project-level via mise's `github:` backend. Pin the CLI tag
+(`v0.38.6`). GitHub's `/releases/latest` is the `azd-ext-*` release,
+and `version = "latest"` with `version_prefix = "v"` currently
+resolves to no versions.
 
 ```bash
 mise install
 waza --version
 ```
 
-Or `mise run waza` to run every suite.
+```bash
+# Every suite
+mise run waza
+
+# One suite (or several)
+mise run waza -- pr-workflow
+mise run waza -- github-epic gitlab-epic
+
+# Suites touched vs origin/main
+mise run waza -- --changed
+
+# Local iteration without Copilot when the spec is unchanged
+waza run evals/pr-workflow/eval.yaml --cache
+```
+
+`waza run --cache` writes `.waza-cache/` (gitignored). It skips a task
+when the eval spec, tasks, and fixtures are unchanged. Do not treat a
+cache hit as a substitute for a live CI run after a skill edit.
 
 ## Auth
 
@@ -75,16 +93,20 @@ runs that task on every PR. It does not need Copilot.
 runs on first-party PRs that touch `skills/**`, `evals/**`, the
 workflow file, `.waza.yaml`, or `mise.toml`. Fork PRs are skipped.
 
-The PR job runs:
+The PR job runs the token check, then only the suites whose
+`skills/<name>/` or `evals/<name>/` paths changed vs `origin/main`.
+Changes to the workflow, `.waza.yaml`, `mise.toml`, or
+`evals/run-suites.sh` run every suite. `workflow_dispatch` runs every
+suite, or the one named in the `suite` input.
 
 ```bash
 waza tokens compare origin/main --skills --threshold 10 --strict
-waza run evals/<skill>/eval.yaml --output waza-results/<skill>.json
+bash evals/run-suites.sh --changed
 ```
 
-for every `evals/*/eval.yaml`. `--strict` uses the absolute `SKILL.md`
-budget in [`.waza.yaml`](../../.waza.yaml) (3000). `--threshold 10`
-still fails a SKILL.md that grows more than 10% vs `origin/main`.
+`--strict` uses the absolute `SKILL.md` budget in
+[`.waza.yaml`](../../.waza.yaml) (3000). `--threshold 10` still fails a
+SKILL.md that grows more than 10% vs `origin/main`.
 
 Exit 1 (grader failure) or 2 (config / auth / runtime error) fails the
 check.
