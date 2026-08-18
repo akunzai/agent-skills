@@ -79,6 +79,12 @@ project) and tier (short-term candidate vs. long-term durable), then writes it.
 Autonomous knowledge capture after solving a problem stays with `agents-md`'s
 Self-Reflection mechanism.
 
+> **Migration:** The original `memory` skill was split into the `mem-*` family
+> (`mem-auto`, `mem-clean`, `mem-promote`, `mem-recall`, `mem-setup`, and
+> `mem-sync`), then consolidated into `to-memory`. These legacy names may remain
+> visible on skills.sh because of historical install data, but are no longer
+> maintained.
+
 #### [`agentsview-extract`](skills/agentsview-extract/SKILL.md)
 
 Persist gotchas, preferences, or a repeated workflow from recorded agent history into `AGENTS.md` or a new skill. After confirmation, installs AgentsView and the official `agentsview-finding-history` skill when they are missing.
