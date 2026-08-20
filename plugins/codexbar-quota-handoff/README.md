@@ -22,12 +22,13 @@ cd agent-skills
 bash plugins/codexbar-quota-handoff/scripts/setup.sh --threshold 0.9
 ```
 
-Setup copies two private helpers to
+Setup copies the flag-writer helper to
 `${XDG_DATA_HOME:-$HOME/.local/share}/codexbar-quota-handoff/scripts/`, stores
 flags under `${XDG_STATE_HOME:-$HOME/.local/state}/codexbar-quota-handoff/`,
 adds CodexBar rules only for detected agents, and prints Claude Code and
 Codex plugin-manager commands for `akunzai/agent-skills` without running
 them. When `grok` is on PATH it also writes
+`~/.grok/hooks/codexbar-quota-reminder.sh` and
 `~/.grok/hooks/codexbar-quota-handoff.json` (Grok needs no marketplace
 install). Pass `--local` to print this checkout's path instead when testing
 unpublished changes.
@@ -62,9 +63,9 @@ codex plugin add codexbar-quota-handoff --marketplace akunzai-agent-skills
 <summary>Grok Build</summary>
 
 No marketplace install is required for the reminder. `setup.sh` installs a
-Stop-only global hook at `~/.grok/hooks/codexbar-quota-handoff.json` that
-runs the shared runtime helper. Reload hooks from the Hooks tab (`r`) or
-start a new session.
+Stop-only global hook at `~/.grok/hooks/codexbar-quota-handoff.json` and copies
+the reminder script to `~/.grok/hooks/codexbar-quota-reminder.sh`. Reload hooks
+from the Hooks tab (`r`) or start a new session.
 
 Grok Build 1.0.x discovers plugin hooks but does not register them on the
 session dispatcher, so a global hook is the reliable path. The hook is
@@ -85,7 +86,7 @@ bash plugins/codexbar-quota-handoff/scripts/uninstall.sh
 
 Pass `--keep-state` to preserve quota flags. The script removes owned runtime
 helpers and CodexBar rules, prints Claude Code and Codex plugin removal
-commands without executing them, and removes the Grok global hook.
+commands without executing them, and removes the Grok global hook files.
 
 ## How it works
 
@@ -96,7 +97,7 @@ atomically claims the matching flag, emits the correct handoff reminder, and
 clears the claim.
 
 Claude Code and Codex load the bundled `hooks/hooks.json` from their installed
-plugin. Grok loads the global hook file written by `setup.sh`.
+plugin. Grok loads the global hook file and reminder script written by `setup.sh`.
 
 Run the focused checks with:
 

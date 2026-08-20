@@ -89,32 +89,36 @@ cleanup() {
 trap cleanup EXIT
 
 install_helpers() {
-  local name source target temporary
+  local name="codexbar-quota-flag.sh"
+  local source target temporary
   mkdir -p "$runtime_dir"
-  for name in codexbar-quota-flag.sh quota-reminder.sh; do
-    source="$plugin_root/scripts/$name"
-    target="$runtime_dir/$name"
-    temporary="$(mktemp "$runtime_dir/.${name}.XXXXXX")"
-    cp "$source" "$temporary"
-    chmod 755 "$temporary"
-    mv "$temporary" "$target"
-  done
+  source="$plugin_root/scripts/$name"
+  target="$runtime_dir/$name"
+  temporary="$(mktemp "$runtime_dir/.${name}.XXXXXX")"
+  cp "$source" "$temporary"
+  chmod 755 "$temporary"
+  mv "$temporary" "$target"
   echo "  installed runtime helpers in $runtime_dir"
 }
 
 # Grok discovers plugin hooks but does not register them on the session
 # dispatcher (observed on Grok Build 1.0.x). Install a Stop-only global hook
-# that points at the shared runtime helper. PostToolUse is omitted on purpose:
-# on Grok, exit 2 there is fail-open and would claim the flag before Stop can
-# surface the reminder to the model.
+# alongside its reminder script in ~/.grok/hooks/. PostToolUse is omitted on
+# purpose: on Grok, exit 2 there is fail-open and would claim the flag before
+# Stop can surface the reminder to the model.
 install_grok_global_hook() {
   local hooks_dir="$HOME/.grok/hooks"
   local hook_path="$hooks_dir/codexbar-quota-handoff.json"
-  local reminder="$runtime_dir/quota-reminder.sh"
+  local reminder_script="$hooks_dir/codexbar-quota-reminder.sh"
   local temporary
   mkdir -p "$hooks_dir"
+  temporary="$(mktemp "$hooks_dir/.codexbar-quota-reminder.XXXXXX")"
+  cp "$plugin_root/scripts/quota-reminder.sh" "$temporary"
+  chmod 755 "$temporary"
+  mv "$temporary" "$reminder_script"
+
   temporary="$(mktemp "$hooks_dir/.codexbar-quota-handoff.XXXXXX")"
-  jq -n --arg cmd "$reminder" '
+  jq -n --arg cmd "$reminder_script" '
     {
       hooks: {
         Stop: [
@@ -130,6 +134,7 @@ install_grok_global_hook() {
   chmod 644 "$temporary"
   mv "$temporary" "$hook_path"
   echo "  installed Grok global Stop hook at $hook_path"
+  echo "  installed Grok reminder script at $reminder_script"
 }
 
 echo "== Shared runtime =="

@@ -42,6 +42,7 @@ runtime_root="$data_home/codexbar-quota-handoff"
 state_dir="$state_home/codexbar-quota-handoff"
 codexbar_config="$HOME/.codexbar/config.json"
 grok_hook="$HOME/.grok/hooks/codexbar-quota-handoff.json"
+grok_script="$HOME/.grok/hooks/codexbar-quota-reminder.sh"
 temporary=""
 
 cleanup() {
@@ -72,10 +73,18 @@ if [[ -f "$codexbar_config" ]]; then
 fi
 
 echo "== Grok Build =="
+removed_grok=false
 if [[ -e "$grok_hook" ]]; then
   rm -f "$grok_hook"
   echo "  removed $grok_hook"
-else
+  removed_grok=true
+fi
+if [[ -e "$grok_script" ]]; then
+  rm -f "$grok_script"
+  echo "  removed $grok_script"
+  removed_grok=true
+fi
+if [[ "$removed_grok" == false ]]; then
   echo "  no owned Grok global hook at $grok_hook"
 fi
 

@@ -17,8 +17,9 @@ STATE_HOME="$FAKE_HOME/xdg-state"
 RUNTIME_ROOT="$DATA_HOME/codexbar-quota-handoff"
 STATE_DIR="$STATE_HOME/codexbar-quota-handoff"
 mkdir -p "$FAKE_HOME/.codexbar" "$FAKE_HOME/.grok/hooks" "$RUNTIME_ROOT/scripts" "$STATE_DIR"
-touch "$RUNTIME_ROOT/scripts/quota-reminder.sh" "$RUNTIME_ROOT/scripts/codexbar-quota-flag.sh" \
-  "$STATE_DIR/quota-low-claude.json"
+touch "$RUNTIME_ROOT/scripts/codexbar-quota-flag.sh" \
+  "$STATE_DIR/quota-low-claude.json" \
+  "$FAKE_HOME/.grok/hooks/codexbar-quota-reminder.sh"
 echo '{"hooks":{"Stop":[]}}' >"$FAKE_HOME/.grok/hooks/codexbar-quota-handoff.json"
 echo '{"hooks":{"SessionStart":[]}}' >"$FAKE_HOME/.grok/hooks/herdr.json"
 
@@ -36,6 +37,8 @@ OUTPUT="$(HOME="$FAKE_HOME" XDG_DATA_HOME="$DATA_HOME" XDG_STATE_HOME="$STATE_HO
 [ ! -e "$STATE_DIR" ] || fail "state directory was not removed"
 [ ! -e "$FAKE_HOME/.grok/hooks/codexbar-quota-handoff.json" ] \
   || fail "owned Grok global hook was not removed"
+[ ! -e "$FAKE_HOME/.grok/hooks/codexbar-quota-reminder.sh" ] \
+  || fail "owned Grok reminder script was not removed"
 [ -f "$FAKE_HOME/.grok/hooks/herdr.json" ] \
   || fail "uninstall removed an unrelated Grok hook file"
 REMAINING_IDS="$(jq -r '.hooks.events[].id' "$FAKE_HOME/.codexbar/config.json")"
@@ -55,7 +58,7 @@ KEEP_HOME="$TMP_DIR/keep-home"
 KEEP_DATA="$KEEP_HOME/data"
 KEEP_STATE="$KEEP_HOME/state/codexbar-quota-handoff"
 mkdir -p "$KEEP_DATA/codexbar-quota-handoff/scripts" "$KEEP_STATE"
-touch "$KEEP_DATA/codexbar-quota-handoff/scripts/quota-reminder.sh" "$KEEP_STATE/quota-low-grok.json"
+touch "$KEEP_DATA/codexbar-quota-handoff/scripts/codexbar-quota-flag.sh" "$KEEP_STATE/quota-low-grok.json"
 HOME="$KEEP_HOME" XDG_DATA_HOME="$KEEP_DATA" XDG_STATE_HOME="$KEEP_HOME/state" \
   bash "$SCRIPT" --keep-state >/dev/null
 [ -f "$KEEP_STATE/quota-low-grok.json" ] || fail "--keep-state removed quota state"
