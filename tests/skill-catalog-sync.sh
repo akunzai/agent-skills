@@ -2,7 +2,6 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CATALOG="$ROOT_DIR/skills.sh.json"
 README="$ROOT_DIR/README.md"
 
 fail() {
@@ -10,55 +9,30 @@ fail() {
   exit 1
 }
 
-[ -f "$CATALOG" ] || fail "skills.sh.json is missing"
+[ -f "$README" ] || fail "README.md is missing"
 
-jq empty "$CATALOG" 2>/dev/null || fail "skills.sh.json is not valid JSON"
+# --- every skill on disk must have a SKILL.md and be listed in README.md ---
+ON_DISK_SKILLS="$(find "$ROOT_DIR/skills" -mindepth 1 -maxdepth 1 -type d -exec test -f '{}/SKILL.md' ';' -exec basename {} \; | sort)"
+[ -n "$ON_DISK_SKILLS" ] || fail "no skills found in skills/"
 
-# --- schema structural checks ---
-NOT_GROUPED="$(jq -r '.notGrouped // empty' "$CATALOG")"
-if [ -n "$NOT_GROUPED" ] && [ "$NOT_GROUPED" != "top" ] && [ "$NOT_GROUPED" != "bottom" ]; then
-  fail "skills.sh.json 'notGrouped' must be 'top' or 'bottom'"
-fi
+# shellcheck disable=SC2016
+README_SKILLS="$(grep -oE '^#### \[`[a-zA-Z0-9_-]+`\]' "$README" | sed -E 's/^#### \[`([a-zA-Z0-9_-]+)`\]/\1/' | sort)"
+[ -n "$README_SKILLS" ] || fail "no skills found in README.md"
 
-# --- every grouped skill slug must have a real skills/<slug>/SKILL.md ---
+[ "$ON_DISK_SKILLS" = "$README_SKILLS" ] \
+  || fail "README.md skills mismatch:
+On disk:
+$ON_DISK_SKILLS
+In README:
+$README_SKILLS"
+
+# --- verify each skill link in README exists ---
 while IFS= read -r slug; do
   [ -f "$ROOT_DIR/skills/$slug/SKILL.md" ] \
-    || fail "skills.sh.json references unknown skill '$slug' (skills/$slug/SKILL.md not found)"
-done < <(jq -r '.groupings[].skills[]' "$CATALOG")
+    || fail "README references skill '$slug' but skills/$slug/SKILL.md not found"
+done <<< "$README_SKILLS"
 
-# --- README.md's ## Skills group headings and membership must match skills.sh.json ---
-GROUP_COUNT="$(jq '.groupings | length' "$CATALOG")"
-[ "$GROUP_COUNT" -gt 0 ] || fail "skills.sh.json must have at least one grouping"
-
-for ((i = 0; i < GROUP_COUNT; i++)); do
-  TITLE="$(jq -r ".groupings[$i].title // empty" "$CATALOG")"
-  [ -n "$TITLE" ] || fail "skills.sh.json grouping $i is missing 'title'"
-
-  DESC="$(jq -r ".groupings[$i].description // empty" "$CATALOG")"
-  [ -n "$DESC" ] || fail "skills.sh.json grouping '$TITLE' is missing 'description'"
-
-  EXPECTED="$(jq -r ".groupings[$i].skills | sort | join(\",\")" "$CATALOG")"
-
-  BLOCK="$(awk -v heading="### $TITLE" '
-    $0 == heading { found=1; next }
-    found && /^### / { exit }
-    found && /^## / { exit }
-    found { print }
-  ' "$README")"
-
-  [ -n "$BLOCK" ] || fail "README.md is missing a '### $TITLE' group heading under ## Skills"
-
-  # shellcheck disable=SC2016
-  ACTUAL="$(printf '%s\n' "$BLOCK" \
-    | grep -oE '^#### \[`[a-zA-Z0-9_-]+`\]' \
-    | sed -E 's/^#### \[`([a-zA-Z0-9_-]+)`\]/\1/' \
-    | sort | paste -sd, -)"
-
-  [ "$ACTUAL" = "$EXPECTED" ] \
-    || fail "README.md group '$TITLE' skills ($ACTUAL) do not match skills.sh.json ($EXPECTED)"
-done
-
-# --- Claude plugin: name kebab-cases to "Charley Skills" in `npx skills add` ---
+# --- Claude plugin: name kebab-cases to "Charley Skills" in skills-manager / `npx skills add` ---
 PLUGIN_JSON="$ROOT_DIR/.claude-plugin/plugin.json"
 MARKETPLACE_JSON="$ROOT_DIR/.claude-plugin/marketplace.json"
 
@@ -70,10 +44,12 @@ PLUGIN_NAME="$(jq -r '.name // empty' "$PLUGIN_JSON")"
   || fail ".claude-plugin/plugin.json name is '$PLUGIN_NAME', expected 'charley-skills'"
 
 PLUGIN_SKILLS="$(jq -r '.skills // [] | sort | join(",")' "$PLUGIN_JSON")"
-ON_DISK_SKILLS="$(find "$ROOT_DIR/skills" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; \
-  | sort | sed 's|^|./skills/|' | paste -sd, -)"
-[ "$PLUGIN_SKILLS" = "$ON_DISK_SKILLS" ] \
-  || fail ".claude-plugin/plugin.json skills ($PLUGIN_SKILLS) do not match skills/* ($ON_DISK_SKILLS)"
+EXPECTED_PLUGIN_SKILLS="$(printf '%s\n' "$ON_DISK_SKILLS" | sed 's|^|./skills/|' | paste -sd, -)"
+[ "$PLUGIN_SKILLS" = "$EXPECTED_PLUGIN_SKILLS" ] \
+  || fail ".claude-plugin/plugin.json skills ($PLUGIN_SKILLS) do not match skills/* ($EXPECTED_PLUGIN_SKILLS)"
+
+[ -f "$MARKETPLACE_JSON" ] || fail ".claude-plugin/marketplace.json is missing"
+jq empty "$MARKETPLACE_JSON" 2>/dev/null || fail ".claude-plugin/marketplace.json is not valid JSON"
 
 MARKETPLACE_ENTRY="$(jq -r '.plugins[] | select(.name == "charley-skills") | .source' "$MARKETPLACE_JSON")"
 [ "$MARKETPLACE_ENTRY" = "./" ] \
