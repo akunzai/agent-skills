@@ -67,7 +67,7 @@ description: >-
 ```
 
 Also add `./skills/<name>` to the `skills` array in
-`.claude-plugin/plugin.json` so `npx skills add` groups it under
+`.claude-plugin/plugin.json` so `skills add` / `npx skills add` groups it under
 **Charley Skills**.
 
 ### Adding Tests

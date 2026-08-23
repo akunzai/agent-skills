@@ -2,7 +2,6 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://github.com/akunzai/agent-skills/actions/workflows/tests.yml/badge.svg)](https://github.com/akunzai/agent-skills/actions/workflows/tests.yml)
-[![skills.sh](https://skills.sh/b/akunzai/agent-skills)](https://skills.sh/akunzai/agent-skills)
 
 My personal agent skills for AI coding assistants — compatible with Antigravity, Claude Code, Codex, and more.
 Those assistants can load the skills; **effectiveness is measured only on
@@ -20,6 +19,14 @@ management), and **Testing** (framework-agnostic test generation and
 validation workflows).
 
 ## Install
+
+Install and manage skills across agents with [Skills Manager](https://github.com/akunzai/skills-manager):
+
+```bash
+skills add akunzai/agent-skills
+```
+
+Alternatively, install via `npx skills`:
 
 ```bash
 npx skills add akunzai/agent-skills
@@ -82,7 +89,7 @@ Self-Reflection mechanism.
 > **Migration:** The original `memory` skill was split into the `mem-*` family
 > (`mem-auto`, `mem-clean`, `mem-promote`, `mem-recall`, `mem-setup`, and
 > `mem-sync`), then consolidated into `to-memory`. These legacy names may remain
-> visible on skills.sh because of historical install data, but are no longer
+> visible in public registries because of historical install data, but are no longer
 > maintained.
 
 #### [`agentsview-extract`](skills/agentsview-extract/SKILL.md)
@@ -122,8 +129,7 @@ result is stable and CI-discoverable.
 
 ## Plugins
 
-Separate from the skills above (not installable via `npx skills add`, not
-part of the `skills.sh` catalog):
+Separate from the skills above (not installable via `skills add` or `npx skills add`):
 
 - [`codexbar-quota-handoff`](plugins/codexbar-quota-handoff/README.md) — a
   Claude Code / Codex CLI plugin and Grok Build hook that reminds you to wrap up

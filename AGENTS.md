@@ -15,7 +15,7 @@ Tasks live in `mise.toml` (`mise run test`, `mise run lint`).
 
 - Skill structure and shell style: @CONTRIBUTING.md
 - Gold-standard test spec: @tests/to-memory-storage.sh
-- Skill catalog (`README.md` + `skills.sh.json`): @tests/skill-catalog-sync.sh
+- Skill catalog (`README.md` + `skills/`): @tests/skill-catalog-sync.sh
 - Issue tracker: @docs/agents/issue-tracker.md
 - Triage labels: @docs/agents/triage-labels.md
 - Domain docs: @docs/agents/domain.md
