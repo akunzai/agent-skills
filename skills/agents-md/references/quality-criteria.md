@@ -17,6 +17,7 @@ repo, and spends the **instruction budget** on every-task facts plus pointers.
 | **Progressive Disclosure** | High | Is `AGENTS.md` lean (< 100 lines)? Are domain rules and SOPs behind `@path` or a skill? |
 | **Commands & package manager** | High | Is a non-default package manager named? Are only non-standard or expensive-to-discover commands cached? |
 | **Rich References & SSOT** | High | Does it point to schemas and gold-standard tests instead of prose specs? Does it treat `package.json` / configs / the tree as the live source? |
+| **Monorepo boundaries** | High | When nested files exist, does the root own shared policy, docs, and Self-Reflection while each autonomous child starts with its purpose and carries only local commands, decisions, and completion? Can independently cloned packages operate from their own root file? |
 | **Capabilities** | High | Does it describe what the project does and its stable domain terms, rather than a file-by-file map? |
 | **Micromanagement Audit** | High | Is it free of generic hygiene and defensive boilerplate the model already knows? |
 | **Contradictions** | High | Are conflicting instructions named, and has the user chosen which version to keep? |
@@ -29,6 +30,7 @@ repo, and spends the **instruction budget** on every-task facts plus pointers.
 - Concise (< 100 lines) index: one-sentence description, non-default package manager, non-standard commands, pointers.
 - Zero micromanagement; environment is the live source; capabilities over paths.
 - Self-Reflection knowledge lives in dedicated topic files (or `lessons-learned.md`), referenced via `@path`, and is actively pruned.
+- In a monorepo, root and nested files have distinct scopes; nested files exist only for autonomous local decisions.
 
 ### Grade B (70-89): Minor gaps / slight bloat
 - Commands and basic patterns are documented, but some every-task lines are missing or some single-domain rules still sit in the root.
@@ -51,6 +53,7 @@ Eliminate these on sight:
 
 *   **Micromanagement**: `"Always write comments."`, `"Do not introduce syntax errors."`, `"Use clean functions."` — the model already does this; the lines only dilute attention.
 *   **SSOT / cache rot**: repeating `package.json`, `tsconfig.json`, or linter config.
+*   **Ceremonial nesting**: empty "follow the root" files, copied root rules, or nested files created only because `src/` or `tests/` exists.
 *   **Monolithic SOP Bloat**: multi-step deploy or migration scripts in the root file.
 *   **Inline Lessons Learned**: gotchas written in `AGENTS.md` instead of a topic file referenced via `@path`.
 *   **Drifting metrics**: `"25 unresolved issues"`, `"85% coverage"`.

@@ -49,6 +49,19 @@ specs. Describe capabilities and stable domain terms; skip file-by-file maps
 Write pointers in light-touch language: a conversational reference, not ALL-CAPS
 or "ALWAYS".
 
+## Monorepo boundaries
+
+Root `AGENTS.md` owns policy, shared `docs/`, cross-package completion, and
+Self-Reflection. Add a nested file only at an **autonomous boundary**. It is an
+adapter for local invariants, domain pointers, and completion criteria.
+
+Do not create files for `src/` or `tests`; add a deeper file only for a durable
+local decision, and remove it when the decision disappears. Keep commands in
+package config unless discovery is costly. Independently cloned packages need
+their own root `AGENTS.md`; verify tool inheritance before relying on ancestors.
+Start a package file with its one-sentence purpose. Repeat the package manager
+only when its toolchain differs from the root or ancestor loading is unavailable.
+
 ## Workflows
 
 ### 1. Discovery & Quality Assessment
@@ -80,15 +93,16 @@ Done when the report is in the conversation and no edit has started.
 
 Before writing:
 
-- **Check if `CLAUDE.md` is already a symbolic link to `AGENTS.md`** (e.g., using
-  `ls -la CLAUDE.md` or checking file properties).
+- For each `AGENTS.md` that needs Claude Code compatibility, **check its sibling
+  `CLAUDE.md`** is a symbolic link to `AGENTS.md`.
 - **If already a symbolic link**: Skip the confirmation prompt entirely and
   automatically proceed under the assumption that compatibility is desired.
-- **If `CLAUDE.md` already exists and is not the intended symlink**: Read it,
-  summarize any unique instructions, propose how to migrate them into
-  `AGENTS.md`, and ask for explicit approval before moving or replacing the file.
+- **If a regular `CLAUDE.md` imports its local `AGENTS.md` and adds only
+  Claude-specific rules**: Preserve it as the compatible configuration.
+- **Otherwise, if `CLAUDE.md` exists**: Read it, summarize unique instructions,
+  propose migration, and ask approval before replacing it.
 - **Otherwise**: Prompt the user:
-  "Do you want to maintain Claude Code compatibility? (This will symlink CLAUDE.md to AGENTS.md and add an explanation block)"
+  "Do you want Claude Code compatibility for this directory? (This will symlink its CLAUDE.md to AGENTS.md.)"
 
 Done when the next action is known and a regular `CLAUDE.md` is still intact
 unless the user approved replacement.
@@ -105,13 +119,11 @@ Load [references/templates.md](references/templates.md) for this branch.
   contradictory pair to keep, and flag no-ops / vague / obvious lines for
   deletion.
 - If compatibility is active or selected:
-  - Create the symlink only when `CLAUDE.md` is absent or already the intended
-    symlink.
-  - If a regular `CLAUDE.md` exists, preserve its contents until the user
-    approves migration and replacement.
-  - Add the concise explanation block (`CLAUDE.md is a symbolic link...`) to
-    `AGENTS.md`.
-  - Add `CLAUDE.md` overrides (if any) to `AGENTS.md` or as separate imports.
+  - Create a sibling symlink only when `CLAUDE.md` is absent. Preserve a
+    regular file that imports local `AGENTS.md`; put Claude-specific rules there.
+  - Preserve any other regular `CLAUDE.md` until the user approves migration.
+  - Document the convention in root `AGENTS.md`; nested files need no duplicate
+    explanation.
 - Include the `Self-Reflection` section rules in `AGENTS.md` so all future
   agents follow them.
 

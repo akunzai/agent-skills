@@ -34,26 +34,59 @@ pointer (`For TypeScript conventions, see docs/TYPESCRIPT.md`).
 
 Code style bullets belong here only when a nearby file or config proves them.
 
-## 2. Monorepo split
+## 2. Monorepo hierarchy
+
+Use the root file for repository-wide policy, shared references, cross-package
+completion criteria, and Self-Reflection. A nested file belongs only at an
+autonomous package or app boundary; it is not a required file in every
+directory.
 
 Root file — repo-wide facts only:
 
 ```markdown
 This is a monorepo of <services>.
 This project uses <workspace tool>.
-See each package's AGENTS.md for package-specific guidance.
+
+When work is contained in an autonomous package, read its nearest AGENTS.md
+for local guidance.
+
+## Cross-package completion
+- When changing a shared contract, validate every affected consumer.
+
+## Self-Reflection
+<the shared Self-Reflection rules>
 ```
 
-Package file — that package's purpose, stack, and pointers:
+Package file — only its local decisions:
 
 ```markdown
 This package is a <one-sentence description>.
-Follow docs/<package>-conventions.md for design patterns.
+
+## Commands
+- <a non-standard or costly-to-discover package command>
+
+## Local invariants
+- <a non-derivable constraint that differs from the root>
+
+## Completion
+- <the package-specific evidence required before work is done>
 ```
+
+Do not copy root rules, shared `docs/` pointers, or Self-Reflection into the
+package file. Do not create an empty package file that only redirects to the
+root. Omit the Commands section when package configuration is enough; repeat
+the package manager only when it differs from the root or ancestors do not load.
+A subtree gets a deeper `AGENTS.md` only for a durable local decision (for
+example, generated code or a security boundary). A package that can be cloned
+or assigned independently needs a standalone root `AGENTS.md`.
 
 ## 3. Claude Code compatibility
 
-If the user requests compatibility with Claude Code, append:
+Claude Code reads `CLAUDE.md`, not `AGENTS.md`. For every `AGENTS.md` whose
+rules Claude Code should use, create a sibling `CLAUDE.md`: the repository root
+and every nested package with local `AGENTS.md` rules. Use a symlink when no
+Claude-specific instruction is needed. Document that convention once in the
+root `AGENTS.md`:
 
 ```markdown
 ## Claude Code Compatibility
@@ -61,12 +94,25 @@ If the user requests compatibility with Claude Code, append:
 `CLAUDE.md` is a symbolic link pointing to `AGENTS.md`. Edit `AGENTS.md` directly.
 ```
 
-Create the symbolic link in the repository root only when `CLAUDE.md` is absent
-or already points to `AGENTS.md`:
+Create the sibling symlink only when `CLAUDE.md` is absent or already points to
+`AGENTS.md`:
 
 ```bash
 ln -s AGENTS.md CLAUDE.md
 ```
+
+For Claude-specific local instructions, use a regular sibling `CLAUDE.md` that
+imports the local file instead:
+
+```markdown
+@AGENTS.md
+
+## Claude Code
+- <a Claude-specific local instruction>
+```
+
+Do not import a parent `AGENTS.md` from a nested `CLAUDE.md`: Claude Code loads
+the `CLAUDE.md` hierarchy, so that repeats root instructions.
 
 If `CLAUDE.md` already exists and is not the intended symlink, do not replace it
 blindly. Read it, summarize any unique instructions, propose a migration into
