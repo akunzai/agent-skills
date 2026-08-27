@@ -12,7 +12,21 @@ fail() {
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-FIXTURE='{"event":"quota_low","provider":"claude","resetAt":"2026-08-13T02:00:00Z","timestamp":"2026-08-12T15:32:00Z","usagePercent":0.93,"window":"session"}'
+# Portable epoch -> ISO8601 UTC formatting (GNU `date -d @epoch`, then
+# BSD/macOS `date -r epoch`), so resetAt stays relative to "now" instead of
+# a hardcoded date that eventually falls into the past and gets treated as
+# stale by the script's own expiry check below.
+iso_at() {
+  local epoch="$1"
+  date -u -d "@$epoch" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
+    || date -u -r "$epoch" +%Y-%m-%dT%H:%M:%SZ
+}
+
+NOW_EPOCH="$(date -u +%s)"
+FUTURE_RESET_AT="$(iso_at $((NOW_EPOCH + 3600)))"
+PAST_RESET_AT="$(iso_at $((NOW_EPOCH - 3600)))"
+
+FIXTURE="{\"event\":\"quota_low\",\"provider\":\"claude\",\"resetAt\":\"$FUTURE_RESET_AT\",\"timestamp\":\"2026-08-12T15:32:00Z\",\"usagePercent\":0.93,\"window\":\"session\"}"
 
 # Each case: provider label, extra env assignments (as an array, one
 # NAME=value per element) to simulate that tool's own hook runner, and the
@@ -107,5 +121,27 @@ COMBINED_RCS="$(cat "$RC_A_FILE" "$RC_B_FILE" | sort | paste -sd, -)"
 [ ! -f "$CONCURRENT_FLAG" ] || fail "flag file leaked after concurrent invocations"
 LEFTOVER_CLAIMS="$(find "$(dirname "$CONCURRENT_FLAG")" -name '*.claimed.*' | wc -l | tr -d ' ')"
 [ "$LEFTOVER_CLAIMS" -eq 0 ] || fail "a claimed temp file was left behind after concurrent invocations"
+
+# --- a flag whose resetAt is already in the past (stale, e.g. left unclaimed
+#     across a long idle gap) must be discarded silently, not relayed ---
+STALE_FLAG="$TMP_DIR/stale/quota-low.json"
+mkdir -p "$(dirname "$STALE_FLAG")"
+printf '{"event":"quota_low","provider":"claude","resetAt":"%s","timestamp":"2026-08-12T15:32:00Z","usagePercent":1.0,"window":"session"}' \
+  "$PAST_RESET_AT" >"$STALE_FLAG"
+
+RC=0
+CODEXBAR_QUOTA_FLAG_PATH="$STALE_FLAG" "$SCRIPT" >/dev/null 2>&1 || RC=$?
+[ "$RC" -eq 0 ] || fail "expected exit 0 for a flag with a past resetAt, got $RC"
+[ ! -f "$STALE_FLAG" ] || fail "stale flag file was not cleared"
+
+# --- an unparsable resetAt must fail open (still relay the reminder) ---
+UNPARSABLE_FLAG="$TMP_DIR/unparsable/quota-low.json"
+mkdir -p "$(dirname "$UNPARSABLE_FLAG")"
+printf '{"event":"quota_low","provider":"claude","resetAt":"not-a-date","timestamp":"2026-08-12T15:32:00Z","usagePercent":0.93,"window":"session"}' \
+  >"$UNPARSABLE_FLAG"
+
+RC=0
+CODEXBAR_QUOTA_FLAG_PATH="$UNPARSABLE_FLAG" "$SCRIPT" >/dev/null 2>&1 || RC=$?
+[ "$RC" -eq 2 ] || fail "expected exit 2 (fail open) for an unparsable resetAt, got $RC"
 
 echo "codexbar-quota-handoff quota-reminder checks passed"

@@ -81,6 +81,22 @@ usage_percent="$(printf '%s' "$payload" | jq -r '.usagePercent // 0')"
 reset_at="$(printf '%s' "$payload" | jq -r '.resetAt // "unknown"')"
 pct_display="$(awk -v p="$usage_percent" 'BEGIN { printf "%.0f", (p + 0) * 100 }')"
 
+# A flag can sit unclaimed for a while (e.g. no tool call or Stop fired
+# between CodexBar writing it and this hook running next), so by the time we
+# get here the reset the payload warned about may already be behind us —
+# relaying it then would just confuse the user with a stale window. Try GNU
+# `date -d` first, then BSD/macOS `date -j -f`; if neither can parse
+# resetAt, fail open (still show the reminder) rather than silently drop a
+# real crossing over a format we don't recognize.
+if [[ "$reset_at" != "unknown" ]]; then
+  reset_epoch="$(date -u -d "$reset_at" +%s 2>/dev/null)" \
+    || reset_epoch="$(date -u -j -f '%Y-%m-%dT%H:%M:%SZ' "$reset_at" +%s 2>/dev/null)" \
+    || reset_epoch=""
+  if [[ -n "$reset_epoch" ]] && (( reset_epoch < $(date -u +%s) )); then
+    exit 0
+  fi
+fi
+
 {
   printf 'CodexBar detected your %s quota is at %s%% used (resets around %s).\n' \
     "$window" "$pct_display" "$reset_at"
