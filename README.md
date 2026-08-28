@@ -96,6 +96,13 @@ Self-Reflection mechanism.
 
 Persist gotchas, preferences, or a repeated workflow from recorded agent history into `AGENTS.md` or a new skill. After confirmation, installs AgentsView and the official `agentsview-finding-history` skill when they are missing.
 
+#### [`agentsview-resume`](skills/agentsview-resume/SKILL.md)
+
+Take over an unfinished session recorded by AgentsView — from another
+agent, another project, or another machine. Delegates the transcript
+read to a subagent, returns a bounded handoff, verifies it against the
+current repository, then stops for your call.
+
 ### Toolchain
 
 #### [`mise`](skills/mise/SKILL.md)

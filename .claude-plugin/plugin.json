@@ -8,6 +8,7 @@
   "skills": [
     "./skills/agents-md",
     "./skills/agentsview-extract",
+    "./skills/agentsview-resume",
     "./skills/aube",
     "./skills/backfill-unit-tests",
     "./skills/github-epic",
