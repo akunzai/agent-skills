@@ -8,7 +8,8 @@ those runtimes are not the effectiveness instrument.
 Covered: `agents-md`, `mise`, `aube`, `tidy-commits`, `to-memory`,
 `backfill-unit-tests`, `pr-workflow`, `write-e2e-tests`, `github-epic`,
 `gitlab-epic`.
-Not covered here (needs AgentsView): `agentsview-extract`.
+Not covered here (needs AgentsView): `agentsview-extract`,
+`agentsview-resume`.
 
 ## Install
 
