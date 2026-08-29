@@ -16,7 +16,7 @@ cited CLI surface is checked by `tests/agentsview-cli-contract.sh`
 ## Install
 
 Project-level via mise's `github:` backend. Pin the CLI tag
-(`v0.38.6`). GitHub's `/releases/latest` is the `azd-ext-*` release,
+(`v0.38.7`). GitHub's `/releases/latest` is the `azd-ext-*` release,
 and `version = "latest"` with `version_prefix = "v"` currently
 resolves to no versions.
 
