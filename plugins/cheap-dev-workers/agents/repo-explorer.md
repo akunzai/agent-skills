@@ -2,8 +2,8 @@
 name: repo-explorer
 description: >-
   Answers one bounded repository question with file-and-line evidence.
-  Read-only; makes no implementation or architecture decisions.
-model: haiku
+  Read-only; makes no implementation or architecture decisions. Use the
+  cheapest available model capable of this bounded task.
 tools: Read, Grep, Glob
 ---
 

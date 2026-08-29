@@ -1,9 +1,10 @@
 # Waza evaluation
 
 Suites under `evals/<skill>/` measure those skills on **GitHub Copilot
-only**, using the pinned catalog id in each `eval.yaml` `config.model`
-(`mai-code-1.1-flash`). Skills remain usable in other assistants;
-those runtimes are not the effectiveness instrument.
+only**, using the pinned catalog id in each `eval.yaml` `config.model`.
+The three worker-routing suites use `gemini-3.7-flash`; the remaining suites
+use their own pinned model. Skills remain usable in other assistants; those
+runtimes are not the effectiveness instrument.
 
 Covered: `agents-md`, `mise`, `aube`, `tidy-commits`, `to-memory`,
 `backfill-unit-tests`, `pr-workflow`, `write-e2e-tests`, `github-epic`,
@@ -77,6 +78,16 @@ waza run evals/agents-md/eval.yaml --baseline
 reports Waza improvement: quality / tokens / turns / time / completion.
 The PR job does not pass `--baseline` unless dispatched with
 `baseline=true`.
+
+### Worker-routing coverage
+
+The `backfill-unit-tests`, `pr-workflow`, and `tidy-commits` suites verify the
+caller-visible routing decision tree: cheapest-capable model, lowest sufficient
+effort, named-to-generic fallback, permission preservation, and truthful runtime
+metadata reporting. They do not prove that Copilot launched a subagent or
+honored a requested model or effort. That requires a separate integration seam
+which asserts Copilot `subagent.started`/`subagent.completed` event metadata;
+final-answer text and worker self-report are not evidence of actual routing.
 
 ## Spec (replaces `skills-ref validate`)
 

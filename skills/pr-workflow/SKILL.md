@@ -14,11 +14,24 @@ Standard operating procedure for preparing, opening, and managing Pull Requests 
 - **Verification**: Run local **tests** and **linters** before opening or updating PRs.
 
 For bounded, context-heavy local checks, prefer an available named `check-runner`
-and pass only commands selected by the primary agent. If dispatch is unavailable
-or fails to launch, run them in primary without probing worker configuration.
-Once launched, a check-runner failure is the task result; do not rerun it merely
-because it failed. Require its exact command, exit code, summary blocks,
-omitted-line count, and artifact reference.
+and pass only commands selected by the primary agent. Require its exact command,
+exit code, summary blocks, omitted-line count, and artifact reference.
+
+### Worker routing
+
+Request the cheapest capable model and lowest sufficient effort (`low` for
+routine); unsupported overrides inherit parent/configured defaults. Report
+requested/actual only from runtime metadata, else inherited/unknown.
+
+If a named role is unavailable/unsupported, try one generic if it preserves:
+
+- **Check:** selected commands, artifacts allowed, no tracked/Git-state mutation;
+  report command, exit, summaries, omissions, and artifact.
+- **Log:** exact approved local artifact only; reject unsafe input; report causes
+  and events without fetching runs.
+
+Otherwise use primary. After any worker launches, failure is final: no other
+worker, primary rerun, stronger model, or higher effort.
 
 ## Branching & Guardrails
 
@@ -46,9 +59,8 @@ never fetches remote logs or discovers unrelated runs. Low-risk build, lint,
 and test artifacts may go to a named `log-summarizer` after caller review.
 Potentially sensitive logs require a sanitized artifact and residual-secret
 gate first; otherwise keep them in primary.
-If summarizer dispatch is unavailable or fails to launch, summarize in primary.
-Once launched, its rejection or failure is the task result; do not rerun the
-same summarization merely because it failed.
+Use the worker-routing fallback above when the named summarizer is unavailable
+or unsupported.
 
 ### Create PR
 ```bash

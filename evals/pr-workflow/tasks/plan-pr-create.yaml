@@ -20,10 +20,16 @@ inputs:
     `Part of #10` — no other prose next to `#10`. Include the jq
     release URL from BRIEF.txt.
     Organize the response with a `Plan` heading.
+    State the model-selection and fallback policy for any named worker in the
+    plan. Separately cover a runtime that can dispatch a named worker but cannot
+    select its model per dispatch. Include effort selection, the
+    named-to-generic decision path, explicitly stating that a generic fallback
+    must preserve the named worker's tools and permissions, and how requested
+    versus actual settings are reported.
 
-    This is a plan only. Do not run gh, git push, git merge, or
-    git rebase. Do not edit BRIEF.txt. Do not invent a PR that has
-    already been opened.
+    This is a plan only. Do not run gh or any Git mutation. Do not mention
+    prohibited Git mutation commands in the response. Do not edit BRIEF.txt.
+    Do not invent a PR that has already been opened.
   files:
     - path: BRIEF.txt
 

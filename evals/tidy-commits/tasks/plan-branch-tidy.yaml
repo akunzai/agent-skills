@@ -15,7 +15,11 @@ inputs:
 
     Classify every commit (keep, squash/fixup, reorder, split, or drop).
     Show a backup ref name and the exact non-interactive commands you
-    would run. Organize the response with a `Plan` heading.
+    would run. Organize the response with a `Plan` heading. State the
+    model-selection and fallback policy for any named worker in the plan,
+    including what it inherits when per-dispatch model selection is unavailable.
+    Include effort selection, the named-to-generic decision path, permission
+    handling, and how requested versus actual settings are reported.
 
     This is a plan only. Do not run git rebase, git reset, or git push.
     Do not edit HISTORY.txt. Do not invent a rewrite that has already

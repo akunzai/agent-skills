@@ -2,8 +2,8 @@
 name: commit-writer
 description: >-
   Drafts commit or PR text for caller-decided scopes. Read-only leaf role;
-  never decides boundaries or mutates Git.
-model: haiku
+  never decides boundaries or mutates Git. Use the cheapest available model
+  capable of this bounded task.
 tools: Read
 ---
 

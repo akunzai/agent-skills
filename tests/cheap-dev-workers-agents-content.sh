@@ -9,10 +9,18 @@ fail() {
   exit 1
 }
 
-# --- both platforms target their intended cheap model ---
+# --- both runtimes leave model and effort selection to the caller ---
 for role in repo-explorer check-runner log-summarizer commit-writer; do
-  grep -q '^model: haiku$' "$PLUGIN_DIR/agents/$role.md" || fail "$role Claude model"
-  grep -q '^model = "gpt-5.6-luna"$' "$PLUGIN_DIR/codex-agents/$role.toml" || fail "$role Codex model"
+  ! grep -q '^model:' "$PLUGIN_DIR/agents/$role.md" \
+    || fail "$role Claude model must remain runtime-selected"
+  ! grep -q '^effort:' "$PLUGIN_DIR/agents/$role.md" \
+    || fail "$role Claude effort must remain inherited"
+  tr '\n' ' ' < "$PLUGIN_DIR/agents/$role.md" | grep -qi 'cheapest.*capable' \
+    || fail "$role Claude description lacks dynamic cost routing"
+  ! grep -q '^model = ' "$PLUGIN_DIR/codex-agents/$role.toml" \
+    || fail "$role Codex model must remain runtime-selected"
+  ! grep -q '^model_reasoning_effort = ' "$PLUGIN_DIR/codex-agents/$role.toml" \
+    || fail "$role Codex reasoning effort must remain runtime-selected"
 done
 
 # --- all definitions carry the same Git-state boundary ---

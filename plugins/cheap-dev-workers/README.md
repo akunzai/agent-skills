@@ -8,10 +8,21 @@ primary session without delegating judgment or Git mutation:
 - `log-summarizer`: read-only summaries of caller-approved safe artifacts.
 - `commit-writer`: commit or PR text for boundaries already decided in primary.
 
-Claude uses Haiku; Codex uses `gpt-5.6-luna`. Missing or failed dispatch falls
-back to primary. Claude plugin subagents return relay requests because they
-cannot nest. Runtimes that support nesting limit it to explorer → check-runner
-or check-runner → log summarizer; correctness never depends on it.
+Claude and Codex leave model and reasoning effort unset. Callers ask runtimes
+that support per-dispatch selection for the cheapest available model capable of
+the bounded task and the lowest sufficient effort, starting routine work at
+`low`; otherwise the worker inherits the runtime's parent or configured
+defaults. Environment, organization, and runtime policies can override that
+request, and the plugin does not bypass them.
+
+When these named profiles are unavailable, current caller skills may try one
+generic subagent with a compact copy of the role's task and permission boundary.
+They skip the generic path when the runtime cannot enforce that boundary. A
+launched worker is never retried or upgraded; actual model and effort are
+reported only from runtime metadata, otherwise as inherited or unknown. Claude
+plugin subagents return relay requests because they cannot nest. Runtimes that
+support nesting limit it to explorer → check-runner or check-runner → log
+summarizer; correctness never depends on it.
 
 ## Install
 

@@ -14,6 +14,8 @@ inputs:
     This workspace is a tiny Python module with a test runner already
     configured and no unit tests yet. Backfill unit tests for the
     public functions in pricing.py using the backfill-unit-tests skill.
+    Complete the implementation in the workspace; do not stop after planning or
+    explanation. Before the final report, confirm that tests/test_*.py exists.
 
     Use the project's existing command (`python3 -m unittest discover
     -s tests -t . -v`, also the Makefile test target). tests/ is
@@ -22,7 +24,13 @@ inputs:
     or tests/__init__.py.
 
     Validate the new tests the way the skill requires, including
-    mutation-lite. Do not change production behavior.
+    mutation-lite. Do not change production behavior. In the final report,
+    state the model-selection and fallback policy that applies to named workers,
+    even if this run does not use one. Separately cover a runtime that can
+    dispatch a named worker but cannot select its model per dispatch. Include
+    effort selection and the named-to-generic decision path. Explicitly state
+    that generic fallback must preserve the named worker's read/write and tool
+    permissions, and explain how requested versus actual settings are reported.
   files:
     - path: pricing.py
     - path: README.md

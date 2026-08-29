@@ -91,6 +91,18 @@ test type instead.
    cause. Don't loop indefinitely, and don't hand back a test that hasn't
    passed all three gates.
 
-For either worker, if dispatch is unavailable or fails to launch, continue in
-primary without probing configuration. A launched worker failure is a task
-result, not a dispatch failure that triggers an accidental primary rerun.
+## Worker routing
+
+Request the cheapest capable model and lowest sufficient effort (`low` for
+routine work); unsupported overrides inherit parent/configured defaults. Report
+requested/actual only from runtime metadata, else inherited/unknown.
+
+If a named role is unavailable/unsupported, try one generic only if it preserves:
+
+- **Explore:** read-only repo facts with file/line evidence; no checks or
+  implementation/architecture decisions.
+- **Check:** primary-selected commands, artifacts allowed, no tracked/Git-state
+  mutation; report command, exit, cause/final summaries, omissions, and artifact.
+
+Otherwise use primary. After any worker launches, failure is final: no other
+worker, primary rerun, stronger model, or higher effort.

@@ -1,7 +1,5 @@
 name = "repo-explorer"
 description = "Answers one bounded repository question with file-and-line evidence. Read-only and decision-free."
-model = "gpt-5.6-luna"
-model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 
 developer_instructions = """
