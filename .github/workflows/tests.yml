@@ -64,6 +64,18 @@ jobs:
       - name: Run waza run-suites checks
         run: bash tests/waza-run-suites.sh
 
+  agentsview-cli-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up mise
+        uses: jdx/mise-action@v4
+
+      - name: Run agentsview CLI contract checks
+        run: mise run test-agentsview-contract
+
   codexbar-quota-handoff:
     runs-on: ubuntu-latest
     steps:

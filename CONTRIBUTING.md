@@ -41,6 +41,7 @@ mise run lint
 | [ShellCheck](https://www.shellcheck.net/) | Shell linting (`mise run lint-shell`) |
 | [actionlint](https://github.com/rhysd/actionlint) | GitHub Actions linting (`mise run lint-actions`) |
 | [waza](https://github.com/microsoft/waza) | Skill spec + eval schema (`mise run lint-skills`) |
+| [agentsview](https://github.com/kenn-io/agentsview) | CLI surface the `agentsview-*` skills cite (`mise run test-agentsview-contract`) |
 
 ## Writing a Skill
 
