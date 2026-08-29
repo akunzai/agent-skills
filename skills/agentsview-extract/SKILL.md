@@ -57,8 +57,16 @@ are on the `--help` fallback.
 ## 3. Retrieve
 
 If a finding-history `path` exists, read that `SKILL.md` and follow it
-(prefer the `agents` harness path). Then keep sessions that hold
-problem-solving, failures, or specialized workflows.
+(prefer the `agents` harness path).
+
+Keep exact lookups in the primary. For multiple probes/sessions or a timeline,
+give one cheapest-capable subagent the target and both absolute paths. It reads
+both and returns the Output Shape plus conflicts and gaps, marking synthesis
+provisional. Without
+delegation, the primary uses that budget. It verifies citations and owns final
+synthesis, durability, scrub, and reviewed persistence.
+Then keep sessions that hold problem-solving, failures, or specialized
+workflows.
 
 ## 4. Synthesize
 
