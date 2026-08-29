@@ -29,8 +29,22 @@ mutation. For a large caller-scoped diff and history, it may ask an available
 named `commit-writer` to draft text only after those boundaries are decided.
 Include the decided boundary, scoped diff, relevant recent commit subjects, and
 available intent in its dispatch.
-If dispatch is unavailable or fails to launch, draft in primary without probing
-worker configuration.
+
+### Worker routing
+
+Request the cheapest capable model and lowest sufficient effort (`low` for
+routine work); unsupported overrides inherit parent/configured defaults. Report
+requested/actual only from runtime metadata, else inherited/unknown.
+
+If a named role is unavailable/unsupported, try one generic only if it preserves:
+
+- **Commit text:** read-only leaf using decided boundaries, supplied diff,
+  intent, and subjects; no worktree or Git-state mutation.
+- **Check:** selected commands, artifacts allowed, no tracked/Git-state mutation;
+  report commands, exits, cause/final summaries, omissions, and artifacts.
+
+Otherwise use primary. After any worker launches, failure is final: no other
+worker, primary rerun, stronger model, or higher effort.
 
 Classify each commit before rewriting.
 
@@ -88,9 +102,8 @@ After rewriting:
 
 Prefer an available named `check-runner` for caller-selected post-rewrite checks.
 The primary retains refs, index, commit, push, tree comparison, and Git-state
-inspection. If dispatch is unavailable or fails to launch, run checks in
-primary. A launched check-runner's failing check is the task result, not a reason
-to rerun it in primary.
+inspection. Use the worker-routing fallback above when the named checker is
+unavailable or unsupported.
 
 - Compare the final tree against the backup ref unless commits were intentionally dropped: `git diff --stat <backup-ref> HEAD` and `git diff <backup-ref> HEAD`.
 - Inspect per-commit file scope & file absence: Run `git diff --name-status <base>..HEAD` and verify that no unrelated files (or files not touched by the original feature branch) were accidentally deleted or added.

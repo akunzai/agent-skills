@@ -12,7 +12,7 @@ config:
   timeout_seconds: 420
   parallel: false
   executor: copilot-sdk
-  model: mai-code-1.1-flash
+  model: gemini-3.7-flash
   inject_skill_body: true
 
 metrics:
@@ -22,6 +22,11 @@ metrics:
     description: Isolated-workspace graders for backfilled unittest coverage
 
 graders:
+  - type: text
+    name: worker-model-routing
+    config:
+      regex_match: ["(?is)(cheapest|lowest.cost).*(model|task|work)", "(?is)(lowest|low).*effort", "(?is)(named|role).*(unavailable|unsupported|missing).*generic", "(?is)generic.*(read.only|permission|tool|tracked.source|git.state)", "(?is)(requested|actual|inherited|unknown).*(model|effort)|(model|effort).*(requested|actual|inherited|unknown)"]
+
   - type: file
     name: source-kept
     config:

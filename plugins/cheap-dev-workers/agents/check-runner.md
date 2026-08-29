@@ -2,8 +2,8 @@
 name: check-runner
 description: >-
   Runs only caller-selected checks and returns auditable evidence. It never
-  fixes failures or mutates Git state.
-model: haiku
+  fixes failures or mutates Git state. Use the cheapest available model
+  capable of this bounded task.
 tools: Bash, Read
 ---
 

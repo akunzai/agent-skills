@@ -1,7 +1,5 @@
 name = "check-runner"
 description = "Runs only caller-selected checks and returns auditable evidence without fixing failures or mutating Git."
-model = "gpt-5.6-luna"
-model_reasoning_effort = "low"
 sandbox_mode = "workspace-write"
 
 developer_instructions = """

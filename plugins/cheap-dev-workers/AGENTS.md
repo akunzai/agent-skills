@@ -30,8 +30,9 @@ mise run lint
   adapters resolve them: Claude Code dispatches `cheap-dev-workers:<role>`;
   Codex requests the installed role name.
 - Prefer an available named worker only for bounded, context-heavy work. If
-  dispatch is unavailable or fails to launch, continue in primary without
-  probing configuration. A launched worker's failure is its task result.
+  the role is unavailable or unsupported, callers may use one generic worker
+  only when they can reproduce its permission and task boundary. Other launch
+  failures continue in primary. A launched worker's failure is its task result.
 - Keep architecture, implementation, scope, test selection, Git mutation, and
   remote-state decisions in primary.
 - Limit a root task to four concurrent workers and one nested hop. No same-role
@@ -43,8 +44,12 @@ mise run lint
 
 ## Model choice
 
-All four roles use Claude Haiku or Codex `gpt-5.6-luna`. Skills stay
-model-agnostic so targets can change without coupling workflow instructions.
+Claude and Codex role definitions leave model and reasoning effort unset.
+Callers request the cheapest available model capable of each bounded task and
+the lowest sufficient effort, starting routine work at `low`, when the runtime
+supports per-dispatch selection. Otherwise the runtime inherits its parent or
+configured defaults. Skills name no provider or model, so targets can change
+without coupling workflow instructions.
 
 The `agents/*.md` (Claude Code) and `codex-agents/*.toml` (Codex CLI)
 definitions carry the same hard rules and instructions in each tool's native
