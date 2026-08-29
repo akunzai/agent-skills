@@ -93,8 +93,9 @@ below are then the only thing standing between you and a context flood.
 
 ## 5. Probe sequence
 
-Every command must carry `--role` or `--exclude-system`. Without them
-ordinal 0 alone returns the entire system prompt and workspace rules.
+The `messages` probes must carry `--role` (`session search` has
+`--exclude-system` instead). Without one, ordinal 0 alone returns the
+entire system prompt and workspace rules.
 
 ```bash
 agentsview session get <id> --json
