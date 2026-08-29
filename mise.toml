@@ -12,9 +12,12 @@ version_prefix = "v"
 
 [tasks.test]
 description = "Run all test scripts"
+depends = ["test-agentsview-contract"]
 run = '''
 exit_code=0
 for t in tests/*.sh; do
+  # run by the test-agentsview-contract task, which supplies the CLI
+  if [ "$t" = "tests/agentsview-cli-contract.sh" ]; then continue; fi
   if bash "$t"; then
     printf 'PASS: %s\n' "$t"
   else
@@ -40,6 +43,15 @@ run = "bash tests/waza-spec.sh"
 [tasks.lint]
 description = "Run all linters"
 depends = ["lint-shell", "lint-actions", "lint-skills"]
+
+# The AgentsView CLI is scoped to this task so the other mise jobs do not
+# pull a 42 MB binary. Its Homebrew formula is a macOS-only cask, but the
+# release also ships plain CLI tarballs, so it installs on Linux CI too.
+# Pinning records the CLI version the agentsview-* skills are written for.
+[tasks.test-agentsview-contract]
+description = "Check the agentsview CLI surface cited by the agentsview-* skills"
+tools = { "github:kenn-io/agentsview" = "v0.41.1" }
+run = "bash tests/agentsview-cli-contract.sh"
 
 [tasks.waza]
 description = "Run Waza suites (all, --changed, or named)"

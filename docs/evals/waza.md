@@ -8,8 +8,10 @@ those runtimes are not the effectiveness instrument.
 Covered: `agents-md`, `mise`, `aube`, `tidy-commits`, `to-memory`,
 `backfill-unit-tests`, `pr-workflow`, `write-e2e-tests`, `github-epic`,
 `gitlab-epic`.
-Not covered here (needs AgentsView): `agentsview-extract`,
-`agentsview-resume`.
+Not covered here: `agentsview-extract`, `agentsview-resume` — a suite
+would need a populated AgentsView archive, not just the CLI. Their
+cited CLI surface is checked by `tests/agentsview-cli-contract.sh`
+(`mise run test-agentsview-contract`) instead.
 
 ## Install
 
