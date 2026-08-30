@@ -42,6 +42,17 @@ bash plugins/cheap-dev-workers/scripts/setup.sh
 
 Start a new session after installation.
 
+To update an existing Claude Code install after a release:
+
+```bash
+claude plugin marketplace update akunzai-agent-skills
+claude plugin update cheap-dev-workers@akunzai-agent-skills --scope user
+```
+
+`claude plugin update` only moves when `plugin.json` `version` changed. Codex
+personal agents are copies; re-run `scripts/uninstall.sh` then
+`scripts/setup.sh` (`setup.sh` refuses to overwrite a differing file).
+
 ## Sensitive logs
 
 Low-risk build, lint, and test logs may be delegated after caller review.

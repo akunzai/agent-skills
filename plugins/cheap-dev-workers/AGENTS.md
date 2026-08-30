@@ -21,8 +21,19 @@ From the repository root:
 
 ```bash
 for test in tests/cheap-dev-workers-*.sh; do bash "$test"; done
+bash tests/plugin-version-bump.sh
 mise run lint
 ```
+
+## Releases
+
+Bump `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json` together
+whenever shipped files under this plugin directory change. Claude Code uses
+that string as the update cache key, so `claude plugin update` is a no-op
+until it changes. See [version management](https://code.claude.com/docs/en/plugins-reference#version-management).
+Codex personal agents are copies in `~/.codex/agents/`; after a release run
+`scripts/uninstall.sh` then `scripts/setup.sh` (setup refuses to overwrite a
+differing file).
 
 ## Routing contract
 

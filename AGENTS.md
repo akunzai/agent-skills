@@ -13,7 +13,7 @@ Tasks live in `mise.toml` (`mise run test`, `mise run lint`).
 
 ## Pointers
 
-- Skill structure and shell style: @CONTRIBUTING.md
+- Skill structure, shell style, plugin versions: @CONTRIBUTING.md
 - Gold-standard test spec: @tests/to-memory-storage.sh
 - Skill catalog (`README.md` + `skills/`): @tests/skill-catalog-sync.sh
 - Issue tracker: @docs/agents/issue-tracker.md

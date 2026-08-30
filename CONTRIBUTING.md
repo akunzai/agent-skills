@@ -87,6 +87,20 @@ set -euo pipefail
 
 Register the test in `.github/workflows/tests.yml` under an appropriate job.
 
+## Plugin versions
+
+Claude Code pins marketplace plugins on the `version` string in
+`plugins/<name>/.claude-plugin/plugin.json`.
+[`claude plugin update`](https://code.claude.com/docs/en/plugins-reference#version-management)
+skips when that string is unchanged, even if git SHA moved. When shipped files
+under `plugins/<name>/` change, bump `version` in both
+`.claude-plugin/plugin.json` and `.codex-plugin/plugin.json` and keep them
+equal. Patch for text or script fixes, minor for new roles or contracts, major
+for breaking role names or permission boundaries. `tests/plugin-version-bump.sh`
+enforces the bump. Codex personal agents are copied by `scripts/setup.sh` and
+are not updated by the version string; re-run uninstall then setup after a
+release.
+
 ## Code Style
 
 - All shell scripts must pass **ShellCheck** with no warnings.
