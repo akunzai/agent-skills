@@ -100,6 +100,17 @@ jobs:
       - name: Run codexbar-quota-handoff uninstall checks
         run: bash tests/codexbar-quota-handoff-uninstall.sh
 
+  plugin-version-bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Run plugin version-bump checks
+        run: bash tests/plugin-version-bump.sh
+
   cheap-dev-workers:
     runs-on: ubuntu-latest
     steps:
