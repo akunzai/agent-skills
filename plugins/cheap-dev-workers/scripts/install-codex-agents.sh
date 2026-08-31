@@ -3,18 +3,14 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: setup.sh
+Usage: install-codex-agents.sh
 
-Install this plugin's four Codex CLI development-worker definitions
-into the personal Codex agents directory (~/.codex/agents/). Codex CLI has no
-plugin-bundled agent mechanism today (it only reads ~/.codex/agents/ or a
-trusted project's .codex/agents/), so `codex plugin add` alone will not
-register them -- this script is the actual install step for the Codex side
-of this plugin. The Claude Code side needs no setup: its agents/ directory
-is auto-discovered once the plugin is installed.
+Install this plugin's four Codex CLI development-worker definitions into the
+personal Codex agents directory (~/.codex/agents/). Existing files that differ
+from the plugin definitions are preserved and reported as conflicts.
 
 Options:
-  -h, --help    Show this help
+  -h, --help  Show this help
 EOF
 }
 
@@ -53,14 +49,4 @@ for name in "${agents[@]}"; do
   echo "  installed $name -> $target"
 done
 
-cat <<EOF
-
-== Plugin marketplaces ==
-Run these if using the Codex plugin manager for updates (not required for
-the agents above -- this script is the actual install step for those).
-
-  codex plugin marketplace add akunzai/agent-skills
-  codex plugin add cheap-dev-workers --marketplace akunzai-agent-skills
-
-Done. Start a new Codex CLI session to pick up the new agents.
-EOF
+echo "Done. Start a new Codex CLI session to pick up the new agents."

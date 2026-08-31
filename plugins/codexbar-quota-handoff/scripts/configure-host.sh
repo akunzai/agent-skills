@@ -3,23 +3,18 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: setup.sh [--threshold <0-1>] [--local]
+Usage: configure-host.sh [options]
 
 Install the shared runtime helpers, write the Grok global Stop hook when
-grok is on PATH, configure CodexBar host integrations, and print the Claude
-Code, Codex, and Copilot marketplace commands.
+grok is on PATH, and configure CodexBar host integrations.
 
 Options:
   --threshold <0-1>  Quota usage threshold (default: 0.9)
-  --local            Print marketplace add commands for this checkout's
-                     absolute path (for testing unpublished changes).
-                     Default prints akunzai/agent-skills (GitHub remote).
   -h, --help         Show this help
 EOF
 }
 
 threshold="0.9"
-use_local_marketplace=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -h | --help)
@@ -32,10 +27,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --threshold=*)
       threshold="${1#--threshold=}"
-      shift
-      ;;
-    --local)
-      use_local_marketplace=true
       shift
       ;;
     *)
@@ -62,18 +53,11 @@ if [[ "$state_home" != /* ]]; then
   exit 1
 fi
 if ! command -v jq >/dev/null 2>&1; then
-  echo "ERROR: jq is required; install it before running setup.sh." >&2
+  echo "ERROR: jq is required; install it before configuring the host integration." >&2
   exit 1
 fi
 
 plugin_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-repo_root="$(cd "$plugin_root/../.." && pwd)"
-# Default marketplace source is the published GitHub repo so plugin managers
-# can track remote updates. --local points at this checkout for unpublished work.
-marketplace_source="akunzai/agent-skills"
-if [[ "$use_local_marketplace" == true ]]; then
-  marketplace_source="$repo_root"
-fi
 runtime_dir="$data_home/codexbar-quota-handoff/scripts"
 state_dir="$state_home/codexbar-quota-handoff"
 codexbar_config="$HOME/.codexbar/config.json"
@@ -169,25 +153,6 @@ else
   echo "  copilot CLI not found on PATH; no CodexBar rule will be added."
 fi
 
-cat <<EOF
-
-== Plugin marketplaces ==
-Run these commands when the corresponding CLI is installed.
-Grok does not need a marketplace install; its reminder uses the global Stop
-hook written above when grok is on PATH. Copilot reads the same
-.claude-plugin manifests, so it needs no Copilot-specific manifest.
-Marketplace source: $marketplace_source
-
-  claude plugin marketplace add "$marketplace_source"
-  claude plugin install codexbar-quota-handoff@akunzai-agent-skills --scope user
-
-  codex plugin marketplace add "$marketplace_source"
-  codex plugin add codexbar-quota-handoff --marketplace akunzai-agent-skills
-
-  copilot plugin marketplace add "$marketplace_source"
-  copilot plugin install codexbar-quota-handoff@akunzai-agent-skills
-EOF
-
 echo "== CodexBar =="
 if [[ ${#providers[@]} -eq 0 ]]; then
   echo "  none of claude/grok/codex/copilot were found on PATH; nothing to configure."
@@ -198,7 +163,7 @@ if ! command -v codexbar >/dev/null 2>&1; then
   exit 0
 fi
 if [[ ! -f "$codexbar_config" ]]; then
-  echo "  $codexbar_config not found; open CodexBar once, then re-run setup.sh."
+  echo "  $codexbar_config not found; open CodexBar once, then re-run the repository setup."
   exit 0
 fi
 if [[ -L "$codexbar_config" ]]; then
@@ -252,5 +217,5 @@ for provider in "${providers[@]}"; do
   fi
 done
 
-echo "Done. Reload Claude/Codex/Copilot plugins after the marketplace commands"
-echo "above; for Grok, reload hooks (Hooks tab → r) or start a new session."
+echo "Host integration configured. For Grok, reload hooks (Hooks tab → r)"
+echo "or start a new session."

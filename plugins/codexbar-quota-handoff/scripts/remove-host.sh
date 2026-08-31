@@ -3,14 +3,13 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: uninstall.sh [--keep-state]
+Usage: remove-host.sh [options]
 
 Remove the shared runtime helpers, Grok global hook, and CodexBar rules.
-Plugin-manager removal commands are printed but not executed.
 
 Options:
-  --keep-state  Preserve quota flag files
-  -h, --help    Show this help
+  --keep-state       Preserve quota flag files
+  -h, --help         Show this help
 EOF
 }
 
@@ -34,7 +33,7 @@ if [[ "$state_home" != /* ]]; then
   exit 1
 fi
 if ! command -v jq >/dev/null 2>&1; then
-  echo "ERROR: jq is required; install it before running uninstall.sh." >&2
+  echo "ERROR: jq is required; install it before removing the host integration." >&2
   exit 1
 fi
 
@@ -101,16 +100,4 @@ elif [[ "$keep_state" == true ]]; then
   echo "  preserving $state_dir"
 fi
 
-cat <<'EOF'
-
-== Plugin marketplaces ==
-Run these commands if the Claude Code, Codex, or Copilot plugins were
-installed. Grok uses only the global hook removed above (no marketplace
-uninstall).
-
-  claude plugin uninstall codexbar-quota-handoff@akunzai-agent-skills --scope user
-  codex plugin remove codexbar-quota-handoff --marketplace akunzai-agent-skills
-  copilot plugin uninstall codexbar-quota-handoff@akunzai-agent-skills
-
-Done.
-EOF
+echo "Host integration removed."

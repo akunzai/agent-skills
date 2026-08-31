@@ -41,8 +41,8 @@ done
 [ ! -e "$PLUGIN_DIR/agents/verifier.md" ] || fail "legacy Claude verifier still ships"
 [ ! -e "$PLUGIN_DIR/codex-agents/verifier.toml" ] || fail "legacy Codex verifier still ships"
 
-# --- setup/uninstall/upgrade scripts must exist and be executable ---
-for script in setup.sh uninstall.sh sanitize-log.sh upgrade.sh; do
+# --- plugin-local scripts are internal helpers, not lifecycle entry points ---
+for script in install-codex-agents.sh uninstall-codex-agents.sh sanitize-log.sh; do
   path="$PLUGIN_DIR/scripts/$script"
   [ -f "$path" ] || fail "scripts/$script is missing"
   [ -x "$path" ] || fail "scripts/$script is not executable"

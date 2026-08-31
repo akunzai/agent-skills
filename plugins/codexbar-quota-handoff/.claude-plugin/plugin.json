@@ -1,7 +1,7 @@
 {
   "name": "codexbar-quota-handoff",
   "description": "Reminds Claude Code, Grok Build, and GitHub Copilot CLI to suggest /handoff when CodexBar detects that tool's own 5-hour or 7-day quota is nearly exhausted.",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "author": {
     "name": "Charley Wu"
   }

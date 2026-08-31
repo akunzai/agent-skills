@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SCRIPT="$ROOT_DIR/plugins/codexbar-quota-handoff/scripts/uninstall.sh"
+SCRIPT="$ROOT_DIR/plugins/codexbar-quota-handoff/scripts/remove-host.sh"
 
 fail() {
   echo "codexbar-quota-handoff uninstall check failed: $*" >&2
@@ -33,7 +33,7 @@ cat >"$FAKE_HOME/.codexbar/config.json" <<'EOF'
 ]}}
 EOF
 
-OUTPUT="$(HOME="$FAKE_HOME" XDG_DATA_HOME="$DATA_HOME" XDG_STATE_HOME="$STATE_HOME" bash "$SCRIPT")"
+HOME="$FAKE_HOME" XDG_DATA_HOME="$DATA_HOME" XDG_STATE_HOME="$STATE_HOME" bash "$SCRIPT" >/dev/null
 [ ! -e "$RUNTIME_ROOT" ] || fail "runtime helper directory was not removed"
 [ ! -e "$STATE_DIR" ] || fail "state directory was not removed"
 [ ! -e "$FAKE_HOME/.grok/hooks/codexbar-quota-handoff.json" ] \
@@ -44,16 +44,6 @@ OUTPUT="$(HOME="$FAKE_HOME" XDG_DATA_HOME="$DATA_HOME" XDG_STATE_HOME="$STATE_HO
   || fail "uninstall removed an unrelated Grok hook file"
 REMAINING_IDS="$(jq -r '.hooks.events[].id' "$FAKE_HOME/.codexbar/config.json")"
 [ "$REMAINING_IDS" = "someone-elses-rule" ] || fail "unrelated CodexBar rule did not survive"
-case "$OUTPUT" in
-  *'claude plugin uninstall '*'codex plugin remove '*'copilot plugin uninstall '*) ;;
-  *) fail "uninstall did not print Claude Code, Codex, and Copilot plugin-manager commands" ;;
-esac
-case "$OUTPUT" in
-  *'grok plugin '*)
-    fail "uninstall must not print grok plugin commands (Grok uses the global hook only)"
-    ;;
-esac
-
 # --keep-state preserves state while removing every host integration.
 KEEP_HOME="$TMP_DIR/keep-home"
 KEEP_DATA="$KEEP_HOME/data"

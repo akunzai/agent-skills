@@ -20,6 +20,22 @@ validation workflows).
 
 ## Install
 
+Interactively install, upgrade, or uninstall any marketplace plugin in a
+detected Claude Code, Codex CLI, or GitHub Copilot CLI runtime:
+
+```bash
+bash scripts/setup.sh
+bash scripts/upgrade.sh
+bash scripts/uninstall.sh
+```
+
+The lifecycle scripts read the marketplace catalog, show each plugin's
+installed state, and only apply relevant selections. Use `--help` for
+non-interactive runtime/plugin filters suitable for scripts and CI. Codex
+upgrades marketplace snapshots as a unit because its CLI does not expose a
+per-plugin update command. These repository-root scripts are the only public
+plugin lifecycle entry points; plugin-local scripts are internal post-actions.
+
 Install and manage skills across agents with [Skills Manager](https://github.com/akunzai/skills-manager):
 
 ```bash

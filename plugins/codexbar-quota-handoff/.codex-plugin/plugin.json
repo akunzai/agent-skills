@@ -1,7 +1,7 @@
 {
   "name": "codexbar-quota-handoff",
   "description": "Reminds Codex CLI to suggest $handoff when CodexBar detects the Codex 5-hour or 7-day quota is nearly exhausted.",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "author": {
     "name": "Charley Wu"
   },

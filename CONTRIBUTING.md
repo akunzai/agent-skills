@@ -97,9 +97,9 @@ under `plugins/<name>/` change, bump `version` in both
 `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json` and keep them
 equal. Patch for text or script fixes, minor for new roles or contracts, major
 for breaking role names or permission boundaries. `tests/plugin-version-bump.sh`
-enforces the bump. Codex personal agents are copied by `scripts/setup.sh` and
-are not updated by the version string; re-run uninstall then setup after a
-release.
+enforces the bump. The repository-root lifecycle manager copies Codex personal
+agents as a plugin post-action; they are not updated by the version string, so
+run root `scripts/upgrade.sh` after a release.
 
 ## Code Style
 

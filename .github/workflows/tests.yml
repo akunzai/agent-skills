@@ -58,6 +58,9 @@ jobs:
       - name: Run skill-catalog-sync checks
         run: bash tests/skill-catalog-sync.sh
 
+      - name: Run interactive plugin setup checks
+        run: bash tests/plugin-setup.sh
+
       - name: Run waza spec workflow checks
         run: bash tests/waza-spec-workflow.sh
 

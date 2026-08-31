@@ -7,17 +7,26 @@ script needed on that side.
 
 GitHub Copilot CLI also auto-discovers `agents/` from the installed plugin,
 reading the same `.claude-plugin` manifests — no Copilot-specific copy of the
-role definitions exists. See @../../docs/agents/copilot-cli.md.
+role definitions exists. From the repository root, install it without touching
+Codex agents with:
+
+```bash
+bash scripts/setup.sh --plugin cheap-dev-workers
+```
+
+Select GitHub Copilot CLI in the interactive installer. Scripts and CI may use
+`--runtime copilot --yes`. See @../../docs/agents/copilot-cli.md.
 
 Codex CLI has no plugin-bundled agent mechanism, so its subagents must be
 copied into a personal or trusted-project agents directory:
 
 ```bash
-bash scripts/setup.sh
+bash scripts/setup.sh --plugin cheap-dev-workers
 ```
 
-This copies `codex-agents/*.toml` into `~/.codex/agents/` (personal scope
-only — this plugin does not install into a project's `.codex/agents/`).
+Select Codex CLI in the interactive installer. This copies
+`codex-agents/*.toml` into `~/.codex/agents/` (personal scope only — this
+plugin does not install into a project's `.codex/agents/`).
 
 ## Checks
 
@@ -37,8 +46,11 @@ that string as the update cache key, so `claude plugin update` is a no-op
 until it changes. See [version management](https://code.claude.com/docs/en/plugins-reference#version-management).
 Copilot uses the same `.claude-plugin/plugin.json` version string as its
 update key. Codex personal agents are copies in `~/.codex/agents/`; after a
-release run `scripts/upgrade.sh` (or `scripts/uninstall.sh` then
-`scripts/setup.sh`).
+release run root `scripts/upgrade.sh --plugin cheap-dev-workers`.
+
+The repository-root setup, upgrade, and uninstall scripts are the only public
+lifecycle entry points. They detect installed plugin state before acting;
+plugin-local scripts are internal post-action helpers.
 
 ## Routing contract
 

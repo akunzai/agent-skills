@@ -64,7 +64,7 @@ for marketplace in "$CLAUDE_MARKETPLACE_JSON" "$GROK_MARKETPLACE_JSON" "$CODEX_M
     || fail "$marketplace source is '$MARKETPLACE_PLUGIN_PATH', expected './plugins/codexbar-quota-handoff'"
 done
 
-for script in codexbar-quota-flag.sh quota-reminder.sh setup.sh uninstall.sh; do
+for script in codexbar-quota-flag.sh quota-reminder.sh configure-host.sh remove-host.sh; do
   path="$PLUGIN_DIR/scripts/$script"
   [ -f "$path" ] || fail "scripts/$script is missing"
   [ -x "$path" ] || fail "scripts/$script is not executable"

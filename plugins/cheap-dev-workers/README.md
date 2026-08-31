@@ -29,53 +29,29 @@ correctness never depends on it.
 
 ## Install
 
-For Claude Code, add the marketplace and install the plugin; `agents/` is
-auto-discovered:
+From the repository root, run the shared lifecycle manager:
 
 ```bash
-claude plugin marketplace add akunzai/agent-skills
-claude plugin install cheap-dev-workers@akunzai-agent-skills --scope user
+bash scripts/setup.sh --plugin cheap-dev-workers
 ```
 
-For Codex, install the personal agent definitions:
-
-```bash
-bash plugins/cheap-dev-workers/scripts/setup.sh
-```
-
-For GitHub Copilot CLI, install the plugin; it reads the same
-`.claude-plugin` manifests and loads `agents/` under the same
-`cheap-dev-workers:<role>` names:
-
-```bash
-copilot plugin marketplace add akunzai/agent-skills
-copilot plugin install cheap-dev-workers@akunzai-agent-skills
-```
+The interactive setup detects Claude Code, Codex CLI, and GitHub Copilot CLI,
+then shows whether the plugin is already installed. Copilot reads the shared
+`.claude-plugin` manifests and never touches Codex personal agents. Selecting
+Codex also installs the four personal agent definitions under
+`~/.codex/agents/`.
 
 Start a new session after installation.
 
 To check or update existing installs after a release, run the upgrade script:
 
 ```bash
-# Check installed versions
-bash plugins/cheap-dev-workers/scripts/upgrade.sh --check
-
-# Upgrade Claude Code & Codex CLI
-bash plugins/cheap-dev-workers/scripts/upgrade.sh
-```
-
-Or manually:
-
-```bash
-claude plugin marketplace update akunzai-agent-skills
-claude plugin update cheap-dev-workers@akunzai-agent-skills --scope user
-codex plugin marketplace upgrade akunzai-agent-skills
-bash plugins/cheap-dev-workers/scripts/setup.sh
-copilot plugin update cheap-dev-workers@akunzai-agent-skills
+bash scripts/upgrade.sh --plugin cheap-dev-workers
 ```
 
 `claude plugin update` only moves when `plugin.json` `version` changed. Codex
-personal agents are copies; `upgrade.sh` safely syncs them into `~/.codex/agents/`.
+personal agents are copies; the root upgrade safely syncs them into
+`~/.codex/agents/`.
 
 ## Sensitive logs
 
@@ -99,20 +75,8 @@ optional security binaries.
 
 ## Uninstall
 
-For Claude Code:
+Interactively select a runtime; already-uninstalled entries are skipped:
 
 ```bash
-claude plugin uninstall cheap-dev-workers@akunzai-agent-skills --scope user
-```
-
-For Codex:
-
-```bash
-bash plugins/cheap-dev-workers/scripts/uninstall.sh
-```
-
-For GitHub Copilot CLI:
-
-```bash
-copilot plugin uninstall cheap-dev-workers@akunzai-agent-skills
+bash scripts/uninstall.sh --plugin cheap-dev-workers
 ```
