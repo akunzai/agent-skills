@@ -28,6 +28,7 @@ cat >"$FAKE_HOME/.codexbar/config.json" <<'EOF'
   {"id":"agent-skills-codexbar-quota-handoff-claude","provider":"claude"},
   {"id":"agent-skills-codexbar-quota-handoff-grok","provider":"grok"},
   {"id":"agent-skills-codexbar-quota-handoff-codex","provider":"codex"},
+  {"id":"agent-skills-codexbar-quota-handoff-copilot","provider":"copilot"},
   {"id":"someone-elses-rule","provider":"claude"}
 ]}}
 EOF
@@ -44,8 +45,8 @@ OUTPUT="$(HOME="$FAKE_HOME" XDG_DATA_HOME="$DATA_HOME" XDG_STATE_HOME="$STATE_HO
 REMAINING_IDS="$(jq -r '.hooks.events[].id' "$FAKE_HOME/.codexbar/config.json")"
 [ "$REMAINING_IDS" = "someone-elses-rule" ] || fail "unrelated CodexBar rule did not survive"
 case "$OUTPUT" in
-  *'claude plugin uninstall '*'codex plugin remove '*) ;;
-  *) fail "uninstall did not print Claude Code and Codex plugin-manager commands" ;;
+  *'claude plugin uninstall '*'codex plugin remove '*'copilot plugin uninstall '*) ;;
+  *) fail "uninstall did not print Claude Code, Codex, and Copilot plugin-manager commands" ;;
 esac
 case "$OUTPUT" in
   *'grok plugin '*)

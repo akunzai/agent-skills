@@ -81,6 +81,11 @@ run_case "claude" "/handoff"
 run_case "grok" "/handoff" "GROK_SESSION_ID=test-session"
 # shellcheck disable=SC2016
 run_case "codex" '$handoff' "PLUGIN_ROOT=/tmp/fake-codex-plugin-root"
+# Copilot CLI exports a bare PLUGIN_ROOT to plugin hooks as well (it accepts
+# both the ${CLAUDE_PLUGIN_ROOT} and ${PLUGIN_ROOT} placeholders), so this case
+# carries both variables: COPILOT_CLI must win, or Copilot is misreported as
+# Codex and told to run "$handoff", which is not a Copilot command.
+run_case "copilot" "/handoff" "COPILOT_CLI=1" "PLUGIN_ROOT=/tmp/fake-copilot-plugin-root"
 
 # A relative XDG value is invalid by spec; runtime hooks fall back safely.
 FALLBACK_HOME="$TMP_DIR/fallback-home"

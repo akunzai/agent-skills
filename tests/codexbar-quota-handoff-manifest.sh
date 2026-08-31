@@ -30,7 +30,8 @@ CODEX_NAME="$(jq -r '.name' "$CODEX_PLUGIN_JSON")"
 CODEX_HOOKS_PATH="$(jq -r '.hooks' "$CODEX_PLUGIN_JSON")"
 [ "$CODEX_HOOKS_PATH" = "./hooks/hooks.json" ] || fail ".codex-plugin/plugin.json hooks field is '$CODEX_HOOKS_PATH', expected './hooks/hooks.json' (shared with .claude-plugin)"
 
-# --- a single hooks/hooks.json must be shared by all three tools: no
+# --- a single hooks/hooks.json must be shared by all four tools (Copilot
+#     registers this same Claude-shaped nested form): no
 #     per-tool arguments, so it can't drift into referencing a provider or
 #     a handoff-command string a shell might reinterpret (e.g. "$handoff").
 #     Registered on both Stop (once per turn) and PostToolUse (once per tool
