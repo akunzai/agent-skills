@@ -17,12 +17,15 @@ request, and the plugin does not bypass them.
 
 When these named profiles are unavailable, current caller skills may try one
 generic subagent with a compact copy of the role's task and permission boundary.
-They skip the generic path when the runtime cannot enforce that boundary. A
-launched worker is never retried or upgraded; actual model and effort are
-reported only from runtime metadata, otherwise as inherited or unknown. Claude
-plugin subagents return relay requests because they cannot nest. Runtimes that
-support nesting limit it to explorer → check-runner or check-runner → log
-summarizer; correctness never depends on it.
+They use the same fallback for explicit pre-execution runtime errors such as
+capacity, rate-limit, rejected-model, or launch errors, and skip the generic path
+when the runtime cannot enforce that boundary. Once a worker begins its
+workload, it is never retried or upgraded; an ambiguous execution status stops
+instead of risking duplicate work. Actual model and effort are reported only
+from runtime metadata, otherwise as inherited or unknown. Claude plugin
+subagents return relay requests because they cannot nest. Runtimes that support
+nesting limit it to explorer → check-runner or check-runner → log summarizer;
+correctness never depends on it.
 
 ## Install
 

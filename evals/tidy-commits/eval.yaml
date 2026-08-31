@@ -24,7 +24,16 @@ graders:
   - type: text
     name: worker-model-routing
     config:
-      regex_match: ["(?is)(cheapest|lowest.cost).*(model|task|work)", "(?is)(lowest|low).*effort", "(?is)(named|role).*(unavailable|unsupported|missing).*generic", "(?is)generic.*(read.only|permission|tool|tracked.source|git.state)", "(?is)(requested|actual|inherited|unknown).*(model|effort)|(model|effort).*(requested|actual|inherited|unknown)"]
+      regex_match:
+        - "(?is)(cheapest|lowest.cost).*(model|task|work)"
+        - "(?is)(lowest|low).*effort"
+        - "(?is)(named|role).*(unavailable|unsupported|missing|fail.{0,40}pre.execution).*generic"
+        - "(?is)generic.*(read.only|permission|tool|tracked.source|git.state)"
+        - "(?is)(requested|actual|inherited|unknown).*(model|effort)|(model|effort).*(requested|actual|inherited|unknown)"
+        - "(?is)named.{0,200}(capacity|pre.execution).{0,200}generic.{0,200}(permission|tool|read.only|tracked.source|git.state)"
+        - "(?is)generic.{0,200}(capacity|pre.execution).{0,200}primary"
+        - "(?is)((ambiguous|unclear|unknown).{0,200}stop|stop.{0,200}(ambiguity|ambiguous|unclear|unknown))"
+        - "(?is)(once|after).{0,160}(start|begin|exec).{0,160}(fail|result).{0,160}(final|not.*rerun|no.*rerun)"
 
   - type: text
     name: required-plan-structure

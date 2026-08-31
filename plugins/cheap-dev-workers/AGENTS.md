@@ -43,8 +43,11 @@ differing file).
 - Choose the role before the model. Prefer an available named worker for
   bounded, context-heavy work. If the role is unavailable or unsupported,
   callers may use one generic worker only when they can reproduce its
-  permission and task boundary. Other launch failures continue in primary. A
-  launched worker's failure is its task result.
+  permission and task boundary. Explicit pre-execution dispatch/runtime errors
+  such as capacity, rate-limit, rejected-model, or launch errors follow the same
+  fallback; a generic pre-execution failure continues in primary. Once a worker
+  begins its workload, its failure is the task result. If execution status is
+  ambiguous, stop instead of risking duplicate work.
 - When a named worker's tools cover only part of the work, split the part it
   can do and keep the rest in primary. Falling back to a generic worker for
   the whole task because one sub-question needs an unavailable tool defeats
