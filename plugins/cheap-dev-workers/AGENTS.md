@@ -32,8 +32,7 @@ whenever shipped files under this plugin directory change. Claude Code uses
 that string as the update cache key, so `claude plugin update` is a no-op
 until it changes. See [version management](https://code.claude.com/docs/en/plugins-reference#version-management).
 Codex personal agents are copies in `~/.codex/agents/`; after a release run
-`scripts/uninstall.sh` then `scripts/setup.sh` (setup refuses to overwrite a
-differing file).
+`scripts/upgrade.sh` (or `scripts/uninstall.sh` then `scripts/setup.sh`).
 
 ## Routing contract
 

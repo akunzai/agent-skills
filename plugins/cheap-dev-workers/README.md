@@ -45,16 +45,27 @@ bash plugins/cheap-dev-workers/scripts/setup.sh
 
 Start a new session after installation.
 
-To update an existing Claude Code install after a release:
+To check or update existing installs after a release, run the upgrade script:
+
+```bash
+# Check installed versions
+bash plugins/cheap-dev-workers/scripts/upgrade.sh --check
+
+# Upgrade Claude Code & Codex CLI
+bash plugins/cheap-dev-workers/scripts/upgrade.sh
+```
+
+Or manually:
 
 ```bash
 claude plugin marketplace update akunzai-agent-skills
 claude plugin update cheap-dev-workers@akunzai-agent-skills --scope user
+codex plugin marketplace upgrade akunzai-agent-skills
+bash plugins/cheap-dev-workers/scripts/setup.sh
 ```
 
 `claude plugin update` only moves when `plugin.json` `version` changed. Codex
-personal agents are copies; re-run `scripts/uninstall.sh` then
-`scripts/setup.sh` (`setup.sh` refuses to overwrite a differing file).
+personal agents are copies; `upgrade.sh` safely syncs them into `~/.codex/agents/`.
 
 ## Sensitive logs
 
