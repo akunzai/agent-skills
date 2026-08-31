@@ -28,10 +28,11 @@ inputs:
     versus actual settings are reported.
     During verification, explain the next routing step for three separate cases:
     (1) the named check-runner returns `Selected model is at capacity` before it
-    executes a command; (2) its permission-preserving generic fallback returns
-    the same pre-execution error; and (3) the runtime returns an error without
-    revealing whether execution began. Separately state when a worker failure
-    becomes final and must not be rerun.
+    executes a command — dispatch one generic fallback that preserves the named
+    worker's tools and permissions; (2) that generic fallback returns the same
+    pre-execution error — continue in primary; and (3) the runtime returns an
+    error without revealing whether execution began. Separately state when a
+    worker failure becomes final and must not be rerun.
 
     This is a plan only. Do not run gh or any Git mutation. Do not mention
     prohibited Git mutation commands in the response. Do not edit BRIEF.txt.
