@@ -45,9 +45,9 @@ test type instead.
    user makes, not this skill.
 
 3. **Decide scope.** If the requested work fits within a single module or a single PR's
-   worth of change, generate directly. Otherwise, first write out a plan —
-   which files/functions will get coverage — and get the user's explicit
-   confirmation before generating anything.
+   worth of change, generate directly in this run; do not stop after exploring.
+   Otherwise, first write out a plan — which files/functions will get coverage —
+   and get the user's explicit confirmation before generating anything.
 
 4. **Find the gaps.** The primary agent owns gap selection. If the user gave an
    explicit coverage target (e.g.
@@ -57,8 +57,8 @@ test type instead.
    configure coverage tooling that isn't already present.
 
 5. **Generate.** Write tests for the identified gaps, following
-   [`references/good-tests.md`](references/good-tests.md). Two exceptions
-   per gap:
+   [`references/good-tests.md`](references/good-tests.md). This step is
+   done only when those test files exist on disk. Two exceptions per gap:
    - **No seam to test through** — the code is too tightly coupled, depends
      on global state, or has no injection point. Skip it; don't refactor the
      implementation to add a seam, that's a separate decision for the user.
@@ -97,12 +97,18 @@ Request the cheapest capable model and lowest sufficient effort (`low` for
 routine work); unsupported overrides inherit parent/configured defaults. Report
 requested/actual only from runtime metadata, else inherited/unknown.
 
-If a named role is unavailable/unsupported, try one generic only if it preserves:
+If a named role is unavailable/unsupported or returns an explicit
+pre-execution dispatch/runtime error (for example capacity, rate limit,
+rejected model, or launch error), try one generic fallback that preserves
+the named worker's tools and permissions:
 
 - **Explore:** read-only repo facts with file/line evidence; no checks or
   implementation/architecture decisions.
 - **Check:** primary-selected commands, artifacts allowed, no tracked/Git-state
   mutation; report command, exit, cause/final summaries, omissions, and artifact.
 
-Otherwise use primary. After any worker launches, failure is final: no other
-worker, primary rerun, stronger model, or higher effort.
+Otherwise use primary; a generic pre-execution failure also falls back to
+primary. Once a worker begins its assigned workload, its rejection or failure
+is final: no other worker, primary rerun, stronger model, or higher effort.
+If a dispatch error does not reveal whether execution began, stop that
+dispatch and report the ambiguity; do not retry or duplicate that workload.

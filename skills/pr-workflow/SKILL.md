@@ -23,15 +23,21 @@ Request the cheapest capable model and lowest sufficient effort (`low` for
 routine); unsupported overrides inherit parent/configured defaults. Report
 requested/actual only from runtime metadata, else inherited/unknown.
 
-If a named role is unavailable/unsupported, try one generic if it preserves:
+If a named role is unavailable/unsupported or returns an explicit
+pre-execution dispatch/runtime error (for example capacity, rate limit,
+rejected model, or launch error), try one generic fallback that preserves
+the named worker's tools and permissions:
 
 - **Check:** selected commands, artifacts allowed, no tracked/Git-state mutation;
   report command, exit, summaries, omissions, and artifact.
 - **Log:** exact approved local artifact only; reject unsafe input; report causes
   and events without fetching runs.
 
-Otherwise use primary. After any worker launches, failure is final: no other
-worker, primary rerun, stronger model, or higher effort.
+Otherwise use primary; a generic pre-execution failure also falls back to
+primary. Once a worker begins its assigned workload, its rejection or failure
+is final: no other worker, primary rerun, stronger model, or higher effort.
+If a dispatch error does not reveal whether execution began, stop that
+dispatch and report the ambiguity; do not retry or duplicate that workload.
 
 ## Branching & Guardrails
 

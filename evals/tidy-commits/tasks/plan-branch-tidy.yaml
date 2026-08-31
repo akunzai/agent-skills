@@ -18,8 +18,16 @@ inputs:
     would run. Organize the response with a `Plan` heading. State the
     model-selection and fallback policy for any named worker in the plan,
     including what it inherits when per-dispatch model selection is unavailable.
-    Include effort selection, the named-to-generic decision path, permission
-    handling, and how requested versus actual settings are reported.
+    Include effort selection, the named-to-generic decision path, explicitly
+    stating that a generic fallback must preserve the named worker's tools and
+    permissions, and how requested versus actual settings are reported.
+    Explain the next routing step for three separate cases: (1) a named
+    check-runner returns `Selected model is at capacity` before executing a
+    command — dispatch one generic fallback that preserves the named worker's
+    tools and permissions; (2) that generic fallback returns the same
+    pre-execution error — continue in primary; and (3) the runtime returns an
+    error without revealing whether execution began. Separately state when a
+    worker failure becomes final and must not be rerun.
 
     This is a plan only. Do not run git rebase, git reset, or git push.
     Do not edit HISTORY.txt. Do not invent a rewrite that has already

@@ -36,15 +36,21 @@ Request the cheapest capable model and lowest sufficient effort (`low` for
 routine work); unsupported overrides inherit parent/configured defaults. Report
 requested/actual only from runtime metadata, else inherited/unknown.
 
-If a named role is unavailable/unsupported, try one generic only if it preserves:
+If a named role is unavailable/unsupported or returns an explicit
+pre-execution dispatch/runtime error (for example capacity, rate limit,
+rejected model, or launch error), try one generic fallback that preserves
+the named worker's tools and permissions:
 
 - **Commit text:** read-only leaf using decided boundaries, supplied diff,
   intent, and subjects; no worktree or Git-state mutation.
 - **Check:** selected commands, artifacts allowed, no tracked/Git-state mutation;
   report commands, exits, cause/final summaries, omissions, and artifacts.
 
-Otherwise use primary. After any worker launches, failure is final: no other
-worker, primary rerun, stronger model, or higher effort.
+Otherwise use primary; a generic pre-execution failure also falls back to
+primary. Once a worker begins its assigned workload, its rejection or failure
+is final: no other worker, primary rerun, stronger model, or higher effort.
+If a dispatch error does not reveal whether execution began, stop that
+dispatch and report the ambiguity; do not retry or duplicate that workload.
 
 Classify each commit before rewriting.
 
