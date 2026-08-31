@@ -1,5 +1,5 @@
 name = "repo-explorer"
-description = "Answers one bounded repository question with file-and-line evidence. Read-only and decision-free."
+description = "Answers one bounded repository question with file-and-line evidence. Read-only and decision-free. Prefer over a generic worker for call-site enumeration, symbol tracing, and cross-file pattern audits."
 sandbox_mode = "read-only"
 
 developer_instructions = """

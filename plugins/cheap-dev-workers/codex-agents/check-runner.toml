@@ -1,5 +1,5 @@
 name = "check-runner"
-description = "Runs only caller-selected checks and returns auditable evidence without fixing failures or mutating Git."
+description = "Runs only caller-selected checks and returns auditable evidence. Prefer over a generic worker whenever the caller already knows the exact commands to run."
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
