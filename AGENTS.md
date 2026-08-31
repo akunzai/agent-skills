@@ -19,6 +19,7 @@ Tasks live in `mise.toml` (`mise run test`, `mise run lint`).
 - Issue tracker: @docs/agents/issue-tracker.md
 - Triage labels: @docs/agents/triage-labels.md
 - Domain docs: @docs/agents/domain.md
+- Copilot CLI plugin compatibility: @docs/agents/copilot-cli.md
 - When changing a covered skill: @docs/evals/waza.md (live Copilot eval via
   `.github/workflows/waza-eval.yml`)
 
