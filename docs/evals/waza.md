@@ -50,7 +50,18 @@ cache hit as a substitute for a live CI run after a skill edit.
 - Local: `copilot login`
 - CI: `GITHUB_TOKEN` plus workflow permission `copilot-requests: write`
 
-Unauthenticated Copilot fails the run. There is no mock fallback.
+The CI job treats a run as skipped when Waza's result reports only Copilot
+quota, billing, or subscription-unavailable errors. It stops the remaining
+suites and preserves the error result as an artifact. Unknown auth, network,
+config, model, and grader errors still fail the check, and so do rate-limit
+errors — throttling is transient and must not green-light a PR. A suite whose
+result file Waza never wrote fails the check too. There is no mock fallback.
+
+The classification reads each run's `error_msg`, which is prose rather than a
+code: Waza stores the SDK error string, and the SDK renders a session error as
+`session error: <human message>`, dropping the structured `errorCode` /
+`errorType`. `evals/run-suites.sh` therefore matches the human wording and
+keeps the CAPI quota codes only as belt-and-braces.
 
 ## CI green vs effectiveness
 
@@ -113,6 +124,12 @@ Changes to the workflow, `.waza.yaml`, `mise.toml`, or
 `evals/run-suites.sh` run every suite. `workflow_dispatch` runs every
 suite, or the one named in the `suite` input.
 
+In this workflow's live probe, the GitHub Actions installation token returned
+no quota snapshots from `account.getQuota`. The workflow therefore classifies
+Waza's runtime result instead of relying on a quota preflight. Revisit
+preflight detection when GitHub exposes installation quota or billing
+availability.
+
 ```bash
 waza tokens compare origin/main --skills --threshold 10 --strict
 bash evals/run-suites.sh --changed
@@ -123,7 +140,8 @@ bash evals/run-suites.sh --changed
 SKILL.md that grows more than 10% vs `origin/main`.
 
 Exit 1 (grader failure) or 2 (config / auth / runtime error) fails the
-check.
+check, except for the Copilot-unavailable case above, which
+`evals/run-suites.sh` converts to a warning and exit 0.
 
 ## Workspace
 
