@@ -8,10 +8,10 @@ primary session without delegating judgment or Git mutation:
 - `log-summarizer`: read-only summaries of caller-approved safe artifacts.
 - `commit-writer`: commit or PR text for boundaries already decided in primary.
 
-Claude and Codex leave model and reasoning effort unset. Callers ask runtimes
-that support per-dispatch selection for the cheapest available model capable of
-the bounded task and the lowest sufficient effort, starting routine work at
-`low`; otherwise the worker inherits the runtime's parent or configured
+Claude, Codex, and Copilot leave model and reasoning effort unset. Callers ask
+runtimes that support per-dispatch selection for the cheapest available model
+capable of the bounded task and the lowest sufficient effort, starting routine
+work at `low`; otherwise the worker inherits the runtime's parent or configured
 defaults. Environment, organization, and runtime policies can override that
 request, and the plugin does not bypass them.
 
@@ -43,6 +43,15 @@ For Codex, install the personal agent definitions:
 bash plugins/cheap-dev-workers/scripts/setup.sh
 ```
 
+For GitHub Copilot CLI, install the plugin; it reads the same
+`.claude-plugin` manifests and loads `agents/` under the same
+`cheap-dev-workers:<role>` names:
+
+```bash
+copilot plugin marketplace add akunzai/agent-skills
+copilot plugin install cheap-dev-workers@akunzai-agent-skills
+```
+
 Start a new session after installation.
 
 To check or update existing installs after a release, run the upgrade script:
@@ -62,6 +71,7 @@ claude plugin marketplace update akunzai-agent-skills
 claude plugin update cheap-dev-workers@akunzai-agent-skills --scope user
 codex plugin marketplace upgrade akunzai-agent-skills
 bash plugins/cheap-dev-workers/scripts/setup.sh
+copilot plugin update cheap-dev-workers@akunzai-agent-skills
 ```
 
 `claude plugin update` only moves when `plugin.json` `version` changed. Codex
@@ -99,4 +109,10 @@ For Codex:
 
 ```bash
 bash plugins/cheap-dev-workers/scripts/uninstall.sh
+```
+
+For GitHub Copilot CLI:
+
+```bash
+copilot plugin uninstall cheap-dev-workers@akunzai-agent-skills
 ```
