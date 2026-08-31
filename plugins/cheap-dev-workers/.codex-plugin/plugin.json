@@ -1,7 +1,7 @@
 {
   "name": "cheap-dev-workers",
   "description": "Cheap workers for exploration, verification, safe-log summaries, and drafting.",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "author": {
     "name": "Charley Wu"
   },

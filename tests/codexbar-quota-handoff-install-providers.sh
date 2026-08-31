@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SCRIPT="$ROOT_DIR/plugins/codexbar-quota-handoff/scripts/setup.sh"
+SCRIPT="$ROOT_DIR/plugins/codexbar-quota-handoff/scripts/configure-host.sh"
 
 fail() {
   echo "codexbar-quota-handoff install-providers check failed: $*" >&2
@@ -38,10 +38,10 @@ for tool in claude grok codex copilot; do
   chmod +x "$TOOL_BIN/$tool"
 done
 
-# Runs setup.sh with only the named stub tools (plus codexbar/jq) on PATH.
+# Runs the host configurator with only the named stub tools (plus codexbar/jq) on PATH.
 # Pass no tool names to simulate none of claude/grok/codex/copilot being
 # installed.
-# Extra args after the tool list are forwarded to setup.sh (e.g. --local).
+# Extra args after the tool list are forwarded to the helper.
 run_install() {
   local fake_home="$1"
   shift
@@ -84,18 +84,9 @@ configured_providers() {
 # --- only claude on PATH: only claude gets a CodexBar rule ---
 CLAUDE_ONLY_HOME="$TMP_DIR/claude-only"
 mkdir -p "$CLAUDE_ONLY_HOME"
-OUTPUT="$(run_install "$CLAUDE_ONLY_HOME" claude)"
+run_install "$CLAUDE_ONLY_HOME" claude >/dev/null
 ACTUAL="$(configured_providers "$CLAUDE_ONLY_HOME")"
 [ "$ACTUAL" = "claude" ] || fail "with only claude on PATH, expected only 'claude' configured, got: $ACTUAL"
-case "$OUTPUT" in
-  *'claude plugin marketplace add "akunzai/agent-skills"'*'codex plugin marketplace add "akunzai/agent-skills"'*'copilot plugin marketplace add "akunzai/agent-skills"'*) ;;
-  *) fail "setup did not print Claude Code, Codex, and Copilot marketplace commands for akunzai/agent-skills (got: $OUTPUT)" ;;
-esac
-case "$OUTPUT" in
-  *'grok plugin '*)
-    fail "setup must not print grok plugin marketplace commands (Grok uses the global hook only)"
-    ;;
-esac
 
 # --- only copilot on PATH: only copilot gets a CodexBar rule. Copilot needs
 #     no Copilot-specific manifest (it reads .claude-plugin/marketplace.json
@@ -108,19 +99,6 @@ ACTUAL="$(configured_providers "$COPILOT_ONLY_HOME")"
 [ "$ACTUAL" = "copilot" ] || fail "with only copilot on PATH, expected only 'copilot' configured, got: $ACTUAL"
 [ ! -e "$COPILOT_ONLY_HOME/.grok/hooks/codexbar-quota-handoff.json" ] \
   || fail "setup wrote a Grok global hook when only copilot was on PATH"
-
-# --local prints this checkout's absolute path for unpublished testing.
-LOCAL_HOME="$TMP_DIR/local-marketplace"
-OUTPUT="$(run_install "$LOCAL_HOME" claude --local)"
-case "$OUTPUT" in
-  *'claude plugin marketplace add "'"$ROOT_DIR"'"'*'codex plugin marketplace add "'"$ROOT_DIR"'"'*'copilot plugin marketplace add "'"$ROOT_DIR"'"'*) ;;
-  *) fail "--local did not print marketplace commands for this checkout (got: $OUTPUT)" ;;
-esac
-case "$OUTPUT" in
-  *'claude plugin marketplace add "akunzai/agent-skills"'*)
-    fail "--local must not print the default remote marketplace source"
-    ;;
-esac
 
 # --- all four tools on PATH: all four providers get a CodexBar rule ---
 ALL_TOOLS_HOME="$TMP_DIR/all-tools"

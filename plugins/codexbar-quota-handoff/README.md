@@ -19,29 +19,29 @@ Requirements: `jq`, CodexBar, and a checkout of this repository.
 ```bash
 git clone --depth 1 --single-branch https://github.com/akunzai/agent-skills.git
 cd agent-skills
-bash plugins/codexbar-quota-handoff/scripts/setup.sh --threshold 0.9
+bash scripts/setup.sh --plugin codexbar-quota-handoff --threshold 0.9
 ```
 
 Setup copies the flag-writer helper to
 `${XDG_DATA_HOME:-$HOME/.local/share}/codexbar-quota-handoff/scripts/`, stores
 flags under `${XDG_STATE_HOME:-$HOME/.local/state}/codexbar-quota-handoff/`,
-adds CodexBar rules only for detected agents, and prints Claude Code, Codex,
-and Copilot plugin-manager commands for `akunzai/agent-skills` without running
-them. When `grok` is on PATH it also writes
+adds CodexBar rules only for detected agents, and interactively installs the
+plugin into a selected Claude Code, Codex, or Copilot runtime. Already-installed
+plugins are detected and skipped. When `grok` is on PATH it also writes
 `~/.grok/hooks/codexbar-quota-reminder.sh` and
 `~/.grok/hooks/codexbar-quota-handoff.json` (Grok needs no marketplace
-install). Pass `--local` to print this checkout's path instead when testing
-unpublished changes.
+install). Pass `--local` to install from this checkout when testing unpublished
+changes. Non-interactive callers select a runtime with `--runtime` and may pass
+`--yes`.
+
+Upgrade interactively and refresh the local helper/config integration with:
+
+```bash
+bash scripts/upgrade.sh --plugin codexbar-quota-handoff --threshold 0.9
+```
 
 <details>
 <summary>Claude Code</summary>
-
-Install from GitHub:
-
-```bash
-claude plugin marketplace add akunzai/agent-skills
-claude plugin install codexbar-quota-handoff@akunzai-agent-skills --scope user
-```
 
 Reload an active session with `/reload-plugins`.
 
@@ -50,24 +50,12 @@ Reload an active session with `/reload-plugins`.
 <details>
 <summary>Codex CLI</summary>
 
-Install from GitHub:
-
-```bash
-codex plugin marketplace add akunzai/agent-skills
-codex plugin add codexbar-quota-handoff --marketplace akunzai-agent-skills
-```
+The root lifecycle manager registers the marketplace and plugin.
 
 </details>
 
 <details>
 <summary>GitHub Copilot CLI</summary>
-
-Install from GitHub:
-
-```bash
-copilot plugin marketplace add akunzai/agent-skills
-copilot plugin install codexbar-quota-handoff@akunzai-agent-skills
-```
 
 Copilot reads the same `.claude-plugin/marketplace.json` and
 `.claude-plugin/plugin.json` this repository already ships, and registers the
@@ -83,7 +71,7 @@ installed (verify with `copilot skill list`).
 <details>
 <summary>Grok Build</summary>
 
-No marketplace install is required for the reminder. `setup.sh` installs a
+No marketplace install is required for the reminder. The root setup installs a
 Stop-only global hook at `~/.grok/hooks/codexbar-quota-handoff.json` and copies
 the reminder script to `~/.grok/hooks/codexbar-quota-reminder.sh`. Reload hooks
 from the Hooks tab (`r`) or start a new session.
@@ -102,13 +90,12 @@ can be fixed without rewriting the config.
 ## Uninstall
 
 ```bash
-bash plugins/codexbar-quota-handoff/scripts/uninstall.sh
+bash scripts/uninstall.sh --plugin codexbar-quota-handoff
 ```
 
+Select a runtime interactively; installed status is detected before removal.
 Pass `--keep-state` to preserve quota flags. The script removes owned runtime
-helpers and CodexBar rules, prints Claude Code, Codex, and Copilot plugin
-removal commands without executing them, and removes the Grok global hook
-files.
+helpers, CodexBar rules, and the Grok global hook files.
 
 ## How it works
 
@@ -120,7 +107,7 @@ clears the claim.
 
 Claude Code, Codex, and Copilot load the bundled `hooks/hooks.json` from their
 installed plugin. Grok loads the global hook file and reminder script written by
-`setup.sh`.
+the root setup entry point.
 
 Run the focused checks with:
 

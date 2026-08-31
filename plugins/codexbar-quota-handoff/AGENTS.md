@@ -2,17 +2,23 @@
 
 ## Local setup
 
-Run the host integration from the repository checkout:
+From the repository root, run the only public setup entry point:
 
 ```bash
-bash scripts/setup.sh --threshold 0.9
+bash scripts/setup.sh --plugin codexbar-quota-handoff --threshold 0.9
 ```
 
-By default the script prints Claude Code, Codex, and Copilot marketplace
-commands for the published GitHub source `akunzai/agent-skills` (so plugin
-managers can track remote updates). Pass `--local` to print this checkout's
-absolute path instead when testing unpublished changes. Grok uses only the
-global hook. Setup does not invoke plugin managers automatically.
+In a terminal the script interactively installs the plugin into a selected
+Claude Code, Codex, or Copilot runtime, then configures the host integration.
+It detects and skips an existing plugin install. Pass `--local` to register
+this checkout instead of the published GitHub source, or use `--runtime` and
+`--yes` for non-interactive setup. Grok uses only the global hook.
+
+The root `scripts/upgrade.sh` and `scripts/uninstall.sh` use the same interactive
+runtime/plugin-state flow. Upgrade refreshes the local integration; uninstall
+removes it after the selected plugin-manager entry is removed.
+Plugin-local `configure-host.sh` and `remove-host.sh` are internal post-action
+helpers and are not public lifecycle entry points.
 
 ## Checks
 
@@ -25,7 +31,7 @@ mise run lint
 
 The three marketplace manifests must continue to resolve to this shared plugin
 root. Grok's reminder path is the Stop-only global hook
-`~/.grok/hooks/codexbar-quota-handoff.json` written by `setup.sh` (plugin
+`~/.grok/hooks/codexbar-quota-handoff.json` written by the root setup (plugin
 marketplace hooks are not registered by Grok Build 1.0.x).
 
 Copilot needs no fourth manifest: it reads `.claude-plugin/marketplace.json`
