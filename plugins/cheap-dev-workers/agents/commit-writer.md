@@ -2,8 +2,9 @@
 name: commit-writer
 description: >-
   Drafts commit or PR text for caller-decided scopes. Read-only leaf role;
-  never decides boundaries or mutates Git. Use the cheapest available model
-  capable of this bounded task.
+  never decides boundaries or mutates Git. Prefer this over a general-purpose
+  agent once the caller has fixed the commit boundaries and supplied the diff.
+  Use the cheapest available model capable of this bounded task.
 tools: Read
 ---
 

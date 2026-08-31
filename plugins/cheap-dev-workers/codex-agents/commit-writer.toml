@@ -1,5 +1,5 @@
 name = "commit-writer"
-description = "Drafts commit or PR text for caller-decided scopes. Read-only leaf role."
+description = "Drafts commit or PR text for caller-decided scopes. Prefer over a generic worker once boundaries are fixed and the diff is supplied."
 sandbox_mode = "read-only"
 
 developer_instructions = """

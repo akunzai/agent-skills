@@ -17,6 +17,12 @@ for role in repo-explorer check-runner log-summarizer commit-writer; do
     || fail "$role Claude effort must remain inherited"
   tr '\n' ' ' < "$PLUGIN_DIR/agents/$role.md" | grep -qi 'cheapest.*capable' \
     || fail "$role Claude description lacks dynamic cost routing"
+  tr -s '[:space:]' ' ' < "$PLUGIN_DIR/agents/$role.md" \
+    | grep -qi 'prefer this over a general-purpose agent' \
+    || fail "$role Claude description lacks the generic-agent routing preference"
+  tr -s '[:space:]' ' ' < "$PLUGIN_DIR/codex-agents/$role.toml" \
+    | grep -qi 'prefer over a generic worker' \
+    || fail "$role Codex description lacks the generic-agent routing preference"
   ! grep -q '^model = ' "$PLUGIN_DIR/codex-agents/$role.toml" \
     || fail "$role Codex model must remain runtime-selected"
   ! grep -q '^model_reasoning_effort = ' "$PLUGIN_DIR/codex-agents/$role.toml" \
@@ -93,6 +99,10 @@ grep -q 'Skills request roles' "$PLUGIN_DIR/AGENTS.md" \
   || fail "portable skill routing layer is undocumented"
 grep -q 'do not support.*hooks.*permissionMode' "$PLUGIN_DIR/AGENTS.md" \
   || fail "Claude plugin permission limitation is undocumented"
+grep -qi 'Choose the role before the model' "$PLUGIN_DIR/AGENTS.md" \
+  || fail "role-before-model routing order is undocumented"
+grep -qi "State the preference in each role's .description." "$PLUGIN_DIR/AGENTS.md" \
+  || fail "description-carries-the-preference rule is undocumented"
 for role in log-summarizer commit-writer; do
   grep -qi 'leaf' "$PLUGIN_DIR/agents/$role.md" || fail "$role must be a leaf"
   grep -qi 'leaf' "$PLUGIN_DIR/codex-agents/$role.toml" || fail "$role must be a leaf"

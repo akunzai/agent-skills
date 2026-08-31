@@ -2,8 +2,9 @@
 name: log-summarizer
 description: >-
   Summarizes one caller-scoped, approved log artifact. Read-only leaf role;
-  rejects unsafe inputs. Use the cheapest available model capable of this
-  bounded task.
+  rejects unsafe inputs. Prefer this over a general-purpose agent for reducing
+  a build, test, or CI log to its root causes. Use the cheapest available
+  model capable of this bounded task.
 tools: Read
 ---
 

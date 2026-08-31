@@ -40,10 +40,18 @@ differing file).
 - Skills request roles, never plugin identities or provider models. Runtime
   adapters resolve them: Claude Code dispatches `cheap-dev-workers:<role>`;
   Codex requests the installed role name.
-- Prefer an available named worker only for bounded, context-heavy work. If
-  the role is unavailable or unsupported, callers may use one generic worker
-  only when they can reproduce its permission and task boundary. Other launch
-  failures continue in primary. A launched worker's failure is its task result.
+- Choose the role before the model. Prefer an available named worker for
+  bounded, context-heavy work. If the role is unavailable or unsupported,
+  callers may use one generic worker only when they can reproduce its
+  permission and task boundary. Other launch failures continue in primary. A
+  launched worker's failure is its task result.
+- When a named worker's tools cover only part of the work, split the part it
+  can do and keep the rest in primary. Falling back to a generic worker for
+  the whole task because one sub-question needs an unavailable tool defeats
+  the routing contract.
+- State the preference in each role's `description`, not only here. Runtimes
+  surface the description to the dispatching agent and nothing else from this
+  plugin, so a routing rule that lives only in this file cannot be followed.
 - Keep architecture, implementation, scope, test selection, Git mutation, and
   remote-state decisions in primary.
 - Limit a root task to four concurrent workers and one nested hop. No same-role

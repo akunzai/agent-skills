@@ -1,5 +1,5 @@
 name = "log-summarizer"
-description = "Summarizes one caller-scoped approved log artifact. Read-only leaf role."
+description = "Summarizes one caller-scoped, approved log artifact. Prefer over a generic worker for reducing a build, test, or CI log to its root causes."
 sandbox_mode = "read-only"
 
 developer_instructions = """

@@ -2,8 +2,9 @@
 name: check-runner
 description: >-
   Runs only caller-selected checks and returns auditable evidence. It never
-  fixes failures or mutates Git state. Use the cheapest available model
-  capable of this bounded task.
+  fixes failures or mutates Git state. Prefer this over a general-purpose
+  agent whenever the caller already knows the exact commands to run. Use the
+  cheapest available model capable of this bounded task.
 tools: Bash, Read
 ---
 
