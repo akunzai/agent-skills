@@ -36,6 +36,12 @@ HOME="$fake_home" bash "$PLUGIN_DIR/scripts/upgrade.sh" --codex-only --check >/d
   || fail "upgrade.sh --check failed"
 [ ! -d "$dest" ] || fail "upgrade.sh --check should not create $dest"
 
+# --- copilot check mode is read-only: no Copilot-specific files exist, so it
+#     must touch neither ~/.codex/agents nor anything else under HOME ---
+HOME="$fake_home" bash "$PLUGIN_DIR/scripts/upgrade.sh" --copilot-only --check >/dev/null \
+  || fail "upgrade.sh --copilot-only --check failed"
+[ ! -d "$dest" ] || fail "upgrade.sh --copilot-only --check should not create $dest"
+
 # --- upgrade installs all 4 agents into destination ---
 HOME="$fake_home" bash "$PLUGIN_DIR/scripts/upgrade.sh" --codex-only >/dev/null \
   || fail "upgrade.sh --codex-only failed"

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Quota-reminder hook shared by every consuming tool (Claude Code, Grok
-# Build, Codex CLI), registered on both Stop and PostToolUse through each
-# tool's native hook location. A no-op unless codexbar-quota-flag.sh has written a flag,
-# for this tool's provider, since the last time this fired.
+# Build, Codex CLI, GitHub Copilot CLI), registered on both Stop and
+# PostToolUse through each tool's native hook location. A no-op unless
+# codexbar-quota-flag.sh has written a flag, for this tool's provider, since
+# the last time this fired.
 #
 # Stop alone fires only once per turn — after the whole nested tool-call loop
 # finishes — so a long, continuous stretch of tool calls within a single turn
@@ -16,17 +17,28 @@
 #
 # Which tool is running is inferred from environment variables each hook
 # runner sets natively — not the shared CLAUDE_PLUGIN_ROOT compatibility
-# alias, which all three tools set and can't disambiguate anything:
+# alias, which all four tools set and can't disambiguate anything:
 #   - Grok Build sets GROK_SESSION_ID (its own hook-runner variable, per its
 #     locally-installed user-guide docs, ~/.grok/docs/user-guide/10-hooks.md).
+#   - GitHub Copilot CLI sets COPILOT_CLI=1 (observed by dumping the hook
+#     environment under Copilot CLI 1.0.82; COPILOT_PROJECT_DIR comes with
+#     it). This must be checked *before* PLUGIN_ROOT: Copilot supports both
+#     the ${CLAUDE_PLUGIN_ROOT} and ${PLUGIN_ROOT} placeholders and exports a
+#     bare PLUGIN_ROOT to plugin hooks too, so the Codex test alone would
+#     misreport Copilot as Codex and suggest "$handoff".
 #   - Codex CLI sets a bare PLUGIN_ROOT *in addition to* the CLAUDE_PLUGIN_ROOT
 #     alias, documented as "a Codex-specific extension that points to the
 #     installed plugin root" (OpenAI's official Codex hooks reference,
-#     learn.chatgpt.com/docs/hooks.md) — so its presence is Codex-specific.
-#   - Neither is set under Claude Code itself, which is the fallback.
-# This keeps hooks/hooks.json identical across all three tools — no per-tool
+#     learn.chatgpt.com/docs/hooks.md).
+#   - None of these is set under Claude Code itself, which is the fallback.
+# This keeps hooks/hooks.json identical across all four tools — no per-tool
 # arguments, and no risk of a tool's own shell reinterpreting a literal
 # handoff-command string like "$handoff".
+#
+# Copilot suggests /handoff like Claude Code and Grok: it has no built-in
+# handoff command, but it registers every loaded skill as a slash command, and
+# this repo's handoff skill is discoverable there (~/.agents/skills is one of
+# Copilot's personal skill sources; confirm with `copilot skill list`).
 #
 # When a flag is present, this exits 2 with the reminder on stderr so the
 # model relays it to the user, then deletes the flag so the same crossing
@@ -37,6 +49,9 @@ set -euo pipefail
 
 if [[ -n "${GROK_SESSION_ID:-}" ]]; then
   provider="grok"
+  handoff_cmd="/handoff"
+elif [[ -n "${COPILOT_CLI:-}" ]]; then
+  provider="copilot"
   handoff_cmd="/handoff"
 elif [[ -n "${PLUGIN_ROOT:-}" ]]; then
   provider="codex"

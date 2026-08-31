@@ -7,7 +7,7 @@ Usage: setup.sh [--threshold <0-1>] [--local]
 
 Install the shared runtime helpers, write the Grok global Stop hook when
 grok is on PATH, configure CodexBar host integrations, and print the Claude
-Code and Codex marketplace commands.
+Code, Codex, and Copilot marketplace commands.
 
 Options:
   --threshold <0-1>  Quota usage threshold (default: 0.9)
@@ -162,12 +162,20 @@ else
   echo "  codex CLI not found on PATH; no CodexBar rule will be added."
 fi
 
+echo "== GitHub Copilot CLI =="
+if command -v copilot >/dev/null 2>&1; then
+  providers+=(copilot)
+else
+  echo "  copilot CLI not found on PATH; no CodexBar rule will be added."
+fi
+
 cat <<EOF
 
 == Plugin marketplaces ==
 Run these commands when the corresponding CLI is installed.
 Grok does not need a marketplace install; its reminder uses the global Stop
-hook written above when grok is on PATH.
+hook written above when grok is on PATH. Copilot reads the same
+.claude-plugin manifests, so it needs no Copilot-specific manifest.
 Marketplace source: $marketplace_source
 
   claude plugin marketplace add "$marketplace_source"
@@ -175,11 +183,14 @@ Marketplace source: $marketplace_source
 
   codex plugin marketplace add "$marketplace_source"
   codex plugin add codexbar-quota-handoff --marketplace akunzai-agent-skills
+
+  copilot plugin marketplace add "$marketplace_source"
+  copilot plugin install codexbar-quota-handoff@akunzai-agent-skills
 EOF
 
 echo "== CodexBar =="
 if [[ ${#providers[@]} -eq 0 ]]; then
-  echo "  none of claude/grok/codex were found on PATH; nothing to configure."
+  echo "  none of claude/grok/codex/copilot were found on PATH; nothing to configure."
   exit 0
 fi
 if ! command -v codexbar >/dev/null 2>&1; then
@@ -241,5 +252,5 @@ for provider in "${providers[@]}"; do
   fi
 done
 
-echo "Done. Reload Claude/Codex plugins after the marketplace commands above;"
-echo "for Grok, reload hooks (Hooks tab → r) or start a new session."
+echo "Done. Reload Claude/Codex/Copilot plugins after the marketplace commands"
+echo "above; for Grok, reload hooks (Hooks tab → r) or start a new session."

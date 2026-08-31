@@ -5,12 +5,14 @@ usage() {
   cat <<'EOF'
 Usage: upgrade.sh [options]
 
-Check and upgrade the cheap-dev-workers plugin for Claude Code and Codex CLI.
+Check and upgrade the cheap-dev-workers plugin for Claude Code, Codex CLI,
+and GitHub Copilot CLI.
 
 Options:
   --check            Check current installed versions against available version without upgrading
   --claude-only      Only inspect/upgrade Claude Code plugin
   --codex-only       Only inspect/upgrade Codex CLI plugin and personal agents
+  --copilot-only     Only inspect/upgrade GitHub Copilot CLI plugin
   --scope <scope>    Claude Code plugin scope: 'user' (default) or 'project'
   --force            Force overwriting modified Codex agent definitions in ~/.codex/agents/
   -h, --help         Show this help
@@ -38,6 +40,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --codex-only)
       target_platform="codex"
+      shift
+      ;;
+    --copilot-only)
+      target_platform="copilot"
       shift
       ;;
     --scope)
@@ -180,6 +186,51 @@ upgrade_codex() {
   done
 }
 
+# ---------------- GitHub Copilot CLI ----------------
+# Copilot installs this plugin straight from the .claude-plugin manifests, so
+# there are no Copilot-specific files to copy — only the plugin manager to
+# nudge. Its `plugin list` prints one line per plugin, e.g.
+#   • cheap-dev-workers@akunzai-agent-skills (v1.2.1) (enabled)
+upgrade_copilot() {
+  echo ""
+  echo "== GitHub Copilot CLI =="
+  if ! command -v copilot >/dev/null 2>&1; then
+    echo "  Copilot CLI not found on PATH; skipping GitHub Copilot CLI."
+    return 0
+  fi
+
+  local plugin_list installed_version
+  plugin_list="$(copilot plugin list 2>/dev/null || true)"
+  installed_version="$(printf '%s\n' "$plugin_list" \
+    | sed -n 's/.*cheap-dev-workers@akunzai-agent-skills.*(v\([0-9][0-9.]*\)).*/\1/p' \
+    | head -n 1)"
+
+  if [[ -z "$installed_version" ]]; then
+    echo "  cheap-dev-workers is not installed in Copilot CLI."
+    if [[ "$check_only" == false ]]; then
+      echo "  To install: copilot plugin install cheap-dev-workers@akunzai-agent-skills"
+    fi
+    return 0
+  fi
+
+  echo "  Installed Copilot plugin version: $installed_version"
+
+  if [[ "$check_only" == true ]]; then
+    if [[ "$installed_version" == "$plugin_version" ]]; then
+      echo "  Copilot plugin is up to date ($installed_version)."
+    else
+      echo "  Copilot plugin can be upgraded ($installed_version -> $plugin_version)."
+    fi
+    return 0
+  fi
+
+  echo "  Updating marketplace akunzai-agent-skills..."
+  copilot plugin marketplace update akunzai-agent-skills 2>/dev/null || true
+
+  echo "  Upgrading cheap-dev-workers plugin..."
+  copilot plugin update "cheap-dev-workers@akunzai-agent-skills"
+}
+
 if [[ "$target_platform" == "all" || "$target_platform" == "claude" ]]; then
   upgrade_claude
 fi
@@ -188,9 +239,13 @@ if [[ "$target_platform" == "all" || "$target_platform" == "codex" ]]; then
   upgrade_codex
 fi
 
+if [[ "$target_platform" == "all" || "$target_platform" == "copilot" ]]; then
+  upgrade_copilot
+fi
+
 echo ""
 if [[ "$check_only" == true ]]; then
   echo "Version check complete."
 else
-  echo "Upgrade complete. Restart Claude Code / Codex sessions to apply changes."
+  echo "Upgrade complete. Restart Claude Code / Codex / Copilot sessions to apply changes."
 fi

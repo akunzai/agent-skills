@@ -64,7 +64,8 @@ if [[ -f "$codexbar_config" ]]; then
     .hooks.events = ((.hooks.events // []) | map(
       select(.id != "agent-skills-codexbar-quota-handoff-claude"
       and .id != "agent-skills-codexbar-quota-handoff-grok"
-      and .id != "agent-skills-codexbar-quota-handoff-codex")
+      and .id != "agent-skills-codexbar-quota-handoff-codex"
+      and .id != "agent-skills-codexbar-quota-handoff-copilot")
     ))
   ' "$codexbar_config" >"$temporary"
   mv "$temporary" "$codexbar_config"
@@ -103,11 +104,13 @@ fi
 cat <<'EOF'
 
 == Plugin marketplaces ==
-Run these commands if the Claude Code or Codex plugins were installed.
-Grok uses only the global hook removed above (no marketplace uninstall).
+Run these commands if the Claude Code, Codex, or Copilot plugins were
+installed. Grok uses only the global hook removed above (no marketplace
+uninstall).
 
   claude plugin uninstall codexbar-quota-handoff@akunzai-agent-skills --scope user
   codex plugin remove codexbar-quota-handoff --marketplace akunzai-agent-skills
+  copilot plugin uninstall codexbar-quota-handoff@akunzai-agent-skills
 
 Done.
 EOF

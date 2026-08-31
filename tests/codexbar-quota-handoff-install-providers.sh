@@ -13,7 +13,7 @@ TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 # A stub `codexbar` on PATH: `guard` reports every provider reachable, and
-# nothing else is ever called (claude/grok/codex are only detected via
+# nothing else is ever called (claude/grok/codex/copilot are only detected via
 # `command -v`, never actually invoked, so plain no-op stubs are enough).
 STUB_BIN="$TMP_DIR/stub-bin"
 mkdir -p "$STUB_BIN"
@@ -33,13 +33,14 @@ ln -s "$REAL_JQ" "$STUB_BIN/jq"
 
 TOOL_BIN="$TMP_DIR/tool-bin"
 mkdir -p "$TOOL_BIN"
-for tool in claude grok codex; do
+for tool in claude grok codex copilot; do
   printf '#!/usr/bin/env bash\nexit 0\n' >"$TOOL_BIN/$tool"
   chmod +x "$TOOL_BIN/$tool"
 done
 
 # Runs setup.sh with only the named stub tools (plus codexbar/jq) on PATH.
-# Pass no tool names to simulate none of claude/grok/codex being installed.
+# Pass no tool names to simulate none of claude/grok/codex/copilot being
+# installed.
 # Extra args after the tool list are forwarded to setup.sh (e.g. --local).
 run_install() {
   local fake_home="$1"
@@ -87,8 +88,8 @@ OUTPUT="$(run_install "$CLAUDE_ONLY_HOME" claude)"
 ACTUAL="$(configured_providers "$CLAUDE_ONLY_HOME")"
 [ "$ACTUAL" = "claude" ] || fail "with only claude on PATH, expected only 'claude' configured, got: $ACTUAL"
 case "$OUTPUT" in
-  *'claude plugin marketplace add "akunzai/agent-skills"'*'codex plugin marketplace add "akunzai/agent-skills"'*) ;;
-  *) fail "setup did not print Claude Code and Codex marketplace commands for akunzai/agent-skills (got: $OUTPUT)" ;;
+  *'claude plugin marketplace add "akunzai/agent-skills"'*'codex plugin marketplace add "akunzai/agent-skills"'*'copilot plugin marketplace add "akunzai/agent-skills"'*) ;;
+  *) fail "setup did not print Claude Code, Codex, and Copilot marketplace commands for akunzai/agent-skills (got: $OUTPUT)" ;;
 esac
 case "$OUTPUT" in
   *'grok plugin '*)
@@ -96,11 +97,23 @@ case "$OUTPUT" in
     ;;
 esac
 
+# --- only copilot on PATH: only copilot gets a CodexBar rule. Copilot needs
+#     no Copilot-specific manifest (it reads .claude-plugin/marketplace.json
+#     and .claude-plugin/plugin.json directly), so detection is the only
+#     provider-specific work setup.sh does for it. ---
+COPILOT_ONLY_HOME="$TMP_DIR/copilot-only"
+mkdir -p "$COPILOT_ONLY_HOME"
+run_install "$COPILOT_ONLY_HOME" copilot >/dev/null
+ACTUAL="$(configured_providers "$COPILOT_ONLY_HOME")"
+[ "$ACTUAL" = "copilot" ] || fail "with only copilot on PATH, expected only 'copilot' configured, got: $ACTUAL"
+[ ! -e "$COPILOT_ONLY_HOME/.grok/hooks/codexbar-quota-handoff.json" ] \
+  || fail "setup wrote a Grok global hook when only copilot was on PATH"
+
 # --local prints this checkout's absolute path for unpublished testing.
 LOCAL_HOME="$TMP_DIR/local-marketplace"
 OUTPUT="$(run_install "$LOCAL_HOME" claude --local)"
 case "$OUTPUT" in
-  *'claude plugin marketplace add "'"$ROOT_DIR"'"'*'codex plugin marketplace add "'"$ROOT_DIR"'"'*) ;;
+  *'claude plugin marketplace add "'"$ROOT_DIR"'"'*'codex plugin marketplace add "'"$ROOT_DIR"'"'*'copilot plugin marketplace add "'"$ROOT_DIR"'"'*) ;;
   *) fail "--local did not print marketplace commands for this checkout (got: $OUTPUT)" ;;
 esac
 case "$OUTPUT" in
@@ -109,11 +122,11 @@ case "$OUTPUT" in
     ;;
 esac
 
-# --- all three tools on PATH: all three providers get a CodexBar rule ---
+# --- all four tools on PATH: all four providers get a CodexBar rule ---
 ALL_TOOLS_HOME="$TMP_DIR/all-tools"
-run_install "$ALL_TOOLS_HOME" claude grok codex >/dev/null
+run_install "$ALL_TOOLS_HOME" claude grok codex copilot >/dev/null
 ACTUAL="$(configured_providers "$ALL_TOOLS_HOME")"
-[ "$ACTUAL" = "claude,codex,grok" ] || fail "with all three tools on PATH, expected all three providers configured, got: $ACTUAL"
+[ "$ACTUAL" = "claude,codex,copilot,grok" ] || fail "with all four tools on PATH, expected all four providers configured, got: $ACTUAL"
 
 RUNTIME_DIR="$ALL_TOOLS_HOME/xdg-data/codexbar-quota-handoff/scripts"
 helper="codexbar-quota-flag.sh"
@@ -178,7 +191,7 @@ run_install "$NO_GROK_HOME" claude >/dev/null
 [ ! -e "$NO_GROK_HOME/.grok/hooks/codexbar-quota-reminder.sh" ] \
   || fail "setup wrote a Grok reminder script when grok was not on PATH"
 
-# --- none of the three tools on PATH: CodexBar's config is left untouched
+# --- none of the four tools on PATH: CodexBar's config is left untouched
 #     (no backup file, no rules merged in) ---
 NO_TOOLS_HOME="$TMP_DIR/no-tools"
 mkdir -p "$NO_TOOLS_HOME"

@@ -5,6 +5,10 @@
 Claude Code auto-discovers `agents/` once the plugin is installed; no setup
 script needed on that side.
 
+GitHub Copilot CLI also auto-discovers `agents/` from the installed plugin,
+reading the same `.claude-plugin` manifests — no Copilot-specific copy of the
+role definitions exists. See @../../docs/agents/copilot-cli.md.
+
 Codex CLI has no plugin-bundled agent mechanism, so its subagents must be
 copied into a personal or trusted-project agents directory:
 
@@ -31,14 +35,16 @@ Bump `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json` together
 whenever shipped files under this plugin directory change. Claude Code uses
 that string as the update cache key, so `claude plugin update` is a no-op
 until it changes. See [version management](https://code.claude.com/docs/en/plugins-reference#version-management).
-Codex personal agents are copies in `~/.codex/agents/`; after a release run
-`scripts/upgrade.sh` (or `scripts/uninstall.sh` then `scripts/setup.sh`).
+Copilot uses the same `.claude-plugin/plugin.json` version string as its
+update key. Codex personal agents are copies in `~/.codex/agents/`; after a
+release run `scripts/upgrade.sh` (or `scripts/uninstall.sh` then
+`scripts/setup.sh`).
 
 ## Routing contract
 
 - Skills request roles, never plugin identities or provider models. Runtime
-  adapters resolve them: Claude Code dispatches `cheap-dev-workers:<role>`;
-  Codex requests the installed role name.
+  adapters resolve them: Claude Code and Copilot CLI dispatch
+  `cheap-dev-workers:<role>`; Codex requests the installed role name.
 - Choose the role before the model. Prefer an available named worker for
   bounded, context-heavy work. If the role is unavailable or unsupported,
   callers may use one generic worker only when they can reproduce its
@@ -65,16 +71,18 @@ Codex personal agents are copies in `~/.codex/agents/`; after a release run
 
 ## Model choice
 
-Claude and Codex role definitions leave model and reasoning effort unset.
-Callers request the cheapest available model capable of each bounded task and
-the lowest sufficient effort, starting routine work at `low`, when the runtime
-supports per-dispatch selection. Otherwise the runtime inherits its parent or
-configured defaults. Skills name no provider or model, so targets can change
-without coupling workflow instructions.
+Claude, Codex, and Copilot role definitions leave model and reasoning effort
+unset. Callers request the cheapest available model capable of each bounded
+task and the lowest sufficient effort, starting routine work at `low`, when the
+runtime supports per-dispatch selection. Otherwise the runtime inherits its
+parent or configured defaults. Skills name no provider or model, so targets can
+change without coupling workflow instructions.
 
-The `agents/*.md` (Claude Code) and `codex-agents/*.toml` (Codex CLI)
-definitions carry the same hard rules and instructions in each tool's native
-format. Keep them in sync when editing either side.
+The `agents/*.md` (Claude Code and Copilot CLI) and `codex-agents/*.toml`
+(Codex CLI) definitions carry the same hard rules and instructions in each
+tool's native format. Keep them in sync when editing either side. Copilot maps
+the `tools:` frontmatter onto its own tool names, so a role's permission
+boundary survives without a Copilot-specific `tools:` list.
 
 Claude plugin subagents do not support `hooks` or `permissionMode`, so the
 check-runner's Bash mutation boundary is prompt-enforced. The primary supplies
