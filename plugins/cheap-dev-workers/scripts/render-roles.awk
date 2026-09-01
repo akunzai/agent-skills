@@ -22,6 +22,16 @@ function checkline(l) {
   if (bkind == "description" && l ~ /^[ \t]/) fail("a description line may not start with whitespace")
 }
 
+# An entry declares an invariant the role carries. Both runtimes must actually
+# receive prose for it, or deleting the cross-runtime phrase locks would be a
+# lie: the projection is what guarantees parity now.
+function close_group() {
+  if (!pending_entry) return
+  if (nbc == group_c) fail("the preceding entry produced no Claude prose")
+  if (nbx == group_x) fail("the preceding entry produced no Codex prose")
+  pending_entry = 0
+}
+
 function runtime_ok(rt) {
   return (rt == "claude" || rt == "codex" || rt == "both")
 }
@@ -116,7 +126,10 @@ FILENAME != sharedfile {
       if (!($i in seen)) fail("unknown id " $i "; declare it in shared.role")
       uses[$i] = 1
     }
+    close_group()
     pending_entry = 1
+    group_c = nbc
+    group_x = nbx
     next
   }
   if ($1 == "prose") {
@@ -127,12 +140,14 @@ FILENAME != sharedfile {
   }
   if ($1 == "literal") {
     if (NF != 2 || !runtime_ok($2)) fail("literal needs a runtime: claude, codex, or both")
-    bkind = "literal"; brt = $2; inblock = 1; bcount = 0; pending_entry = 0
+    close_group()
+    bkind = "literal"; brt = $2; inblock = 1; bcount = 0
     next
   }
   if ($1 == "blank") {
     if (NF != 2 || !runtime_ok($2)) fail("blank needs a runtime: claude, codex, or both")
-    bkind = "prose"; emit($2, ""); pending_entry = 0
+    close_group()
+    bkind = "prose"; emit($2, "")
     next
   }
   fail("unknown directive: " $1)
@@ -141,6 +156,8 @@ FILENAME != sharedfile {
 END {
   if (failed) exit 65
   if (inblock) die(FILENAME, "unterminated block; add END")
+  if (pending_entry && (nbc == group_c || nbx == group_x))
+    die(FILENAME, "the final entry does not produce prose for both runtimes")
   for (id in seen) {
     if (!(id in cls)) die(sharedfile, "id " id " has no class")
     if (!(id in hasapplies)) die(sharedfile, "id " id " has no applies")

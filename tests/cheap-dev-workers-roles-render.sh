@@ -15,6 +15,45 @@ fail() {
 # --- the committed artifacts are exactly what roles/ projects ---
 "$RENDER" --check >/dev/null || fail "committed artifacts have drifted from roles/"
 
+# --- the safety-critical invariants each role must carry ---
+# Locks are on stable ids, not on prose: normalizing the wording later must not
+# break these, which is exactly how the old phrase greps failed.
+declares() {
+  awk -v want_id="$1" -v want_role="$2" '
+    /^id / { id = $2 }
+    /^applies / {
+      if (id != want_id) next
+      for (i = 2; i <= NF; i++) if ($i == want_role) { found = 1 }
+    }
+    END { exit(found ? 0 : 1) }
+  ' "$PLUGIN_DIR/roles/shared.role"
+}
+
+require_ids() {
+  local role="$1"
+  shift
+  local id
+  for id in "$@"; do
+    declares "$id" "$role" \
+      || fail "shared.role does not apply '$id' to $role"
+  done
+}
+
+for role in check-runner commit-writer log-summarizer repo-explorer; do
+  require_ids "$role" git.no-mutation role.description
+done
+require_ids check-runner checks.caller-named artifacts.tracked-source \
+  git.fingerprint evidence.per-check evidence.check-cardinality \
+  evidence.no-invention relay.target relay.nesting-limit relay.child-boundary
+require_ids repo-explorer scope.caller-repo evidence.cited \
+  verification.reserved relay.trigger relay.target relay.nesting-limit \
+  relay.child-boundary decisions.none
+require_ids log-summarizer role.leaf scope.exact-artifact input.rejection \
+  summary.root-causes secrets.residual-scan
+require_ids commit-writer role.leaf boundaries.caller-decided \
+  input.caller-supplied message.why-not-what pr.shape issue.linking \
+  output.contract
+
 # --- usage errors are refused, not guessed at ---
 "$RENDER" >/dev/null 2>&1 && fail "a missing mode must be an error"
 "$RENDER" --runtime codex >/dev/null 2>&1 && fail "an unknown option must be an error"
