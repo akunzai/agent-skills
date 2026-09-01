@@ -156,54 +156,89 @@ runtime_label() {
   esac
 }
 
-# Runtime command contracts are intentionally kept in these adapters. Current
-# authoritative references:
+# Runtime command contracts are intentionally kept in these adapters. The plan
+# does not parse status output and does not branch on runtime for catalog
+# filter or upgrade. Current authoritative references:
 # - Claude Code: https://code.claude.com/docs/en/plugin-marketplaces
 # - Codex: https://developers.openai.com/codex/developer-commands?surface=cli#cli-codex-plugin-marketplace
 # - Copilot CLI: https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-marketplace
 claude_list_plugins() { claude plugin list --json 2>/dev/null || echo '[]'; }
 claude_list_marketplaces() { claude plugin marketplace list --json 2>/dev/null || echo '[]'; }
+claude_load_status() {
+  claude_installed_output="$(claude_list_plugins)"
+  claude_marketplace_output="$(claude_list_marketplaces)"
+}
 claude_is_installed() {
   jq -e --arg id "$1" --arg scope "$scope" \
     'any(.[]; .id == $id and .scope == $scope)' \
-    <<<"$installed_output" >/dev/null 2>&1
+    <<<"$claude_installed_output" >/dev/null 2>&1
 }
 claude_marketplace_registered() {
   jq -e --arg name "$marketplace_name" 'any(.[]; .name == $name)' \
-    <<<"$marketplace_output" >/dev/null 2>&1
+    <<<"$claude_marketplace_output" >/dev/null 2>&1
 }
+claude_supports_plugin() { true; }
 claude_add_marketplace() { claude plugin marketplace add "$marketplace_source"; }
 claude_refresh_marketplace() { claude plugin marketplace update "$marketplace_name"; }
 claude_install_plugin() { claude plugin install "$1" --scope "$scope" --yes; }
-claude_upgrade_plugin() { claude plugin update "$1" --scope "$scope" --yes; }
+claude_upgrade_notice() { :; }
+claude_upgrade_summary() { :; }
+claude_upgrade_plugin() {
+  echo "  upgrading $1"
+  claude plugin update "$1" --scope "$scope" --yes
+}
 claude_uninstall_plugin() { claude plugin uninstall "$1" --scope "$scope" --yes; }
 
 codex_list_plugins() { codex plugin list --json 2>/dev/null || echo '{"installed":[]}'; }
 codex_list_marketplaces() { codex plugin marketplace list --json 2>/dev/null || echo '{"marketplaces":[]}'; }
+codex_load_status() {
+  codex_installed_output="$(codex_list_plugins)"
+  codex_marketplace_output="$(codex_list_marketplaces)"
+}
 codex_is_installed() {
   jq -e --arg id "$1" \
     'any(.installed[]?; .pluginId == $id and .installed == true)' \
-    <<<"$installed_output" >/dev/null 2>&1
+    <<<"$codex_installed_output" >/dev/null 2>&1
 }
 codex_marketplace_registered() {
   jq -e --arg name "$marketplace_name" \
     'any(.marketplaces[]?; .name == $name)' \
-    <<<"$marketplace_output" >/dev/null 2>&1
+    <<<"$codex_marketplace_output" >/dev/null 2>&1
+}
+codex_supports_plugin() {
+  local source_path="${2#./}"
+  [[ -f "$repo_root/$source_path/.codex-plugin/plugin.json" ]]
 }
 codex_add_marketplace() { codex plugin marketplace add "$marketplace_source"; }
 codex_refresh_marketplace() { codex plugin marketplace upgrade "$marketplace_name"; }
 codex_install_plugin() { codex plugin add "$1"; }
+codex_upgrade_notice() {
+  echo "  Note: Codex upgrades the full $marketplace_name marketplace snapshot."
+}
+codex_upgrade_summary() {
+  echo "  Codex refreshed the full marketplace snapshot."
+}
 codex_upgrade_plugin() { :; }
 codex_uninstall_plugin() { codex plugin remove "$1"; }
 
 copilot_list_plugins() { copilot plugin list 2>/dev/null || true; }
 copilot_list_marketplaces() { copilot plugin marketplace list 2>/dev/null || true; }
-copilot_is_installed() { [[ "$installed_output" == *"$1"* ]]; }
-copilot_marketplace_registered() { [[ "$marketplace_output" == *"$marketplace_name"* ]]; }
+copilot_load_status() {
+  copilot_installed_output="$(copilot_list_plugins)"
+  copilot_marketplace_output="$(copilot_list_marketplaces)"
+}
+copilot_is_installed() { [[ "$copilot_installed_output" == *"$1"* ]]; }
+copilot_marketplace_registered() { [[ "$copilot_marketplace_output" == *"$marketplace_name"* ]]; }
+copilot_supports_plugin() { true; }
 copilot_add_marketplace() { copilot plugin marketplace add "$marketplace_source"; }
 copilot_refresh_marketplace() { copilot plugin marketplace update "$marketplace_name"; }
 copilot_install_plugin() { copilot plugin install "$1"; }
-copilot_upgrade_plugin() { copilot plugin update "$1"; }
+copilot_upgrade_notice() { :; }
+copilot_upgrade_summary() { :; }
+copilot_upgrade_plugin() {
+  echo "  upgrading $1"
+  copilot plugin update "$1"
+}
 copilot_uninstall_plugin() { copilot plugin uninstall "$1"; }
 
 runtime_call() {
@@ -261,21 +296,17 @@ if ! command -v "$runtime" >/dev/null 2>&1; then
   exit 69
 fi
 
-if [[ "$runtime" == "codex" ]]; then
-  compatible_plugins=()
-  for name in "${plugins[@]}"; do
-    source_path="$(jq -r --arg name "$name" \
-      '.plugins[] | select(.name == $name) | .source' "$marketplace_json")"
-    source_path="${source_path#./}"
-    if [[ -f "$repo_root/$source_path/.codex-plugin/plugin.json" ]]; then
-      compatible_plugins+=("$name")
-    fi
-  done
-  plugins=("${compatible_plugins[@]}")
-fi
+compatible_plugins=()
+for name in "${plugins[@]}"; do
+  source_path="$(jq -r --arg name "$name" \
+    '.plugins[] | select(.name == $name) | .source' "$marketplace_json")"
+  if runtime_call supports_plugin "$name" "$source_path"; then
+    compatible_plugins+=("$name")
+  fi
+done
+plugins=("${compatible_plugins[@]}")
 
-installed_output="$(runtime_call list_plugins)"
-marketplace_output="$(runtime_call list_marketplaces)"
+runtime_call load_status
 
 is_installed() {
   runtime_call is_installed "$1@$marketplace_name"
@@ -356,8 +387,8 @@ if [[ ${#target_plugins[@]} -eq 0 ]]; then
   exit 0
 fi
 
-if [[ "$action" == "upgrade" && "$runtime" == "codex" ]]; then
-  echo "  Note: Codex upgrades the full $marketplace_name marketplace snapshot."
+if [[ "$action" == "upgrade" ]]; then
+  runtime_call upgrade_notice
 fi
 
 if [[ "$assume_yes" == false ]]; then
@@ -388,14 +419,10 @@ case "$action" in
     fi
     echo "  refreshing marketplace: $marketplace_name"
     runtime_call refresh_marketplace
-    if [[ "$runtime" == "codex" ]]; then
-      echo "  Codex refreshed the full marketplace snapshot."
-    else
-      for name in "${target_plugins[@]}"; do
-        echo "  upgrading $name@$marketplace_name"
-        runtime_call upgrade_plugin "$name@$marketplace_name"
-      done
-    fi
+    runtime_call upgrade_summary
+    for name in "${target_plugins[@]}"; do
+      runtime_call upgrade_plugin "$name@$marketplace_name"
+    done
     ;;
   uninstall)
     for name in "${target_plugins[@]}"; do
