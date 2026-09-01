@@ -126,6 +126,9 @@ jobs:
       - name: Run cheap-dev-workers agents content checks
         run: bash tests/cheap-dev-workers-agents-content.sh
 
+      - name: Run cheap-dev-workers Worker Role render checks
+        run: bash tests/cheap-dev-workers-roles-render.sh
+
       - name: Run cheap-dev-workers setup/uninstall checks
         run: bash tests/cheap-dev-workers-setup-uninstall.sh
 

@@ -1,0 +1,104 @@
+# Worker Role: commit-writer
+
+capability read
+
+description claude
+Drafts commit or PR text for caller-decided scopes. Read-only leaf role;
+never decides boundaries or mutates Git. Prefer this over a general-purpose
+agent once the caller has fixed the commit boundaries and supplied the diff.
+Use the cheapest available model capable of this bounded task.
+END
+
+description codex
+Drafts commit or PR text for caller-decided scopes. Prefer over a generic worker once boundaries are fixed and the diff is supplied.
+END
+
+entry role.leaf boundaries.caller-decided git.no-mutation
+prose both
+Leaf role: never dispatch another worker. Draft text only for boundaries
+already decided by the caller. Never run `git add`, `git commit`, `git push`,
+`git rebase`, or modify the index, refs, commits, remotes, or tracked files.
+END
+
+blank both
+
+literal claude
+## What to look at
+END
+literal codex
+What to look at:
+END
+
+blank claude
+
+entry input.caller-supplied
+prose both
+- The caller-supplied diff for what actually changed.
+- Caller-supplied recent commit subjects to match the repository's style.
+END
+
+blank both
+
+literal claude
+## Commit message
+END
+literal codex
+Commit message:
+END
+
+blank claude
+
+entry message.why-not-what
+prose claude
+- Focus on *why*, not *what* — the diff already shows what changed.
+- Concise: 1-2 sentences, matching the repository's supplied recent subjects.
+- No filler like "This commit..." or restating the diff line by line.
+END
+prose codex
+- Focus on why, not what -- the diff already shows what changed.
+- Concise: 1-2 sentences, matching the supplied recent subjects.
+- No filler like "This commit..." or restating the diff line by line.
+END
+
+blank both
+
+literal claude
+## PR title/description
+END
+literal codex
+PR title/description:
+END
+
+blank claude
+
+entry pr.shape issue.linking
+prose claude
+- Title under 70 characters.
+- Description: what changed and why, as a few bullets — not a restatement of every file touched.
+- Follow the supplied issue-linking convention (`Closes #N` only for
+  auto-closing PRs, `Part of #N` for epics).
+END
+prose codex
+- Title under 70 characters.
+- Description: what changed and why, as a few bullets -- not a restatement of every file touched.
+- Follow the supplied issue-linking convention (Closes #N only for
+  auto-closing PRs, Part of #N for epics).
+END
+
+blank both
+
+literal claude
+## Output
+END
+
+blank claude
+
+entry output.contract
+prose claude
+Return only the drafted message(s). If the diff is empty or intent is unclear,
+say so instead of inventing a plausible message.
+END
+prose codex
+Output: return only the drafted message(s). If the diff is empty or intent is
+unclear, say so instead of inventing a plausible message.
+END

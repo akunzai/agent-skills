@@ -28,6 +28,56 @@ Select Codex CLI in the interactive installer. This copies
 `codex-agents/*.toml` into `~/.codex/agents/` (personal scope only — this
 plugin does not install into a project's `.codex/agents/`).
 
+## Worker Role sources
+
+`roles/` is the authority. `agents/*.md` and `codex-agents/*.toml` are
+projections of it and must never be hand-edited: the runtimes and the
+installers read those fixed paths, so they stay committed, but
+`scripts/render-roles.sh --check` fails the moment they stop matching
+`roles/`.
+
+```bash
+plugins/cheap-dev-workers/scripts/render-roles.sh --check   # read-only
+mise run render-roles                                       # regenerate
+```
+
+The artifacts carry no generated-by header, deliberately: adding one would
+change the prompt bytes that reach the model. Ownership is marked out of band
+instead — by this section, by `linguist-generated=true` in `.gitattributes`,
+and by the failing check.
+
+`roles/shared.role` holds semantics, not bytes. It declares each invariant's
+id, which roles carry it, and a `class`:
+
+- `shared` — same meaning in both runtimes; the wording still differs, which is
+  unfinished normalization rather than design
+- `runtime` — deliberately different because the runtimes differ (Claude plugin
+  subagents cannot nest; Codex allows one hop)
+- `drift` — differs with no runtime justification
+
+Per-role, per-runtime prose lives in `roles/<role>.role`, because the same
+invariant is worded differently in all four roles today. The grammar has no
+quoting, escaping, or continuation: anything it cannot hold verbatim is
+rejected with a `file:line` error rather than silently transformed.
+
+### What the checks do and do not prove
+
+`--check` proves the eight artifacts are exactly what `roles/` projects, and
+`tests/cheap-dev-workers-agents-content.sh` proves the native seams (required
+fields, `tools:` / `sandbox_mode`, no model or effort pins, no unsupported
+Claude nesting claim). Neither proves the semantics are right, and no test here
+observes an actual dispatch.
+
+Verifying real behaviour — that a role is launched, keeps its permission
+boundary, and gets the requested model — needs an installed plugin plus runtime
+event metadata (`subagent.started` / `subagent.completed`). That is a separate
+integration seam, not part of this renderer. The Waza suites evaluate skills
+that *describe* routing; they never load these artifacts.
+
+Normalizing the divergent wording is blocked on that seam: collapsing four
+wordings into one changes prompt behaviour, and nothing here can currently
+observe a regression.
+
 ## Checks
 
 From the repository root:
@@ -92,9 +142,11 @@ change without coupling workflow instructions.
 
 The `agents/*.md` (Claude Code and Copilot CLI) and `codex-agents/*.toml`
 (Codex CLI) definitions carry the same hard rules and instructions in each
-tool's native format. Keep them in sync when editing either side. Copilot maps
-the `tools:` frontmatter onto its own tool names, so a role's permission
-boundary survives without a Copilot-specific `tools:` list.
+tool's native format. Both are rendered from `roles/`, so they cannot be kept
+in sync by hand — edit the source and re-render. A role's single `capability`
+becomes the `tools:` frontmatter and the `sandbox_mode` together; Copilot maps
+that `tools:` list onto its own tool names, so the permission boundary survives
+without a Copilot-specific list.
 
 Claude plugin subagents do not support `hooks` or `permissionMode`, so the
 check-runner's Bash mutation boundary is prompt-enforced. The primary supplies
