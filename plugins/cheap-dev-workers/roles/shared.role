@@ -1,0 +1,229 @@
+# Shared Worker Role skeleton.
+#
+# This file carries semantics, not bytes: it declares which invariants exist,
+# which roles carry them, and how divergent the two runtimes currently are.
+# It renders nothing. Every prose form lives in the role-local sources next to
+# it, because the same invariant is worded differently in every role today.
+#
+# class:
+#   shared   same meaning in both runtimes; wording differences are unfinished
+#            normalization, not design
+#   runtime  deliberately different because the runtimes differ; the intent
+#            block states why
+#   drift    differs with no runtime justification; awaiting the normalization
+#            phase, which is blocked on the behavioural verification seam
+
+id role.description
+applies check-runner commit-writer log-summarizer repo-explorer
+class drift
+intent
+Names the role, its reserved decisions and its routing preference over a
+generic agent. The Codex form currently omits the cost-routing sentence and
+the Git-state clause the Claude form carries. Nothing about Codex requires
+that omission.
+END
+
+id git.no-mutation
+applies check-runner commit-writer log-summarizer repo-explorer
+class drift
+intent
+The role never mutates Git state: no staging, committing, pushing, rebasing,
+and no writes to the index, refs, commits or remotes. All four roles carry
+this, in four different wordings, for no reason other than history.
+END
+
+id checks.caller-named
+applies check-runner
+class shared
+intent
+Only the commands the caller named are run. The role never widens the batch.
+END
+
+id artifacts.tracked-source
+applies check-runner
+class shared
+intent
+Ordinary build and test artifacts may appear; tracked source may not. A check
+that changes tracked source stops the batch.
+END
+
+id git.fingerprint
+applies check-runner
+class shared
+intent
+Tracked state is fingerprinted before and after the batch, and a changed
+fingerprint is reported as a failure without restoring anything.
+END
+
+id evidence.per-check
+applies check-runner
+class shared
+intent
+Every check returns the same evidence shape, and a failing check is a task
+result rather than a launch failure.
+END
+
+id evidence.check-cardinality
+applies check-runner
+class shared
+intent
+A check is one caller-named command, not an assertion hidden inside its
+output.
+END
+
+id evidence.no-invention
+applies check-runner
+class shared
+intent
+Only observed output is reported as evidence; source-derived claims are
+labelled as inference and counts are never invented.
+END
+
+id relay.target
+applies check-runner repo-explorer
+class shared
+intent
+Work the role may not do itself is relayed to one named sibling role, with
+the minimum approved context.
+END
+
+id relay.nesting-limit
+applies check-runner repo-explorer
+class runtime
+intent
+Claude plugin subagents cannot spawn another subagent, so the relay must go
+back through the primary. Codex allows exactly one nested hop. Same intent,
+genuinely different mechanics.
+END
+
+id relay.child-boundary
+applies check-runner repo-explorer
+class runtime
+intent
+The child's permission boundary and the root's four-worker budget are
+preserved. Codex additionally states minimum-context passing and no launch
+retry, because only Codex actually has a child to launch.
+END
+
+id relay.trigger
+applies repo-explorer
+class shared
+intent
+The relay fires on an explicit verification request, or when the answer
+depends on a runtime command passing rather than on file content.
+END
+
+id role.leaf
+applies commit-writer log-summarizer
+class shared
+intent
+A leaf role never dispatches another worker.
+END
+
+id boundaries.caller-decided
+applies commit-writer
+class shared
+intent
+Commit and PR boundaries are the caller's decision; the role only drafts text
+for boundaries already fixed.
+END
+
+id input.caller-supplied
+applies commit-writer
+class shared
+intent
+The only inputs are the caller-supplied diff and the caller-supplied recent
+commit subjects.
+END
+
+id message.why-not-what
+applies commit-writer
+class shared
+intent
+The commit message explains why, stays short, and does not restate the diff.
+END
+
+id pr.shape
+applies commit-writer
+class shared
+intent
+A PR title stays under 70 characters and the description is a few bullets,
+not a file-by-file restatement.
+END
+
+id issue.linking
+applies commit-writer
+class shared
+intent
+The caller's issue-linking convention is followed, distinguishing an
+auto-closing link from an epic link.
+END
+
+id output.contract
+applies commit-writer
+class shared
+intent
+Only the drafted message is returned; an empty diff or unclear intent is
+reported instead of guessed.
+END
+
+id scope.exact-artifact
+applies log-summarizer
+class shared
+intent
+Only the exact caller-named artifact is read. Unrelated files, credentials,
+environment files, branches and historical runs are out of scope.
+END
+
+id input.rejection
+applies log-summarizer
+class shared
+intent
+Binary, unknown-encoding, oversized, unscoped or potentially sensitive
+unsanitized input is rejected rather than summarized.
+END
+
+id summary.root-causes
+applies log-summarizer
+class shared
+intent
+The summary covers root causes and important events.
+END
+
+id secrets.residual-scan
+applies log-summarizer
+class shared
+intent
+A clean residual scan is evidence that the installed rules ran, never proof
+that no secret remains.
+END
+
+id scope.caller-repo
+applies repo-explorer
+class shared
+intent
+The answer stays inside the caller's repository scope.
+END
+
+id evidence.cited
+applies repo-explorer
+class shared
+intent
+Facts carry file and line provenance, unresolved uncertainty is stated, and
+the commands used are reported.
+END
+
+id verification.reserved
+applies repo-explorer
+class shared
+intent
+Test, build and lint commands are reserved for the check-runner; exploration
+inspects repository content only.
+END
+
+id decisions.none
+applies repo-explorer
+class shared
+intent
+The role makes no implementation or architecture decisions.
+END

@@ -1,0 +1,5 @@
+# Rendered from plugins/cheap-dev-workers/roles/ by scripts/render-roles.sh.
+# Collapsed by default on GitHub, but deliberately NOT marked -diff: these are
+# prompts, and a reviewer must be able to read every wording change.
+plugins/cheap-dev-workers/agents/*.md linguist-generated=true
+plugins/cheap-dev-workers/codex-agents/*.toml linguist-generated=true

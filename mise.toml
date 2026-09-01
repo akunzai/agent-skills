@@ -28,6 +28,10 @@ done
 exit $exit_code
 '''
 
+[tasks.render-roles]
+description = "Render cheap-dev-workers native artifacts from roles/"
+run = "bash plugins/cheap-dev-workers/scripts/render-roles.sh --write"
+
 [tasks.lint-shell]
 description = "Lint shell scripts with ShellCheck"
 run = "find tests skills evals plugins scripts -name '*.sh' -type f -exec shellcheck {} +"
