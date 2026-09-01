@@ -12,6 +12,15 @@ CLI commands and lifecycle workflows for managing Pull Requests (PR) and Merge R
   ```bash
   glab mr update <mr_number> --title "<updated_title>" --description "<updated_description>"
   ```
+- **Update a multiline issue or MR description from stdin**:
+  ```bash
+  printf '%s\n' "$updated_description" | glab issue update <issue_number> --description-file -
+  printf '%s\n' "$updated_description" | glab mr update <mr_number> --description-file -
+  ```
+  Prefer the native `--description-file -` path over sending JSON through
+  `glab api --input -`. The latter sends a raw request body, and self-hosted
+  GitLab may reject it with HTTP 415 unless the request sets the expected JSON
+  content type.
 
 ## 2. Gitea / Forgejo (`tea`)
 
