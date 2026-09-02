@@ -129,6 +129,13 @@ enforces the bump. The repository-root lifecycle manager copies Codex personal
 agents as a plugin post-action; they are not updated by the version string, so
 run root `scripts/upgrade.sh` after a release.
 
+The same cache-key mechanism gates the root **charley-skills** plugin (source
+`./` in `.claude-plugin/marketplace.json`), which ships `skills/**` directly —
+there is no `plugins/charley-skills/` wrapper. Any change under `skills/`
+(a new skill, an edited `SKILL.md`, added scripts/references/examples) bumps
+`version` in the root `.claude-plugin/plugin.json`, same semver rule as
+above. `tests/plugin-version-bump.sh` enforces this bump too.
+
 ## Code Style
 
 - All shell scripts must pass **ShellCheck** with no warnings.
