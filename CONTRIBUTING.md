@@ -71,6 +71,34 @@ Also add `./skills/<name>` to the `skills` array in
 `.claude-plugin/plugin.json` so `skills add` / `npx skills add` groups it under
 **Charley Skills**.
 
+### Manual-only skills
+
+A skill with side effects, or one only the user should trigger by name
+(never inferred from conversation), needs both:
+
+- `disable-model-invocation: true` in `SKILL.md` frontmatter — Claude
+  Code honors this directly. Keep the `description` human-facing (a
+  one-line summary) and drop trigger-phrase lists ("Use when the user
+  says…"), since the model no longer auto-matches on it.
+- `agents/openai.yaml` beside `SKILL.md`, with
+  `policy.allow_implicit_invocation: false` — Codex does not yet honor
+  `disable-model-invocation` on its own ([openai/codex#29989](https://github.com/openai/codex/issues/29989)).
+  `interface.display_name`/`short_description` in the same file feed
+  Codex's skill picker.
+
+```yaml
+# agents/openai.yaml
+interface:
+  display_name: "My Skill"
+  short_description: "One-line summary"
+policy:
+  allow_implicit_invocation: false
+```
+
+GitHub Copilot CLI has no per-skill invocation control as of this
+writing — only a global `/skills` enable/disable — so it still
+auto-invokes a manual-only skill there.
+
 ### Adding Tests
 
 Do not add grep-the-SKILL.md phrase locks. Skill structure is
@@ -100,6 +128,13 @@ for breaking role names or permission boundaries. `tests/plugin-version-bump.sh`
 enforces the bump. The repository-root lifecycle manager copies Codex personal
 agents as a plugin post-action; they are not updated by the version string, so
 run root `scripts/upgrade.sh` after a release.
+
+The same cache-key mechanism gates the root **charley-skills** plugin (source
+`./` in `.claude-plugin/marketplace.json`), which ships `skills/**` directly —
+there is no `plugins/charley-skills/` wrapper. Any change under `skills/`
+(a new skill, an edited `SKILL.md`, added scripts/references/examples) bumps
+`version` in the root `.claude-plugin/plugin.json`, same semver rule as
+above. `tests/plugin-version-bump.sh` enforces this bump too.
 
 ## Code Style
 

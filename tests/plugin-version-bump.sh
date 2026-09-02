@@ -60,4 +60,21 @@ for plugin_json in "${plugin_jsons[@]}"; do
   fi
 done
 
+# The root charley-skills plugin ships skills/** directly (no plugins/<name>/
+# wrapper), so it needs the same version-bump discipline as the sub-plugins.
+root_json="$ROOT_DIR/.claude-plugin/plugin.json"
+[ -f "$root_json" ] || fail "no .claude-plugin/plugin.json found for charley-skills"
+
+root_version="$(jq -r '.version // empty' "$root_json")"
+[ -n "$root_version" ] || fail "charley-skills plugin.json is missing version"
+[[ "$root_version" =~ $semver_re ]] || fail "charley-skills version '$root_version' is not X.Y.Z"
+
+if [ -n "$base" ] && git -C "$ROOT_DIR" cat-file -e "$base:.claude-plugin/plugin.json" 2>/dev/null; then
+  if [ -n "$(git -C "$ROOT_DIR" diff --name-only "$base" -- skills)" ]; then
+    root_old="$(git -C "$ROOT_DIR" show "$base:.claude-plugin/plugin.json" | jq -r '.version // empty')"
+    [ "$root_version" != "$root_old" ] \
+      || fail "charley-skills shipped files (skills/) changed vs $base but version stayed '$root_version' (Claude Code skips plugin update until version changes)"
+  fi
+fi
+
 echo "plugin-version-bump checks passed"
