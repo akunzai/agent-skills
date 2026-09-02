@@ -4,12 +4,8 @@ description: >-
   Take over an unfinished coding session recorded by AgentsView — from
   Codex, Claude Code, Cursor, Copilot, Grok, or another machine — by
   reconstructing a short handoff and verifying it against the current
-  repository. USE FOR: "continue from Codex", "resume my Cursor
-  session", "take over that session", "pick up where I left off",
-  picking up work started in another agent or on another machine.
-  DO NOT USE FOR: searching history for why a decision was made (use
-  agentsview-finding-history), or turning past sessions into durable
-  AGENTS.md notes or skills (use agentsview-extract).
+  repository.
+disable-model-invocation: true
 ---
 
 # agentsview-resume

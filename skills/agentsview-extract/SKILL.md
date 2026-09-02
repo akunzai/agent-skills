@@ -2,9 +2,8 @@
 name: agentsview-extract
 description: >-
   Persist gotchas, preferences, or a repeated workflow from recorded
-  agent history into AGENTS.md or a new skill. Use when the user asks
-  to extract lessons from past sessions or turn prior agent work into
-  a skill.
+  agent history into AGENTS.md or a new skill.
+disable-model-invocation: true
 ---
 
 # agentsview-extract

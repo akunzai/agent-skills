@@ -1,0 +1,5 @@
+interface:
+  display_name: "AgentsView Extract"
+  short_description: "Extract lessons from recorded agent history"
+policy:
+  allow_implicit_invocation: false

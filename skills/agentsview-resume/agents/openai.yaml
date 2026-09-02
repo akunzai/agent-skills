@@ -1,0 +1,5 @@
+interface:
+  display_name: "AgentsView Resume"
+  short_description: "Resume a session recorded by AgentsView"
+policy:
+  allow_implicit_invocation: false

@@ -21,12 +21,24 @@ json=$(waza check --format json) || fail "waza check failed to run"
 printf '%s\n' "$json" | jq -e '.skills | type == "array" and length > 0' >/dev/null \
   || fail "waza check returned no skills"
 
+# agentskills.io only allows name/description/license/allowed-tools/
+# metadata/compatibility, so waza flags `disable-model-invocation` as
+# unknown. Claude Code honors it directly and it pairs with each such
+# skill's agents/openai.yaml (policy.allow_implicit_invocation: false)
+# for Codex, per openai/codex#29989 — treat it as a deliberate,
+# documented extension rather than a spec violation.
 problems=$(printf '%s\n' "$json" | jq -r '
+  def unknown_fields: capture("Unknown frontmatter fields: (?<f>.*)").f | split(", ");
+  def waived: . as $c
+    | $c.name == "spec-allowed-fields"
+      and (($c.summary // "" | unknown_fields) - ["disable-model-invocation"] | length) == 0;
+
   .skills[]
   | . as $s
   | (
       (.specCompliance // [])[]
       | select(.passed == false)
+      | select(waived | not)
       | "\($s.name): spec \(.name): \(.summary)"
     ),
     (
