@@ -21,6 +21,15 @@ CLI commands and lifecycle workflows for managing Pull Requests (PR) and Merge R
   `glab api --input -`. The latter sends a raw request body, and self-hosted
   GitLab may reject it with HTTP 415 unless the request sets the expected JSON
   content type.
+- **Attach a screenshot or file to an MR / issue description**:
+  ```bash
+  glab api "projects/:id/uploads" --form "file=@<path>"
+  ```
+  `glab` has no dedicated upload command, but `--form` sends
+  `multipart/form-data`, which is what the uploads endpoint needs. `:id` is
+  replaced with the current repository. Paste the `markdown` field of the JSON
+  response into the description verbatim - the `url` it wraps is
+  project-relative, so it only resolves inside that project.
 
 ## 2. Gitea / Forgejo (`tea`)
 
