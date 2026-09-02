@@ -10,6 +10,13 @@ Follow the target project's package manager. One manager per project.
 | `yarn.lock` | `yarn add -D @playwright/test` | `yarn playwright …` |
 | `bun.lock` / `bun.lockb` | `bun add -d @playwright/test` | `bunx playwright …` |
 
+**aube and a new project (no lockfile yet):** a bare `aube add` writes
+`aube-lock.yaml`, which Dependabot cannot maintain. Seed an empty
+`pnpm-lock.yaml` (or `package-lock.json` if the project already uses one)
+before adding the dependency, so aube writes into that format instead — see
+the `aube` skill's "Keep a Dependabot-compatible lockfile" convention. Skip
+only when the user confirms Dependabot coverage doesn't matter here.
+
 Prefer `playwright.config.ts` when the project is TypeScript, otherwise
 `playwright.config.js`. Leave an existing `playwright.config.*` in place.
 
