@@ -49,12 +49,20 @@ mutation {
 }'
 ```
 
-Converting an issue to a task keeps its iid, description, labels, and state, and it still appears in `glab issue list` and `GET projects/:id/issues` (as `"type": "TASK"`). Two costs to confirm with the user first:
+Converting an issue to a task keeps its iid, description, labels, and state, and it still appears in `glab issue list` and `GET projects/:id/issues` (as `"type": "TASK"`). Three costs to confirm with the user first:
 
 - **No issue boards**: A task does not appear on issue boards. If the team tracks work via board columns, conversion loses visibility.
 - **No further nesting**: A task cannot itself have children. Convert leaves of the tree, not intermediate nodes.
+- **No MR auto-close**: A closing pattern in a merge request description does not close a task. GitLab parses the reference but classifies it as `MENTIONED` rather than `CLOSES`, so the merge leaves the task open. Confirmed on CE 19.3.1 with `Closes #N`; the `/-/issues/N` and `/-/work_items/N` URL forms the docs prescribe for work items behave the same. Check the classification before relying on it — `closes_issues` reports nothing for a task at all, so read `linkType`:
 
-Never convert an existing issue silently. Put both tradeoffs to the user. `workItemConvert` reverses it if needed.
+  ```bash
+  glab api graphql -f query='{ project(fullPath: "GROUP/PROJECT") { mergeRequest(iid: "<iid>") {
+    linkedWorkItems { linkType workItem { iid state workItemType { name } } } } } }'
+  ```
+
+  The same trailer against an issue answers `CLOSES` on that instance, which is what makes this a type restriction rather than a syntax error. Upstream says otherwise — [#440851](https://gitlab.com/gitlab-org/gitlab/-/work_items/440851) shipped MR-to-task closing in 17.3 (Free) — but MR/work item persistence is still being reworked in [#601174](https://gitlab.com/gitlab-org/gitlab/-/issues/601174) (19.4), so re-test rather than assuming this holds on a newer instance. Expect to close converted tasks by hand.
+
+Never convert an existing issue silently. Put all three tradeoffs to the user. `workItemConvert` reverses it if needed.
 
 ## 4. Issue Link Conflicts
 
