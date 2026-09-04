@@ -23,7 +23,7 @@ This project uses <package manager>.
 
 ## Self-Reflection
 - **Candidate**: Distill a non-obvious gotcha into ≤ 2 context-tagged bullets. Propose it before writing.
-- **Promote**: On confirmation, write it to a dedicated file — merge an existing topic doc, else `docs/<topic>.md`, else `docs/lessons-learned.md`. Add or update one `@path` line under Pointers.
+- **Promote**: On confirmation, put it where whoever would break it must already pass — enforce it (assert/type/test) when the fix is in hand, else a comment at that site, else an agent-facing doc (`docs/agents/<topic>.md`, else `docs/agents/lessons-learned.md`) with one `@path` line under Pointers. Never both.
 - **Prune**: Drop entries once stale (obsolete version, now enforced, duplicated, or a transcript) — not by a fixed count.
 ```
 
@@ -129,8 +129,9 @@ blindly. Read it, summarize any unique instructions, propose a migration into
 
 ## 5. Self-Reflection entry shape
 
-Create the topic file only after a confirmed candidate (see `SKILL.md` §4).
-Gates live in [quality-criteria.md](quality-criteria.md).
+A file is the third tier: reach for it only when no code site owns the knowledge,
+and only after a confirmed candidate (see `SKILL.md` §4). Gates live in
+[quality-criteria.md](quality-criteria.md).
 
 ```markdown
 - [Node 20+] Running `npm test` without `--forceExit` hangs in CI due to an unclosed DB connection in `src/db/client.ts`.
@@ -139,5 +140,5 @@ Gates live in [quality-criteria.md](quality-criteria.md).
 Then add one pointer from the root file:
 
 ```markdown
-- Lessons Learned: @docs/lessons-learned.md
+- Lessons Learned: @docs/agents/lessons-learned.md
 ```

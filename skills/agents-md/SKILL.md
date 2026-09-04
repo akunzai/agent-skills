@@ -137,13 +137,22 @@ config, env var quirk), the agent MUST:
 1. **Candidate**: Distill into a concise, non-derivable rule (≤ 2 bullets,
    context-tagged, no drifting metrics or micromanagement — gates in
    [references/quality-criteria.md](references/quality-criteria.md)).
-2. **Promote**: Present the candidate to the user for explicit confirmation,
-   then write it to a dedicated file — never inline in `AGENTS.md` itself:
-   - If an existing topic doc already covers the subject, merge into it.
-   - Otherwise create `docs/<topic>.md` (kebab-case, named from the content).
-   - If the insight doesn't fit any topic, fall back to `docs/lessons-learned.md`.
-   - Add or update a single `@path` reference line per file under Pointers —
-     never a standalone "Lessons Learned" heading.
+2. **Promote**: On the user's explicit confirmation, put it where whoever would
+   break the rule must already pass: a note beside the decision is invisible to
+   whoever works in the file that violates it. First tier that applies, and only
+   that one — the same knowledge twice is the duplicate Prune exists to remove:
+   - **Enforce it** when the fix is already in hand: an assert, a type, or a
+     test leaves nothing to remember. Never open a separate change to reach
+     this tier — note the option in the candidate instead.
+   - **Comment at the site that must be passed**: the constant a new caller
+     imports, the declaration a change has to touch. Cross-reference from the
+     other sites rather than restating it.
+   - **An agent-facing doc** when no site owns it (environment, toolchain, CI,
+     a process spanning files). Merge into an existing topic doc; otherwise
+     follow the repo's agent-facing docs convention — `docs/agents/<topic>.md`
+     where none exists yet — without relocating existing files. Fall back to
+     `lessons-learned.md` beside it. Add or update a single `@path` line per
+     file under Pointers, never a standalone "Lessons Learned" heading.
 3. **Prune**: Periodically review the referenced files and drop entries once
    stale (library/version upgraded past the tagged context, now enforced by a
    linter/type/test, duplicated across files, or a one-off debugging

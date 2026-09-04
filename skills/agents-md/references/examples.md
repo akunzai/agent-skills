@@ -76,7 +76,7 @@ An `AGENTS.md` exists but is over-constrained with defensive micromanagement ("a
    - Removes generic micromanagement (Trust Model Judgment).
    - Replaces prose specs and path maps with Rich References and capabilities.
    - Offloads DB Migration SOP to `@docs/db-migration.md`.
-   - Migrates the inline `Lessons Learned` entries out per Self-Reflection: merges each into an existing topic doc where one covers the subject, otherwise creates `docs/<topic>.md` (or `docs/lessons-learned.md` as fallback), drops stale/duplicate entries, and replaces the section with `@path` reference line(s) under Pointers.
+   - Migrates the inline `Lessons Learned` entries out per Self-Reflection: merges each into an existing topic doc where one covers the subject, otherwise creates `docs/agents/<topic>.md` (or `docs/agents/lessons-learned.md` as fallback), drops stale/duplicate entries, and replaces the section with `@path` reference line(s) under Pointers.
 
 ---
 
