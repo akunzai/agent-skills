@@ -5,56 +5,55 @@ description: Use ONLY when a git repository is hosted on GitLab to create, struc
 
 # GitLab Epic & Issue Relations
 
-Manage multi-issue epics, parent-child hierarchies, and issue relationships on GitLab repositories.
+Manage epics, parent-child hierarchies, and issue relationships on GitLab.
 
-## Preflight & Hosting Check
+## Preflight & Tier Check
 
-Verify GitLab hosting (`git remote get-url origin`). For custom domains needing self-hosted GitLab detection, see [hosting-detection.md](references/hosting-detection.md).
+Verify GitLab hosting (`git remote get-url origin`; custom domains: [hosting-detection.md](references/hosting-detection.md)). Read tier:
+
+```bash
+glab api version                  # "enterprise": false => CE / Free
+glab api groups/:group_id/epics   # 404 => no native epics
+```
 
 ## Tier Strategies
 
 ### Strategy A: Premium / Ultimate (Native Wiring)
 
-Use native epics and issue links via `glab` CLI or REST API:
+Native epics and issue links via `glab`:
 
-#### 1. Group Epics
 ```bash
+# Group epics & child issue links
 glab api groups/:group_id/epics
-```
-
-#### 2. Link Sub-issue
-```bash
 glab api --method POST groups/:group_id/epics/:epic_iid/issues/:issue_id
-```
 
-#### 3. Blocked-by Links
-```bash
+# Blocked-by links (options: relates_to, blocks, is_blocked_by)
 glab api --method POST projects/:id/issues/:issue_iid/links \
-  -f target_project_id=<target_project> \
-  -f target_issue_iid=<target_iid> \
-  -f link_type=blocks  # Options: relates_to, blocks, is_blocked_by
+  -f target_project_id=<target_project> -f target_issue_iid=<target_iid> -f link_type=blocks
 ```
 
 ---
 
-### Strategy B: Free / CE Tier (Label & Markdown Emulation)
+### Strategy B: Free / CE Tier
 
-Emulate epics using **markdown checklists** and **scoped labels**.
+Native epics are unavailable. Choose GraphQL work items or emulation:
+
+- **Native Work Items (GraphQL)**: For real parent-child wiring on CE (Issue -> Task conversion, mutations, link constraints), see [work-items.md](references/work-items.md).
+- **Emulation**: Use markdown checklists and scoped labels:
 
 #### 1. Markdown Checklists
-Tracking issue description:
+Tracking issue:
 ```markdown
 # Epic: User Authentication Redesign
-
 ## Sub-tasks
 - [ ] #101 Core OAuth2 client refactor
 - [ ] #102 JWT validation middleware
 ```
-Child issue descriptions: `Part of #100` / `Relates to #105`.
-Do not write `Closes`/`Fixes`/`Resolves` next to a tracking issue
-even to say not to close it — GitLab still treats that as a closer.
+Children: `Part of #100` / `Relates to #105`.
+Never write `Closes`/`Fixes`/`Resolves` next to a tracking issue even in negation — GitLab still auto-closes.
 
 #### 2. Scoped Labels (`key::value`)
+On CE, `::` carries no native exclusivity, but conventions track hierarchy:
 - `type::epic`: Tracking issue.
 - `epic::<epic-name>`: Tag child issues (e.g. `epic::user-auth`).
 - `parent::<issue_id>`: Explicit parent tag (e.g. `parent::100`).
