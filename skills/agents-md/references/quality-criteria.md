@@ -29,7 +29,7 @@ repo, and spends the **instruction budget** on every-task facts plus pointers.
 ### Grade A (90-100): Lean index
 - Concise (< 100 lines) index: one-sentence description, non-default package manager, non-standard commands, pointers.
 - Zero micromanagement; environment is the live source; capabilities over paths.
-- Self-Reflection knowledge lives in dedicated topic files (or `lessons-learned.md`), referenced via `@path`, and is actively pruned.
+- Self-Reflection knowledge sits at its lowest tier — enforced in code, else commented at the site that must be passed, else a dedicated topic file (or `lessons-learned.md`) referenced via `@path` — and is actively pruned.
 - In a monorepo, root and nested files have distinct scopes; nested files exist only for autonomous local decisions.
 
 ### Grade B (70-89): Minor gaps / slight bloat
@@ -56,6 +56,7 @@ Eliminate these on sight:
 *   **Ceremonial nesting**: empty "follow the root" files, copied root rules, or nested files created only because `src/` or `tests/` exists.
 *   **Monolithic SOP Bloat**: multi-step deploy or migration scripts in the root file.
 *   **Inline Lessons Learned**: gotchas written in `AGENTS.md` instead of a topic file referenced via `@path`.
+*   **Knowledge in two places**: the same rule in a code comment and a doc entry — one of them will drift. Keep the tier the reader reaches first and cross-reference from the others.
 *   **Drifting metrics**: `"25 unresolved issues"`, `"85% coverage"`.
 *   **Prose tutorials**: explaining stock framework mechanics.
 *   **File-by-file maps**: paths churn; describe capabilities and point at folders or schemas.
@@ -78,6 +79,7 @@ Eliminate these on sight:
 
 - Step-by-step debugging transcripts
 - One-off workarounds for a single bug
+- Anything the fix in hand already made structurally impossible — subtract it before proposing
 - Facts already in `package.json`, `tsconfig.json`, or the tree
 - Metrics that will drift (counts, percentages, timestamps)
 
