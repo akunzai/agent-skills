@@ -159,8 +159,10 @@ config, env var quirk), the agent MUST:
    transcript). Propose deletions to the user rather than applying a fixed
    entry-count cap.
 4. **Legacy migration**: If `AGENTS.md` still carries an old-format
-   `Knowledge Writeback` (or similarly named) rule bullet, or an inline
-   `## Lessons Learned` section, propose updating the rule bullet to this
+   `Knowledge Writeback` bullet, an inline `## Lessons Learned` section,
+   or an earlier single-tier `Self-Reflection` rule (which only mentions
+   writing to a dedicated file without code-enforcement or site-comment
+   tiers), propose updating the rule bullet to the current tiered
    Self-Reflection wording and migrating any inline entries out to the
    appropriate topic/fallback file(s), replacing the section with reference
    line(s) — pending user confirmation.
