@@ -22,7 +22,7 @@ repo, and spends the **instruction budget** on every-task facts plus pointers.
 | **Micromanagement Audit** | High | Is it free of generic hygiene and defensive boilerplate the model already knows? |
 | **Contradictions** | High | Are conflicting instructions named, and has the user chosen which version to keep? |
 | **Non-Obvious Patterns** | Medium | Are gotchas context-tagged and non-derivable? |
-| **Currency & Pruning** | Medium | Are Self-Reflection reference files pruned of stale workarounds? |
+| **Currency & Pruning** | Medium | Are Self-Reflection reference files pruned of stale workarounds? Does the Self-Reflection rule in `AGENTS.md` follow the tiered Promote template rather than an outdated single-tier file-only rule? |
 
 ## 2. Quality Scores
 
@@ -57,6 +57,7 @@ Eliminate these on sight:
 *   **Monolithic SOP Bloat**: multi-step deploy or migration scripts in the root file.
 *   **Inline Lessons Learned**: gotchas written in `AGENTS.md` instead of a topic file referenced via `@path`.
 *   **Knowledge in two places**: the same rule in a code comment and a doc entry — one of them will drift. Keep the tier the reader reaches first and cross-reference from the others.
+*   **Outdated Self-Reflection Promote rule**: promoting directly to a file without checking the lower tiers (code enforcement or comment at the site) first, or missing the "Never both" constraint.
 *   **Drifting metrics**: `"25 unresolved issues"`, `"85% coverage"`.
 *   **Prose tutorials**: explaining stock framework mechanics.
 *   **File-by-file maps**: paths churn; describe capabilities and point at folders or schemas.
