@@ -136,7 +136,7 @@ backends, tasks over scripts, and phased host → CI → container adoption.
 
 #### [`aube`](skills/aube/SKILL.md)
 
-Use [aube](https://aube.jdx.dev/) as the Node.js package manager, installed and
+Use [aube](https://aube.sh/) as the Node.js package manager, installed and
 pinned through mise. Covers `aubr`/`aube ci` workflows, lockfile policy, the
 lifecycle-script jail, and migrating from pnpm/npm/bun.
 
