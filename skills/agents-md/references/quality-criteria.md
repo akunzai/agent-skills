@@ -22,7 +22,7 @@ repo, and spends the **instruction budget** on every-task facts plus pointers.
 | **Micromanagement Audit** | High | Is it free of generic hygiene and defensive boilerplate the model already knows? |
 | **Contradictions** | High | Are conflicting instructions named, and has the user chosen which version to keep? |
 | **Non-Obvious Patterns** | Medium | Are gotchas context-tagged and non-derivable? |
-| **Currency & Pruning** | Medium | Are Self-Reflection reference files pruned of stale workarounds? Does the Self-Reflection rule in `AGENTS.md` follow the tiered Promote template rather than an outdated single-tier file-only rule? |
+| **Currency & Pruning** | Medium | Are Self-Reflection reference files pruned of stale workarounds? Does the Self-Reflection rule in `AGENTS.md` follow the tiered Promote template rather than an outdated single-tier file-only rule, and does its Prune bullet name a trigger (auditing the file being written) rather than leaving it to "periodically"? |
 
 ## 2. Quality Scores
 

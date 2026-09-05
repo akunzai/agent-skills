@@ -153,11 +153,14 @@ config, env var quirk), the agent MUST:
      where none exists yet — without relocating existing files. Fall back to
      `lessons-learned.md` beside it. Add or update a single `@path` line per
      file under Pointers, never a standalone "Lessons Learned" heading.
-3. **Prune**: Periodically review the referenced files and drop entries once
-   stale (library/version upgraded past the tagged context, now enforced by a
-   linter/type/test, duplicated across files, or a one-off debugging
-   transcript). Propose deletions to the user rather than applying a fixed
-   entry-count cap.
+3. **Prune**: Whenever Promote reaches the doc tier, read that whole file
+   before writing to it — you are already in it with the gates in hand, so
+   the audit costs one pass — and propose deletions alongside the addition.
+   Drop entries once stale (library/version upgraded past the tagged context,
+   now enforced by a linter/type/test, duplicated across files, or a one-off
+   debugging transcript). Propose deletions to the user rather than applying
+   a fixed entry-count cap. "Periodically" is not a trigger an agent can act
+   on; the file being open is.
 4. **Legacy migration**: If `AGENTS.md` still carries an old-format
    `Knowledge Writeback` bullet, an inline `## Lessons Learned` section,
    or an earlier single-tier `Self-Reflection` rule (which only mentions
