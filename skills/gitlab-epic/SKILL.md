@@ -7,6 +7,8 @@ description: Use ONLY when a git repository is hosted on GitLab to create, struc
 
 Manage epics, parent-child hierarchies, and issue relationships on GitLab.
 
+Focuses on epics, work items, and tier strategies. For general CLI syntax and gotchas, consult the official skill (`glab skills install --global`).
+
 ## Preflight & Tier Check
 
 Verify GitLab hosting (`git remote get-url origin`; custom domains: [hosting-detection.md](references/hosting-detection.md)). Read tier:

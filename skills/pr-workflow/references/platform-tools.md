@@ -4,32 +4,24 @@ CLI commands and lifecycle workflows for managing Pull Requests (PR) and Merge R
 
 ## 1. GitLab Merge Requests (`glab`)
 
-- **Create MR**:
-  ```bash
-  glab mr create --title "<type>(<scope>): <summary>" --description "<description>"
-  ```
-- **Update MR on Amend / Force-push**:
-  ```bash
-  glab mr update <mr_number> --title "<updated_title>" --description "<updated_description>"
-  ```
-- **Update a multiline issue or MR description from stdin**:
-  ```bash
-  printf '%s\n' "$updated_description" | glab issue update <issue_number> --description-file -
-  printf '%s\n' "$updated_description" | glab mr update <mr_number> --description-file -
-  ```
-  Prefer the native `--description-file -` path over sending JSON through
-  `glab api --input -`. The latter sends a raw request body, and self-hosted
-  GitLab may reject it with HTTP 415 unless the request sets the expected JSON
-  content type.
-- **Attach a screenshot or file to an MR / issue description**:
-  ```bash
-  glab api "projects/:id/uploads" --form "file=@<path>"
-  ```
-  `glab` has no dedicated upload command, but `--form` sends
-  `multipart/form-data`, which is what the uploads endpoint needs. `:id` is
-  replaced with the current repository. Paste the `markdown` field of the JSON
-  response into the description verbatim - the `url` it wraps is
-  project-relative, so it only resolves inside that project.
+GitLab MR operations, CLI syntax, and non-interactive gotchas are maintained upstream in the official `glab` skill (Single Source of Truth). Do not duplicate commands or CLI gotchas here.
+
+Install the bundled skill via `glab`:
+
+```bash
+# User scope (installs to ~/.agents/skills/glab)
+glab skills install --global
+
+# Or project scope (installs to .agents/skills/glab)
+glab skills install
+```
+
+Consult the installed `glab` skill for:
+- MR creation, updates, and template handling (`glab mr create`, `glab mr update`)
+- Non-interactive safe note creation and stdin piping (`glab mr note create`)
+- Threaded discussions and diff comments
+- File and image uploads via multipart form data (`--form`)
+- Non-interactive pitfalls (avoiding editor hangs, `--input` HTTP 415 errors)
 
 ## 2. Gitea / Forgejo (`tea`)
 
