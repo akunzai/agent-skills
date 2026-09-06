@@ -57,22 +57,51 @@ accept aube's strict supply-chain defaults.
 
 ## CI (GitHub Actions)
 
-Replace `pnpm/action-setup` + `actions/setup-node` with `jdx/mise-action@v4` (or
-`jdx/aube-action@v1`). mise-action's `cache: true` caches only tool binaries,
-not the aube store. Add `actions/cache` keyed on the lockfile with `aube store path`
-(`~/.local/share/aube/store/v1`):
+Prefer `jdx/aube-action@v1` over `jdx/mise-action@v4` for installing aube.
+mise's aqua backend verifies GitHub artifact attestations against aube's repo
+identity, and aube's repo has moved (`jdx/aube` -> `aubepkg/aube`); the aqua
+registry entry lags behind, so attestation verification currently fails for
+every aube release from 2.2.8 onward, breaking `mise install aube` entirely.
+`jdx/aube-action@v1` downloads the release binary directly (no attestation
+check) and sidesteps this. It also installs Node.js in the same step via
+`node-version: auto`, which resolves the version from `mise.toml`,
+`.tool-versions`, `.nvmrc`, `.node-version`, or `package.json`
+`devEngines.runtime` — no separate `actions/setup-node` needed:
 
 ```yaml
-- uses: jdx/mise-action@v4
+- uses: jdx/aube-action@v1
   with:
-    install_args: aube node   # install only these tools; versions come from mise.toml
-    cache: true               # caches the tool binaries, not the aube store
+    node-version: auto   # or an explicit version; omit to skip installing node
+```
+
+If `mise-action` is still used for other tools in the same job, disable
+attestation checks for aube specifically with
+`MISE_AQUA_GITHUB_ATTESTATIONS: false` in that step's `env`, and revisit once
+the aqua registry catches up.
+
+Neither action caches aube's own directories. Per aube's CI guide (Cache
+choices: https://aube.sh/package-manager/ci.html#cache-choices), the content
+store and registry metadata live in **separate** directories — resolve both
+dynamically rather than hardcoding paths, since they depend on config:
+
+```yaml
+- name: Get aube store and cache paths
+  id: aube-paths
+  run: |
+    echo "store-path=$(aube store path)" >> "$GITHUB_OUTPUT"
+    echo "cache-path=$(aube cache path)" >> "$GITHUB_OUTPUT"
 - name: Cache aube store
   uses: actions/cache@v6
   with:
-    path: ~/.local/share/aube/store/v1   # from `aube store path`
+    path: ${{ steps.aube-paths.outputs.store-path }}   # content store, default ~/.local/share/aube/store/v1
     key: ${{ runner.os }}-aube-store-${{ hashFiles('**/pnpm-lock.yaml') }}
     restore-keys: ${{ runner.os }}-aube-store-
+- name: Cache aube registry metadata
+  uses: actions/cache@v6
+  with:
+    path: ${{ steps.aube-paths.outputs.cache-path }}   # registry metadata, default ~/.cache/aube
+    key: ${{ runner.os }}-aube-cache-${{ hashFiles('**/pnpm-lock.yaml') }}
+    restore-keys: ${{ runner.os }}-aube-cache-
 - run: aube ci
 - run: aubr test
 ```
@@ -107,6 +136,10 @@ permissions (`jailBuildPermissions`).
 - **starship `nodejs`/`package` modules loop under aube** — disable in
   `~/.config/starship.toml` (`[nodejs]` and `[package]` `disabled = true`) to
   prevent prompt loops.
+- **`mise install aube` fails GitHub attestation verification** — aube's repo
+  moved `jdx/aube` -> `aubepkg/aube`; the aqua registry's expected attestation
+  identity hasn't caught up. Use `jdx/aube-action@v1` in CI instead (see CI
+  section) rather than disabling attestation checks globally.
 
 ## Related
 
