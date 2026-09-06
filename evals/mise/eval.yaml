@@ -30,6 +30,7 @@ graders:
         - package.json
       must_not_exist:
         - .env
+        - .mise.toml
       content_patterns:
         - path: mise.toml
           must_match:

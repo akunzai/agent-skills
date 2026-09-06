@@ -15,11 +15,11 @@ inputs:
     and a package.json packageManager field. Add a root mise.toml that
     follows the mise skill.
 
-    Pin tools explicitly in [tools], including at least one linter set
-    to latest. Convert the existing test and lint scripts into [tasks]
-    that preserve the same names. Prefer built-in backends. Do not use
-    the ubi: backend. Do not keep package.json packageManager as a
-    second version source.
+    Declare tools in [tools], prefixing runtimes and setting at least
+    one linter to latest. Convert the existing test and lint scripts
+    into [tasks] that preserve the same names. Prefer built-in backends.
+    Do not use the ubi: backend. Do not keep package.json packageManager
+    as a second version source.
 
     Also say how CI should call this file with jdx/mise-action. Do not
     invent extra files beyond mise.toml and an edit to package.json if

@@ -130,9 +130,8 @@ current repository, then stops for your call.
 
 #### [`mise`](skills/mise/SKILL.md)
 
-Manage a project's toolchain, language runtimes, and tasks through a single
-committed `mise.toml`. Captures opinionated conventions for pinning, built-in
-backends, tasks over scripts, and phased host → CI → container adoption.
+One `mise.toml` as the version source: prefix runtimes, tasks over scripts,
+host then CI then containers.
 
 #### [`aube`](skills/aube/SKILL.md)
 
