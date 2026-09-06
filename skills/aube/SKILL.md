@@ -13,13 +13,6 @@ Use aube as the Node.js package manager, installed and pinned through mise. aube
 is jdx's fast, security-first package manager (https://aube.sh/); this skill
 captures the *how we use it here* decisions, not the official reference.
 
-## Quick start
-
-Install and pin aube via mise (not standalone). Daily work goes through
-`aubr <script>` (= `aube run`); CI uses `aube ci` (frozen lockfile). Keep a
-Dependabot-compatible lockfile, keep one version source in `mise.toml`, and
-accept aube's strict supply-chain defaults.
-
 ## Core conventions
 
 1. **Install through mise** — `mise use aube` and pin in `[tools]` (e.g.
@@ -33,9 +26,10 @@ accept aube's strict supply-chain defaults.
    rather than switching to `aube-lock.yaml`. Dependabot lacks an aube ecosystem
    and cannot maintain `aube-lock.yaml`. For new projects, set
    `defaultLockfileFormat = "pnpm"` in `aube-workspace.yaml`, `.npmrc`, or
-   `settings.toml`. Adopt `aube-lock.yaml` only without Dependabot. Locked
-   versions are trusted on frozen installs (`aube ci`) without per-install
-   revalidation.
+   `settings.toml`. In `dependabot.yml`, use the `npm` ecosystem for these
+   projects — no `aube` ecosystem exists. Adopt `aube-lock.yaml` only without
+   Dependabot. Locked versions are trusted on frozen installs (`aube ci`)
+   without per-install revalidation.
 4. **Accept supply-chain defaults** — aube denies lifecycle scripts by default,
    holds new releases behind a 24h cooling window, checks typosquats, and
    downgrades trust. Keep these; allow only the specific builds you need.
@@ -57,22 +51,35 @@ accept aube's strict supply-chain defaults.
 
 ## CI (GitHub Actions)
 
-Replace `pnpm/action-setup` + `actions/setup-node` with `jdx/mise-action@v4` (or
-`jdx/aube-action@v1`). mise-action's `cache: true` caches only tool binaries,
-not the aube store. Add `actions/cache` keyed on the lockfile with `aube store path`
-(`~/.local/share/aube/store/v1`):
+Prefer `jdx/aube-action@v1` over `jdx/mise-action@v4`: aube's repo moved
+`jdx/aube` -> `aubepkg/aube`, and mise's aqua backend still verifies GitHub
+attestations against the old identity, breaking `mise install aube` for every
+release since 2.2.8. `jdx/aube-action@v1` downloads the release directly (no
+attestation check) and installs Node.js too via `node-version: auto` (reads
+`mise.toml`, `.nvmrc`, etc.) — drop `actions/setup-node`. Still need
+`mise-action` for other tools in the same job? Set
+`MISE_AQUA_GITHUB_ATTESTATIONS: false` on that step instead.
+
+Cache both aube directories — the content store and registry metadata are
+separate (see https://aube.sh/package-manager/ci.html#cache-choices) — via
+`aube store path` / `aube cache path`, not hardcoded paths:
 
 ```yaml
-- uses: jdx/mise-action@v4
+- uses: jdx/aube-action@v1
   with:
-    install_args: aube node   # install only these tools; versions come from mise.toml
-    cache: true               # caches the tool binaries, not the aube store
-- name: Cache aube store
-  uses: actions/cache@v6
+    node-version: auto
+- id: aube-paths
+  run: |
+    echo "store=$(aube store path)" >> "$GITHUB_OUTPUT"
+    echo "cache=$(aube cache path)" >> "$GITHUB_OUTPUT"
+- uses: actions/cache@v6
   with:
-    path: ~/.local/share/aube/store/v1   # from `aube store path`
+    path: ${{ steps.aube-paths.outputs.store }}
     key: ${{ runner.os }}-aube-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-    restore-keys: ${{ runner.os }}-aube-store-
+- uses: actions/cache@v6
+  with:
+    path: ${{ steps.aube-paths.outputs.cache }}
+    key: ${{ runner.os }}-aube-cache-${{ hashFiles('**/pnpm-lock.yaml') }}
 - run: aube ci
 - run: aubr test
 ```
@@ -92,23 +99,20 @@ permissions (`jailBuildPermissions`).
   directly: `aube exec wrangler deploy` with `CLOUDFLARE_API_TOKEN` in env.
 - **`aube exec` swallows global flags** — `aube exec tsc --version` prints aube's
   version. Put `--` before binary: `aube exec -- tsc --version`.
-- **Lifecycle-script jail** — first `aube ci` skips unapproved build scripts
-  until allowed via `aube approve-builds` or `allowBuilds`; test locally first.
 - **`aubr` echoes commands to stderr** — prints expanded command prefixed with `$`
   to stderr (matching npm/pnpm); pass `--silent` / `-s` if scripts parse stderr.
 - **Global installs use aube data root in 2.x** — `aube add -g` installs to
   `$XDG_DATA_HOME/aube/bin` (`~/.local/share/aube/bin`), ignoring `PNPM_HOME`.
   Add this directory to `$PATH`.
-- **Dependabot has no aube ecosystem** — cannot read `aube-lock.yaml`. Keep
-  `pnpm-lock.yaml` (or set `defaultLockfileFormat = "pnpm"`) with `npm` in
-  `dependabot.yml`. Switch to `aube-lock.yaml` only if abandoning Dependabot.
 - **bun -> aube is also a runtime migration** — migrating runtime (`node:*`)
   and test runner (bun test -> Vitest) is separate from package-manager switch.
 - **starship `nodejs`/`package` modules loop under aube** — disable in
   `~/.config/starship.toml` (`[nodejs]` and `[package]` `disabled = true`) to
   prevent prompt loops.
+- **`mise install aube` fails GitHub attestation verification** — see CI
+  section for the `jdx/aube-action` fix.
 
 ## Related
 
-- [`mise`](../mise/SKILL.md) — installs and pins aube; provides the single
-  version source and the CI action.
+- [`mise`](../mise/SKILL.md) — installs and pins aube locally; provides the
+  single version source (`mise.toml`) that `jdx/aube-action@v1` reads in CI.
