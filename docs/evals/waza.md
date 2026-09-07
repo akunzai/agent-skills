@@ -68,19 +68,10 @@ keeps the CAPI quota codes only as belt-and-braces.
 PR check success means every `waza run` suite's graders passed (exit
 0). That is not the `--baseline` improvement.
 
-```bash
-# Merge gate (same loop as the PR job)
-waza run evals/agents-md/eval.yaml
-waza run evals/mise/eval.yaml
-waza run evals/aube/eval.yaml
-waza run evals/tidy-commits/eval.yaml
-waza run evals/to-memory/eval.yaml
-waza run evals/backfill-unit-tests/eval.yaml
-waza run evals/pr-workflow/eval.yaml
-waza run evals/write-e2e-tests/eval.yaml
-waza run evals/github-epic/eval.yaml
-waza run evals/gitlab-epic/eval.yaml
+The merge gate is `mise run waza` from Install above; the PR job narrows it
+to `--changed`.
 
+```bash
 # Effectiveness (local, or workflow_dispatch with baseline=true)
 waza run evals/agents-md/eval.yaml --baseline
 ```
@@ -123,6 +114,14 @@ The PR job runs the token check, then only the suites whose
 Changes to the workflow, `.waza.yaml`, `mise.toml`, or
 `evals/run-suites.sh` run every suite. `workflow_dispatch` runs every
 suite, or the one named in the `suite` input.
+
+That mapping, plus Waza applying only suite-level `graders` (v0.38.7
+ignores a task's own `graders:`), means new coverage belongs in an
+existing suite's task — a second task fails the first one's graders, and
+a suite not named after a skill never runs on that skill's changes.
+Widen that task's own prompt, not its `follow_up_prompts`: graders read
+`final_output`, which holds the last turn alone, so an earlier turn's
+answer is invisible to them.
 
 In this workflow's live probe, the GitHub Actions installation token returned
 no quota snapshots from `account.getQuota`. The workflow therefore classifies
