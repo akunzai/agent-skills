@@ -2,8 +2,9 @@ name: agents-md-eval
 description: |
   Waza suite for agents-md. The representative task is a
   micromanagement audit of a fixture AGENTS.md: grounded findings, no
-  invented files or workspace mutations. Graders inspect the isolated
-  Waza workspace only.
+  invented files or workspace mutations. A fourth section exercises
+  Prevent Recurrence, where enforcement is in reach and a doc entry is
+  the wrong tier. Graders inspect the isolated Waza workspace only.
 skill: agents-md
 schemaVersion: "1.0"
 version: "1.0"
@@ -20,7 +21,7 @@ metrics:
   - name: audit_quality
     weight: 1.0
     threshold: 1.0
-    description: Isolated-workspace graders for the micromanagement audit
+    description: Isolated-workspace graders for the audit and its Prevent Recurrence follow-up
 
 graders:
   - type: text
@@ -30,6 +31,7 @@ graders:
         - "Micromanagement Audit"
         - "Grounded Findings"
         - "Recommendations"
+        - "Prevent Recurrence"
 
   - type: text
     name: no-invented-mutations
@@ -59,6 +61,23 @@ graders:
           or 'alternative' in output.lower()
           or 'prefer' in output.lower()
           or 'offload' in output.lower()
+
+  # Scoped to the Prevent Recurrence section so the audit sections above
+  # cannot satisfy these by accident.
+  - type: code
+    name: prevention-before-recording
+    config:
+      assertions:
+        - >-
+          bool(re.search(r'(?is)prevent recurrence.{0,2000}?(enforc|assert|a
+          test|lint rule)', output))
+        - >-
+          bool(re.search(r'(?is)prevent
+          recurrence.{0,2000}?(agents\.md|package\.json|tests?/|\bci\b|script|workflow)',
+          output))
+        - >-
+          not bool(re.search(r'(?is)prevent
+          recurrence.{0,2000}?(lessons-learned|docs/agents/)', output))
 
   - type: file
     name: workspace-paths

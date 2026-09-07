@@ -27,7 +27,7 @@ Root file holds:
 - Package manager, when it is not the ecosystem default
 - Build/test/typecheck commands that are non-standard or costly to discover
 - Context pointers to domain docs, schemas, gold-standard tests, and skills
-- Self-Reflection so later agents write discoveries back
+- Prevent Recurrence so later agents lock discoveries down
 
 Everything else lives behind a pointer: a domain doc, a nested `AGENTS.md`, or
 a skill. Hand-author from repo evidence; skip init-script dumps.
@@ -52,7 +52,7 @@ or "ALWAYS".
 ## Monorepo boundaries
 
 Root `AGENTS.md` owns policy, shared `docs/`, cross-package completion, and
-Self-Reflection. Add a nested file only at an **autonomous boundary**. It is an
+Prevent Recurrence. Add a nested file only at an **autonomous boundary**. It is an
 adapter for local invariants, domain pointers, and completion criteria.
 
 Do not create files for `src/` or `tests`; add a deeper file only for a durable
@@ -124,53 +124,54 @@ Load [references/templates.md](references/templates.md) for this branch.
   - Preserve any other regular `CLAUDE.md` until the user approves migration.
   - Document the convention in root `AGENTS.md`; nested files need no duplicate
     explanation.
-- Include the `Self-Reflection` section rules in `AGENTS.md` so all future
+- Include the `Prevent Recurrence` section rules in `AGENTS.md` so all future
   agents follow them.
 
 Done when every remaining root line passes the every-task test or is a pointer.
 
-### 4. Self-Reflection (on problem-solving)
+### 4. Prevent Recurrence (on problem-solving)
 
-When solving a problem reveals non-obvious knowledge (e.g., a gotcha, hidden
-config, env var quirk), the agent MUST:
+When solving a problem turns up a gotcha, a hidden config, or an env var
+quirk, the agent MUST:
 
-1. **Candidate**: Distill into a concise, non-derivable rule (≤ 2 bullets,
-   context-tagged, no drifting metrics or micromanagement — gates in
-   [references/quality-criteria.md](references/quality-criteria.md)).
-2. **Promote**: On the user's explicit confirmation, put it where whoever would
-   break the rule must already pass: a note beside the decision is invisible to
-   whoever works in the file that violates it. First tier that applies, and only
-   that one — the same knowledge twice is the duplicate Prune exists to remove:
-   - **Enforce it** when the fix is already in hand: an assert, a type, or a
-     test leaves nothing to remember. Never open a separate change to reach
-     this tier — note the option in the candidate instead.
+1. **Candidate**: Name who hits it again, in which file, on what change. No
+   such scenario, nothing to propose. Then sort it: a preventable slip, or an
+   environment fact no assertion can reach? Gates in
+   [references/quality-criteria.md](references/quality-criteria.md).
+2. **Promote**: Offer the first tier that applies and only that one — the same
+   knowledge twice is the duplicate Prune exists to remove. Every tier waits on
+   the user's explicit confirmation.
+   - **Enforce it**: an assert, a type, or a test leaves nothing to remember.
+     Quote its size and the files it touches so one word can authorize it. It
+     has to be able to fail on the mistake itself; where only the symptom is
+     checkable, the knowledge belongs a tier down.
    - **Comment at the site that must be passed**: the constant a new caller
      imports, the declaration a change has to touch. Cross-reference from the
      other sites rather than restating it.
-   - **An agent-facing doc** when no site owns it (environment, toolchain, CI,
-     a process spanning files). Merge into an existing topic doc; otherwise
-     follow the repo's agent-facing docs convention — `docs/agents/<topic>.md`
-     where none exists yet — without relocating existing files. Fall back to
-     `lessons-learned.md` beside it. Add or update a single `@path` line per
-     file under Pointers, never a standalone "Lessons Learned" heading.
+   - **An agent-facing doc**, only for what no site owns (environment,
+     toolchain, CI, a process spanning files) — and say in one sentence why
+     the tiers above cannot hold it. Merge into an existing topic doc;
+     otherwise follow the repo's agent-facing docs convention —
+     `docs/agents/<topic>.md` where none exists yet — without relocating
+     existing files. Fall back to `lessons-learned.md` beside it. Add or update
+     a single `@path` line per file under Pointers, never a standalone
+     "Lessons Learned" heading.
 3. **Prune**: Whenever Promote reaches the doc tier, read that whole file
    before writing to it — you are already in it with the gates in hand, so
-   the audit costs one pass — and propose deletions alongside the addition.
-   Drop entries once stale (library/version upgraded past the tagged context,
-   now enforced by a linter/type/test, duplicated across files, or a one-off
-   debugging transcript). Propose deletions to the user rather than applying
-   a fixed entry-count cap. "Periodically" is not a trigger an agent can act
-   on; the file being open is.
-4. **Legacy migration**: If `AGENTS.md` still carries an old-format
-   `Knowledge Writeback` bullet, an inline `## Lessons Learned` section,
-   or an earlier single-tier `Self-Reflection` rule (which only mentions
-   writing to a dedicated file without code-enforcement or site-comment
-   tiers), propose updating the rule bullet to the current tiered
-   Self-Reflection wording and migrating any inline entries out to the
-   appropriate topic/fallback file(s), replacing the section with reference
-   line(s) — pending user confirmation.
+   the audit costs one pass — and propose deletions alongside the addition,
+   judged per entry rather than by a count. An entry goes once stale
+   (library/version upgraded past the tagged context, now enforced by a
+   linter/type/test, duplicated across files, or a one-off debugging
+   transcript). Enforcement prunes too: an entry it supersedes in a doc
+   already read this session goes with it.
+   "Periodically" is not a trigger an agent can act on; the file being open is.
+4. **Legacy migration**: If this section under any earlier heading stops at
+   writing to a file, or gotchas sit inline under `## Lessons Learned`, propose
+   the current heading and wording, and move inline entries out to the
+   topic/fallback file(s), leaving reference line(s) — pending confirmation.
 
-Done when a candidate is in front of the user, or nothing met the gates.
+Done when one means of prevention is in front of the user, or no recurrence
+scenario survived the gates.
 
 ## References
 

@@ -163,12 +163,16 @@ exact commands and treats an unexpected tracked-source change as failure.
   Ask explicitly for the subagent's raw output when the claim matters,
   rather than trusting the root session's summary of it.
 
-## Self-Reflection
+## Prevent Recurrence
 
-- Propose concise, non-obvious candidates before recording them.
-- On confirmation, store them in the nearest existing topic document and add
-  an `@path` pointer here; prune facts once tests or current documentation
-  make them redundant.
+- Propose a candidate only when you can name who hits it again, where, and on
+  what change.
+- On confirmation, offer the first tier that reaches them and only that one:
+  enforce it (assert/type/test) with its size quoted, else a comment at that
+  site, else the nearest existing topic document with an `@path` pointer here
+  and one sentence on why the tiers above cannot hold it.
+- When adding to a file, audit the rest of it in the same pass; drop entries
+  once tests or current documentation make them redundant.
 
 ## Claude Code Compatibility
 

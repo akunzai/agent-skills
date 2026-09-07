@@ -107,7 +107,7 @@ Use it when you want to:
 Explicitly record something worth remembering — decides scope (global vs.
 project) and tier (short-term candidate vs. long-term durable), then writes it.
 Autonomous knowledge capture after solving a problem stays with `agents-md`'s
-Self-Reflection mechanism.
+Prevent Recurrence mechanism.
 
 > **Migration:** The original `memory` skill was split into the `mem-*` family
 > (`mem-auto`, `mem-clean`, `mem-promote`, `mem-recall`, `mem-setup`, and

@@ -1,12 +1,12 @@
 ---
 name: to-memory
-description: Explicitly record something worth remembering, deciding scope (global vs. project) and tier (short-term candidate vs. long-term durable), then writing it. Use on `/to-memory`, "remember this", or `$to-memory`. Autonomous knowledge capture after solving a problem is agents-md's Self-Reflection, not this skill.
+description: Explicitly record something worth remembering, deciding scope (global vs. project) and tier (short-term candidate vs. long-term durable), then writing it. Use on `/to-memory`, "remember this", or `$to-memory`. Autonomous knowledge capture after solving a problem is agents-md's Prevent Recurrence, not this skill.
 ---
 
 # to-memory — Explicit Memory Capture
 
 Records one thing the user explicitly asked to remember.
-It never runs an autonomous capture loop — that belongs to `agents-md`'s Self-Reflection.
+It never runs an autonomous capture loop — that belongs to `agents-md`'s Prevent Recurrence.
 
 ## Scope and tier
 

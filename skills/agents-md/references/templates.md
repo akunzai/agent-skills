@@ -21,9 +21,9 @@ This project uses <package manager>.
 - Gold-standard test: @tests/example.spec.ts
 - <Domain> conventions: docs/<domain>.md
 
-## Self-Reflection
-- **Candidate**: Distill a non-obvious gotcha into ≤ 2 context-tagged bullets. Propose it before writing.
-- **Promote**: On confirmation, put it where whoever would break it must already pass — enforce it (assert/type/test) when the fix is in hand, else a comment at that site, else an agent-facing doc (`docs/agents/<topic>.md`, else `docs/agents/lessons-learned.md`) with one `@path` line under Pointers. Never both.
+## Prevent Recurrence
+- **Candidate**: Name who hits this again, in which file, on what change. No such scenario, nothing to propose.
+- **Promote**: Offer the first tier that reaches them and only that one, pending confirmation — enforce it (assert/type/test) with its size quoted, else a comment at that site, else an agent-facing doc (`docs/agents/<topic>.md`, else `docs/agents/lessons-learned.md`) with one `@path` line under Pointers and one sentence on why the tiers above cannot hold it.
 - **Prune**: When adding to a file, audit the rest of it in the same pass. Drop entries once stale (obsolete version, now enforced, duplicated, or a transcript) — not by a fixed count.
 ```
 
@@ -37,7 +37,7 @@ Code style bullets belong here only when a nearby file or config proves them.
 ## 2. Monorepo hierarchy
 
 Use the root file for repository-wide policy, shared references, cross-package
-completion criteria, and Self-Reflection. A nested file belongs only at an
+completion criteria, and Prevent Recurrence. A nested file belongs only at an
 autonomous package or app boundary; it is not a required file in every
 directory.
 
@@ -53,8 +53,8 @@ for local guidance.
 ## Cross-package completion
 - When changing a shared contract, validate every affected consumer.
 
-## Self-Reflection
-<the shared Self-Reflection rules>
+## Prevent Recurrence
+<the shared Prevent Recurrence rules>
 ```
 
 Package file — only its local decisions:
@@ -72,7 +72,7 @@ This package is a <one-sentence description>.
 - <the package-specific evidence required before work is done>
 ```
 
-Do not copy root rules, shared `docs/` pointers, or Self-Reflection into the
+Do not copy root rules, shared `docs/` pointers, or Prevent Recurrence into the
 package file. Do not create an empty package file that only redirects to the
 root. Omit the Commands section when package configuration is enough; repeat
 the package manager only when it differs from the root or ancestors do not load.
@@ -127,7 +127,7 @@ blindly. Read it, summarize any unique instructions, propose a migration into
 
 `@path/to/file` is the on-demand load. A domain doc may itself point deeper.
 
-## 5. Self-Reflection entry shape
+## 5. Prevent Recurrence entry shape
 
 A file is the third tier: reach for it only when no code site owns the knowledge,
 and only after a confirmed candidate (see `SKILL.md` §4). Gates live in

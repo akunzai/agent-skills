@@ -66,7 +66,7 @@ An `AGENTS.md` exists but is over-constrained with defensive micromanagement ("a
    > **Gaps & Red Flags Identified**:
    > - **Micromanagement Audit Failure**: Contains defensive generic rules ("Write clean functions", "Add JSDoc to every line") which cause attention dilution.
    > - **Prose Specs**: Contains a 30-line text tutorial on React state instead of pointing to Rich References.
-   > - **Legacy Inline Lessons Learned**: An inline `## Lessons Learned` section (old writeback format) holds 8 entries — several stale and missing context tags — that should be promoted to dedicated Self-Reflection reference files instead.
+   > - **Legacy Inline Lessons Learned**: An inline `## Lessons Learned` section (old writeback format) holds 8 entries — several stale and missing context tags — that should be promoted to dedicated Prevent Recurrence reference files instead.
    > - **SOP Bloat**: Includes a 12-step DB migration script directly in root `AGENTS.md`.
    > - **Instruction budget**: Language-specific rules and a file-by-file map fail the every-task test.
 
@@ -76,7 +76,7 @@ An `AGENTS.md` exists but is over-constrained with defensive micromanagement ("a
    - Removes generic micromanagement (Trust Model Judgment).
    - Replaces prose specs and path maps with Rich References and capabilities.
    - Offloads DB Migration SOP to `@docs/db-migration.md`.
-   - Migrates the inline `Lessons Learned` entries out per Self-Reflection: merges each into an existing topic doc where one covers the subject, otherwise creates `docs/agents/<topic>.md` (or `docs/agents/lessons-learned.md` as fallback), drops stale/duplicate entries, and replaces the section with `@path` reference line(s) under Pointers.
+   - Migrates the inline `Lessons Learned` entries out per Prevent Recurrence: merges each into an existing topic doc where one covers the subject, otherwise creates `docs/agents/<topic>.md` (or `docs/agents/lessons-learned.md` as fallback), drops stale/duplicate entries, and replaces the section with `@path` reference line(s) under Pointers.
 
 ---
 

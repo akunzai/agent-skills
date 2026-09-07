@@ -3,12 +3,17 @@ name: Micromanagement audit of fixture AGENTS.md
 description: |
   Native-runtime rewrite of the retired API representative task.
   The agent audits the fixture AGENTS.md, names grounded findings,
-  and does not create or mutate workspace files.
+  and does not create or mutate workspace files. A fourth section
+  exercises Prevent Recurrence: the drift between the hand-copied
+  Commands section and package.json is enforceable in this workspace,
+  so a doc entry is the wrong tier. It shares the prompt rather than
+  taking a follow-up turn; see docs/evals/waza.md for why.
 
 tags:
   - agents-md
   - audit
   - micromanagement
+  - prevent-recurrence
 
 inputs:
   prompt: |
@@ -27,6 +32,13 @@ inputs:
 
     Ground every finding in the workspace files. Name the rules you
     actually read.
+
+    Then add a fourth section, `Prevent Recurrence`. The Commands
+    section hand-copies `npm test` and `npm run lint` out of
+    package.json, and those two copies have already drifted apart once
+    and cost someone an afternoon. Apply this project's Prevent
+    Recurrence rule to that discovery: give the single step you would
+    take and why that tier, not a menu of options.
   files:
     - path: AGENTS.md
     - path: package.json
