@@ -1,7 +1,7 @@
 # Quality Criteria & Assessment Rubrics for `AGENTS.md`
 
 Use this rubric when grading an existing `AGENTS.md` (or `CLAUDE.md`). Candidate
-and prune gates for Self-Reflection live here; the Candidate → Promote → Prune
+and prune gates for Prevent Recurrence live here; the Candidate → Promote → Prune
 procedure lives in `SKILL.md`.
 
 ## 1. Quality Assessment Checklist
@@ -17,19 +17,19 @@ repo, and spends the **instruction budget** on every-task facts plus pointers.
 | **Progressive Disclosure** | High | Is `AGENTS.md` lean (< 100 lines)? Are domain rules and SOPs behind `@path` or a skill? |
 | **Commands & package manager** | High | Is a non-default package manager named? Are only non-standard or expensive-to-discover commands cached? |
 | **Rich References & SSOT** | High | Does it point to schemas and gold-standard tests instead of prose specs? Does it treat `package.json` / configs / the tree as the live source? |
-| **Monorepo boundaries** | High | When nested files exist, does the root own shared policy, docs, and Self-Reflection while each autonomous child starts with its purpose and carries only local commands, decisions, and completion? Can independently cloned packages operate from their own root file? |
+| **Monorepo boundaries** | High | When nested files exist, does the root own shared policy, docs, and Prevent Recurrence while each autonomous child starts with its purpose and carries only local commands, decisions, and completion? Can independently cloned packages operate from their own root file? |
 | **Capabilities** | High | Does it describe what the project does and its stable domain terms, rather than a file-by-file map? |
 | **Micromanagement Audit** | High | Is it free of generic hygiene and defensive boilerplate the model already knows? |
 | **Contradictions** | High | Are conflicting instructions named, and has the user chosen which version to keep? |
 | **Non-Obvious Patterns** | Medium | Are gotchas context-tagged and non-derivable? |
-| **Currency & Pruning** | Medium | Are Self-Reflection reference files pruned of stale workarounds? Does the Self-Reflection rule in `AGENTS.md` follow the tiered Promote template rather than an outdated single-tier file-only rule, and does its Prune bullet name a trigger (auditing the file being written) rather than leaving it to "periodically"? |
+| **Currency & Pruning** | Medium | Are Prevent Recurrence reference files pruned of stale workarounds? Does the rule in `AGENTS.md` open with a recurrence scenario and offer the first tier that reaches it, rather than an outdated file-only rule, and does its Prune bullet name a trigger (auditing the file being written) rather than leaving it to "periodically"? |
 
 ## 2. Quality Scores
 
 ### Grade A (90-100): Lean index
 - Concise (< 100 lines) index: one-sentence description, non-default package manager, non-standard commands, pointers.
 - Zero micromanagement; environment is the live source; capabilities over paths.
-- Self-Reflection knowledge sits at its lowest tier — enforced in code, else commented at the site that must be passed, else a dedicated topic file (or `lessons-learned.md`) referenced via `@path` — and is actively pruned.
+- Prevent Recurrence knowledge sits at its lowest tier — enforced in code, else commented at the site that must be passed, else a dedicated topic file (or `lessons-learned.md`) referenced via `@path` — and is actively pruned.
 - In a monorepo, root and nested files have distinct scopes; nested files exist only for autonomous local decisions.
 
 ### Grade B (70-89): Minor gaps / slight bloat
@@ -38,7 +38,7 @@ repo, and spends the **instruction budget** on every-task facts plus pointers.
 
 ### Grade C (50-69): Verbose or micromanaged
 - Generic hygiene rules, long prose instead of Rich References, or an init-script dump.
-- Self-Reflection knowledge is left inline, or its reference files are unpruned.
+- Prevent Recurrence knowledge is left inline, or its reference files are unpruned.
 
 ### Grade D (30-49): Sparse, over-constrained, or drifted
 - Missing the one-sentence description or the non-default package manager.
@@ -57,7 +57,7 @@ Eliminate these on sight:
 *   **Monolithic SOP Bloat**: multi-step deploy or migration scripts in the root file.
 *   **Inline Lessons Learned**: gotchas written in `AGENTS.md` instead of a topic file referenced via `@path`.
 *   **Knowledge in two places**: the same rule in a code comment and a doc entry — one of them will drift. Keep the tier the reader reaches first and cross-reference from the others.
-*   **Outdated Self-Reflection Promote rule**: promoting directly to a file without checking the lower tiers (code enforcement or comment at the site) first, or missing the "Never both" constraint.
+*   **Recorded instead of prevented**: proposing a doc entry when an assert, type, or test in reach would have made the mistake impossible, or offering every tier at once instead of the first one that reaches the next victim.
 *   **Drifting metrics**: `"25 unresolved issues"`, `"85% coverage"`.
 *   **Prose tutorials**: explaining stock framework mechanics.
 *   **File-by-file maps**: paths churn; describe capabilities and point at folders or schemas.
@@ -65,12 +65,13 @@ Eliminate these on sight:
 *   **Heavy-handed pointers**: ALL-CAPS or "ALWAYS" / "NEVER" where a light-touch reference would do.
 *   **Unresolved contradictions**: two instructions that cannot both be followed.
 
-## 4. Self-Reflection Criteria
+## 4. Prevent Recurrence Criteria
 
 ### Candidate eligible (must meet ALL)
 
 | Gate | Description |
 |---|---|
+| **Recurring** | A concrete next victim: who hits it again, in which file, on what change |
 | **Non-derivable** | Cannot be inferred by reading source or docs alone |
 | **Context-Tagged** | Bounded by library version, OS, or env flags (e.g., `[Vite 5.x]`) |
 | **Durable & Actionable** | Constrains a concrete agent decision across sessions |
