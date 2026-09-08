@@ -1,0 +1,7 @@
+Record a walkthrough of https://example.com.
+
+Steps, in order:
+1. Wait 800ms
+2. Click the link named "More information"
+3. Type SSH into the textbox named Search
+4. Select English on the combobox named Language

@@ -1,0 +1,69 @@
+name: to-walkthrough-video-eval
+description: |
+  Isolated-workspace suite for to-walkthrough-video. The agent writes
+  scenario.json from a brief and does not open a browser or record.
+skill: to-walkthrough-video
+schemaVersion: "1.0"
+version: "1.0"
+
+config:
+  trials_per_task: 1
+  timeout_seconds: 300
+  parallel: false
+  executor: copilot-sdk
+  model: mai-code-1.1-flash
+  inject_skill_body: true
+
+metrics:
+  - name: scenario_quality
+    weight: 1.0
+    threshold: 1.0
+    description: Isolated-workspace graders for a walkthrough scenario.json
+
+graders:
+  - type: file
+    name: scenario-written
+    config:
+      must_exist:
+        - BRIEF.txt
+        - scenario.json
+      must_not_exist:
+        - .env
+        - demo.webm
+        - demo.mp4
+      content_patterns:
+        - path: scenario.json
+          must_match:
+            - "example\\.com"
+            - "More information"
+            - "\"action\"\\s*:\\s*\"type\""
+            - "SSH"
+            - "\"action\"\\s*:\\s*\"select\""
+            - "English"
+
+  - type: program
+    name: scenario-json
+    config:
+      command: bash
+      args:
+        - -c
+        - |
+          for script in evals/to-walkthrough-video/graders/scenario-json.sh \
+            graders/scenario-json.sh; do
+            if [ -f "$script" ]; then
+              exec bash "$script"
+            fi
+          done
+          echo "scenario-json.sh not found" >&2
+          exit 1
+      timeout: 30
+
+  - type: diff
+    name: brief-unmutated
+    config:
+      expected_files:
+        - path: BRIEF.txt
+          snapshot: evals/to-walkthrough-video/fixtures/BRIEF.txt
+
+tasks:
+  - "tasks/*.yaml"
