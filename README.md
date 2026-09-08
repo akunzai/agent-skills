@@ -98,15 +98,15 @@ Use it when you want to:
 - Bootstrap an `AGENTS.md` from repo evidence (not an init-script dump)
 - Audit, score, and slim an existing `AGENTS.md` (contradictions, bloat, micromanagement)
 - Keep `AGENTS.md` in sync with Claude Code via a `CLAUDE.md` symlink
-- Surface discovered knowledge (gotchas, quirks) as a candidate after solving
-  a problem, then write it back to `AGENTS.md`'s references once you confirm
-  it
+- Prevent recurrence after solving a problem: distill actionable rules and
+  place them where whoever would break them must pass (enforced in code,
+  commented at the site, or in a referenced topic doc)
 
 #### [`to-memory`](skills/to-memory/SKILL.md)
 
 Explicitly record something worth remembering — decides scope (global vs.
 project) and tier (short-term candidate vs. long-term durable), then writes it.
-Autonomous knowledge capture after solving a problem stays with `agents-md`'s
+Autonomous recurrence-prevention after solving a problem stays with `agents-md`'s
 Prevent Recurrence mechanism.
 
 > **Migration:** The original `memory` skill was split into the `mem-*` family
