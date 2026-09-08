@@ -1,0 +1,19 @@
+{
+  "url": "https://akunzai.github.io/zh-tw/",
+  "viewport": { "width": 1280, "height": 720 },
+  "pauseMs": 2500,
+  "steps": [
+    { "action": "wait", "ms": 1000 },
+    { "action": "click", "role": "link", "name": "閱讀隨想" },
+    { "action": "click", "role": "link", "name": "筆記", "exact": true },
+    { "action": "click", "role": "button", "name": "搜尋", "pause": 800 },
+    { "action": "type", "role": "textbox", "name": "搜尋", "text": "SSH", "pause": 1800 },
+    {
+      "action": "click",
+      "role": "link",
+      "name": "不可否認的程式碼承諾：基於 SSH 的 Git Commit 數位簽署",
+      "exact": true
+    },
+    { "action": "select", "role": "combobox", "name": "選擇語言", "value": "English" }
+  ]
+}

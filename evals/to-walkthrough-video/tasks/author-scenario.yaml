@@ -1,0 +1,24 @@
+id: author-scenario
+name: Author a walkthrough scenario.json from a brief
+description: |
+  The agent writes scenario.json from BRIEF.txt using the
+  to-walkthrough-video skill. It does not browse or record.
+
+tags:
+  - to-walkthrough-video
+  - walkthrough
+
+inputs:
+  prompt: |
+    Write scenario.json for the walkthrough in BRIEF.txt using the
+    to-walkthrough-video skill. Locators are already in the brief.
+
+    Do not open a browser, install Playwright, or run record.mjs.
+    Do not record a video. Do not edit BRIEF.txt. Write only
+    scenario.json.
+  files:
+    - path: BRIEF.txt
+
+expected:
+  outcomes:
+    - type: task_completed

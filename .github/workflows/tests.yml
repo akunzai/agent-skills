@@ -49,6 +49,18 @@ jobs:
       - name: Run write-e2e-tests scan-secrets checks
         run: bash tests/write-e2e-tests-scan-secrets.sh
 
+  to-walkthrough-video:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Run to-walkthrough-video checks
+        run: bash tests/to-walkthrough-video.sh
+
   skill-catalog:
     runs-on: ubuntu-latest
     steps:

@@ -12,11 +12,12 @@ GitHub Copilot** via [Waza](https://github.com/microsoft/waza). See
 
 AI coding assistants are powerful out of the box, but they lack persistent memory
 and opinionated workflows across sessions. This project fills that gap with
-reusable skills grouped into four areas: **Memory** (durable project context
+reusable skills grouped into five areas: **Memory** (durable project context
 that survives across sessions), **Git** (clean commit history and safe PR/issue
 workflows), **Toolchain** (pinned, opinionated tool and dependency
-management), and **Testing** (framework-agnostic test generation and
-validation workflows).
+management), **Testing** (framework-agnostic test generation and
+validation workflows), and **Media** (website walkthroughs as auto-zoom demo
+videos).
 
 ## Install
 
@@ -155,6 +156,14 @@ spec. Unblocks a missing Playwright toolchain or
 [webwright](https://github.com/microsoft/Webwright) run after
 confirmation, converts Critical Points to assertions, and validates the
 result is stable and CI-discoverable.
+
+### Media
+
+#### [`to-walkthrough-video`](skills/to-walkthrough-video/SKILL.md)
+
+Record a website walkthrough as a demo video with auto-zoom on clicks.
+Playwright captures the viewport; a click log drives zoom clusters in the
+rendered video.
 
 ## Plugins
 
