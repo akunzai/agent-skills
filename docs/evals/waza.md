@@ -91,6 +91,30 @@ honored a requested model or effort. That requires a separate integration seam
 which asserts Copilot `subagent.started`/`subagent.completed` event metadata;
 final-answer text and worker self-report are not evidence of actual routing.
 
+### What a document grader may assert
+
+`evals/setup-agent-ready-repo/graders/documents.sh` grades files the skill
+writes into the workspace, and their wording is the author's, not the skill's.
+The line it has to hold:
+
+- **Assert what the skill or its templates pin**, and assert it directly. The
+  documents being English throughout is a Phase 1 rule, so the grader tests for
+  stray CJK rather than inferring the language from whether the English word
+  `exempt` survived further down the file. A proxy assertion fails for the right
+  reason only by luck, and names the wrong defect when it does.
+- **Assert a section's existence, not its prose.** That a diagram table, an
+  exempt-paths list, or a `drift:` marker another script parses is present is
+  pinned by `references/templates/`; the sentences around them are not.
+- **Report every failing assertion, then exit once.** Fail-fast made one defect
+  — documents translated into the ticket language — surface as a different
+  single message per run, which read as four unrelated flaky assertions and hid
+  that the suite was reporting a real skill bug (#183).
+
+`tests/setup-agent-ready-repo-grader.sh` pins that contract offline: a compliant
+workspace passes, a translated one fails naming the language rule, and a
+workspace missing three guarantees reports all three. It needs no Copilot, so a
+grader edit is verified before any premium request is spent.
+
 ## Spec (replaces `skills-ref validate`)
 
 `waza check --format json` covers the agentskills.io frontmatter spec,
