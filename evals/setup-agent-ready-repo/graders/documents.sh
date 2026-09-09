@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+GUARANTEES="$REPO_DIR/skills/setup-agent-ready-repo/references/guarantees.tsv"
+
 ws="${WAZA_WORKSPACE_DIR:?WAZA_WORKSPACE_DIR is unset}"
 cd "$ws"
 
@@ -14,9 +17,19 @@ fail() {
   failures=$((failures + 1))
 }
 
+# Markdown hard-wraps prose and indents continuation lines, so a guarantee
+# spanning more than a few words straddles a line break and picks up the
+# indentation with it. Fold to one line and squeeze the runs, or where the wrap
+# happens to fall decides whether a pattern is found.
+fold_prose() {
+  tr '\n' ' ' | tr -s '[:space:]' ' '
+}
+
 require() {
   # require <file> <extended-regex> <message>
-  grep -qiE "$2" "$1" 2>/dev/null || fail "$3"
+  local folded
+  folded="$(fold_prose < "$1" 2>/dev/null || true)"
+  printf '%s' "$folded" | grep -qiE "$2" || fail "$3"
 }
 
 pr="docs/agents/pull-request.md"
@@ -77,37 +90,36 @@ if grep -qE '(^|[^a-z])glab ' "$pr"; then
   fail "$pr reaches for glab on a GitHub repo"
 fi
 
-# --- the language split survives: tickets Chinese, commits English ---
+# --- the language answer this task gave, which the list cannot know ---
 language='chinese|繁體中文|繁体中文|traditional chinese'
 require "$issues" "$language" "$issues does not record the ticket language"
 require "$pr" "$language" "$pr does not record the request language"
-require "$pr" 'commit[^.]*english|english[^.]*commit' \
-  "$pr does not keep commit messages in English"
 
-# --- the body shape is carried, not merely named ---
-require "$issues" '<details>' "$issues lacks the collapsed technical section"
-require "$issues" 'acceptance criteria' \
-  "$issues has no shape for an issue an agent implements from"
-require "$pr" 'mermaid|flowchart|sequencediagram|erdiagram' \
-  "$pr does not say which diagram to use"
-if ! grep -qiE 'personally identifiable|\bPII\b' "$issues" "$pr"; then
-  fail "neither document carries the PII rule"
-fi
-
-# --- verification is honest about what it could not do ---
-require "$pr" 'draft' "$pr does not cover the draft-first order"
-require "$pr" 'exempt|excluded' "$pr does not name the paths exempt from tests"
-
-require "$verification" 'not verified|unverified|could not be verified' \
-  "$verification has no section for what went unverified"
+# --- this task's stack, which the list cannot know either ---
 require "$verification" 'docker|compose|stack' \
   "$verification does not mention the stack it could not start"
-
-# --- drift markers, so check-drift.sh has something to read ---
-require "$verification" 'drift:entrypoint' \
-  "$verification is missing the drift:entrypoint marker"
 require "$verification" '<!--[[:space:]]*drift:forge[[:space:]]+github[[:space:]]*-->' \
   "$verification does not record GitHub as the forge"
+
+# --- everything the templates pin for every repo ---
+# One source, shared with install-templates.sh --check, so the skill and its
+# grader cannot disagree about what a document is supposed to carry.
+# A missing list is a broken grader, not a defect in the workspace, so it
+# stops here rather than joining the accumulated findings.
+if [ ! -f "$GUARANTEES" ]; then
+  echo "guarantee list $GUARANTEES is missing" >&2
+  exit 1
+fi
+while IFS=$'\t' read -r doc name pattern origin; do
+  case "$doc" in \#*|"") continue ;; esac
+  case "$doc" in
+    issue-tracker) f="$issues" ;;
+    request) f="$pr" ;;
+    verification) f="$verification" ;;
+    *) fail "guarantee list names an unknown document: $doc"; continue ;;
+  esac
+  require "$f" "$pattern" "$f no longer carries $name (template: $origin)"
+done < "$GUARANTEES"
 
 # --- AGENTS.md points at all three, and nothing secret was written ---
 for doc in issue-tracker pull-request verification; do

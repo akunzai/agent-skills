@@ -72,7 +72,12 @@ esac
 CJK_DIR="$TMP_DIR/cjk"
 mkdir -p "$CJK_DIR/docs/agents"
 printf '# Issue tracker\n\nWrite issue bodies in English.\n' > "$CJK_DIR/docs/agents/issue-tracker.md"
-"$SCRIPT" --check "$CJK_DIR" >/dev/null || fail "--check rejected a clean English document"
+# A stub document is behind on guarantees, so the run exits non-zero; what
+# this case pins is that its language is not what --check objects to.
+OUT="$("$SCRIPT" --check "$CJK_DIR" 2>&1 || true)"
+case "$OUT" in
+  *"NOT ENGLISH"*) fail "--check called a clean English document not English: $OUT" ;;
+esac
 printf '# 問題追蹤\n' > "$CJK_DIR/docs/agents/issue-tracker.md"
 if "$SCRIPT" --check "$CJK_DIR" >/dev/null 2>&1; then
   fail "--check passed a document written in Chinese"
@@ -81,6 +86,92 @@ OUT="$("$SCRIPT" --check "$CJK_DIR" 2>&1 || true)"
 case "$OUT" in
   *"NOT ENGLISH"*) ;;
   *) fail "--check did not name the language defect: $OUT" ;;
+esac
+
+# --- check reports a guarantee the document has lost, by name and origin ---
+BEHIND_DIR="$TMP_DIR/behind"
+mkdir -p "$BEHIND_DIR/docs/agents"
+# Carries the language rule and nothing else the templates pin.
+printf '# Issue tracker: GitHub\n\nWrite issue titles and descriptions in English.\n' \
+  > "$BEHIND_DIR/docs/agents/issue-tracker.md"
+OUT="$("$SCRIPT" --check "$BEHIND_DIR" 2>&1 || true)"
+case "$OUT" in
+  *"BEHIND"*) ;;
+  *) fail "--check did not report a document behind the templates: $OUT" ;;
+esac
+case "$OUT" in
+  *"the collapsed technical section"*) ;;
+  *) fail "--check did not name the missing guarantee: $OUT" ;;
+esac
+case "$OUT" in
+  *"issue-tracker.md, Description shape"*) ;;
+  *) fail "--check did not say where in the template to read it: $OUT" ;;
+esac
+# Reading the guarantee list to find out what was actually looked for is
+# archaeology the report should spare its reader.
+case "$OUT" in
+  *"looked for: /<details>/"*) ;;
+  *) fail "--check did not show the pattern it matched with: $OUT" ;;
+esac
+# The one guarantee it does carry is not reported.
+case "$OUT" in
+  *"the language tickets are written in"*)
+    fail "--check reported a guarantee the document carries: $OUT" ;;
+esac
+
+# A freshly copied template carries every guarantee, so only the placeholder
+# check fires on it.
+FRESH_DIR="$TMP_DIR/fresh"
+mkdir -p "$FRESH_DIR"
+"$SCRIPT" --forge github "$FRESH_DIR" >/dev/null
+OUT="$("$SCRIPT" --check "$FRESH_DIR" 2>&1 || true)"
+case "$OUT" in
+  *"BEHIND"*) fail "a freshly copied template was reported as behind: $OUT" ;;
+esac
+
+# --- a guarantee stated across a hard-wrapped, indented line still counts ---
+# Markdown wraps prose and indents continuation lines. Matching line by line
+# made "personally\n   identifiable" invisible, which reported documents as
+# behind on guarantees they plainly carried.
+WRAP_DIR="$TMP_DIR/wrap"
+mkdir -p "$WRAP_DIR/docs/agents"
+cat > "$WRAP_DIR/docs/agents/pull-request.md" <<'DOC'
+# Pull requests
+
+Write PR titles, descriptions, and comments in **English**. **Git commit
+messages are English**, imperative, subject under 72 characters.
+
+2. Add a visual. Attachments must not contain personally
+   identifiable information; use test data, masking, or cropping.
+   Use Mermaid `flowchart` for a flow.
+
+Exempt paths: documentation. Open a request as a draft, and never
+without the developer asking.
+DOC
+OUT="$("$SCRIPT" --check "$WRAP_DIR" 2>&1 || true)"
+for wrapped in "commit messages staying English" \
+  "the rule against personally identifiable information"; do
+  case "$OUT" in
+    *"$wrapped"*) fail "a wrapped guarantee was reported as missing: $wrapped" ;;
+  esac
+done
+
+# --- a GitLab repo's merge-request.md is checked as a request document ---
+# It is a copy of the same template under another name; without this the
+# request guarantees would silently apply to GitHub repos only.
+GL_CHECK="$TMP_DIR/gl-check"
+mkdir -p "$GL_CHECK/docs/agents"
+printf '# Merge requests\n\nWrite MR titles and descriptions in English.\n' \
+  > "$GL_CHECK/docs/agents/merge-request.md"
+OUT="$("$SCRIPT" --check "$GL_CHECK" 2>&1 || true)"
+case "$OUT" in
+  *"merge-request.md no longer carries"*) ;;
+  *) fail "--check did not apply the request guarantees to merge-request.md: $OUT" ;;
+esac
+# The origin still points at the template the copy came from.
+case "$OUT" in
+  *"pull-request.md,"*) ;;
+  *) fail "--check did not cite the template a merge-request.md came from: $OUT" ;;
 esac
 
 # --- argument handling ---

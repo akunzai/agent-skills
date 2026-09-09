@@ -113,6 +113,12 @@ The line it has to hold:
   single message per run, which read as four unrelated flaky assertions and hid
   that the suite was reporting a real skill bug (#183).
 
+The guarantees that hold for every repo live in
+`skills/setup-agent-ready-repo/references/guarantees.tsv`, which the grader and
+the skill's own `install-templates.sh --check` both read, so the two cannot
+disagree about what a document must carry. What varies by forge, by task, or by
+the language answer stays in the grader, which knows what it asked for.
+
 `tests/setup-agent-ready-repo-grader.sh` pins that contract offline: a compliant
 workspace passes, a translated one fails naming the language rule, and a
 workspace missing three guarantees reports all three. It needs no Copilot, so a

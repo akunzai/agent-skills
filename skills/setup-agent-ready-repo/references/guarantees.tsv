@@ -1,0 +1,44 @@
+# Guarantees the templates pin, one per line, read by both consumers:
+#   skills/setup-agent-ready-repo/scripts/install-templates.sh --check
+#   evals/setup-agent-ready-repo/graders/documents.sh
+#
+# Tab-separated. TSV rather than JSON because --check runs in whatever repo the
+# skill was pointed at, where jq is not guaranteed to exist.
+#
+# document  the installed file: issue-tracker, request (pull-request.md or
+#           merge-request.md, whichever the forge got), or verification
+# name      what a developer reads when it is missing
+# pattern   case-insensitive extended regex, matched against the whole file
+# origin    where in the template it comes from, so an agent can read the
+#           original and adapt it to this repo
+#
+# A guarantee belongs here when the template pins it for every repo. A fact
+# that varies by forge, by task, or by the language answer stays in the grader,
+# which knows what it asked for. A section the template tells some repos to
+# delete is not pinned for every repo either: a library with no stack deletes
+# the deployed-verification path, and a repo with no human-only step deletes
+# its prerequisites, so neither can be required here.
+#
+# A pattern decides that a document addresses the guarantee, never that it
+# addresses it correctly: a one-word pattern matches a sentence that says the
+# opposite just as readily. That judgement is the reviewer's, the same bound
+# check-drift.sh states for the facts a script can decide. Prefer a phrase over
+# a word, and one that survives being reworded for another repo.
+#
+# document	name	pattern	origin
+issue-tracker	the language tickets are written in	write [^.]*(titles|descriptions)	issue-tracker.md, opening paragraph
+issue-tracker	the CLI conventions for issue operations	issue (create|view|list)	issue-tracker.md, Conventions
+issue-tracker	the collapsed technical section	<details>	issue-tracker.md, Description shape
+issue-tracker	the shape of an issue an agent implements from	acceptance criteria	issue-tracker.md, Spec issues
+issue-tracker	the rule against personally identifiable information	personally identifiable|\bPII\b	issue-tracker.md, below Description shape
+request	the language requests are written in	write [^.]*(titles|descriptions)	pull-request.md, opening paragraph
+request	commit messages staying English	commit[^.]*english|english[^.]*commit	pull-request.md, opening paragraph
+request	which diagram belongs to which change	mermaid|flowchart|sequencediagram|erdiagram	pull-request.md, Description shape
+request	the rule against personally identifiable information	personally identifiable|\bPII\b	pull-request.md, Description shape
+request	the paths exempt from landing with tests	exempt|excluded	pull-request.md, Tests land with the behaviour
+request	that a request is opened only when asked for	only when asked|developer ask	pull-request.md, Preparing
+verification	the entrypoint marker check-drift.sh reads	drift:entrypoint	verification.md, Starting the environment
+verification	the forge marker check-drift.sh reads	drift:forge	verification.md, Starting the environment
+verification	the proof that the entrypoint came up	[*][*]proof	verification.md, Starting the environment
+verification	what could not be verified, and why	not verified|unverified|could not be verified	verification.md, Not verified
+verification	the capture rules the request document points at	capture rules|capturing evidence	verification.md, Capturing evidence

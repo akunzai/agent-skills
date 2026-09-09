@@ -20,6 +20,28 @@ fail() {
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
+# --- the guarantee list is well formed, and true of the templates it cites ---
+# Without this the list could promise something no template pins, and every
+# document would read as behind on a guarantee that never existed.
+GUARANTEES="$ROOT_DIR/skills/setup-agent-ready-repo/references/guarantees.tsv"
+TEMPLATES="$ROOT_DIR/skills/setup-agent-ready-repo/references/templates"
+[ -f "$GUARANTEES" ] || fail "guarantee list $GUARANTEES is missing"
+
+rows=0
+while IFS=$'\t' read -r doc name pattern origin; do
+  case "$doc" in \#*|"") continue ;; esac
+  rows=$((rows + 1))
+  [ -n "$name" ] && [ -n "$pattern" ] && [ -n "$origin" ] \
+    || fail "guarantee '$doc/$name' has an empty field"
+  # The origin column already names the template file; reading it from there
+  # keeps the document-to-template mapping in one place.
+  template="$TEMPLATES/${origin%%,*}"
+  [ -f "$template" ] || fail "guarantee '$name' cites a template that does not exist: $origin"
+  grep -qiE "$pattern" "$template" \
+    || fail "guarantee '$name' matches nothing in $(basename "$template")"
+done < "$GUARANTEES"
+[ "$rows" -gt 0 ] || fail "guarantee list has no rows"
+
 # --- a workspace holding what the skill promises to write ---
 WS="$TMP_DIR/pass"
 mkdir -p "$WS/docs/agents"
@@ -53,6 +75,10 @@ repro commands, log excerpts
 
 </details>
 
+## Labels
+
+Read this repo's own labels with `gh label list --limit 100`; invent none.
+
 ## Spec issues
 
 ## Acceptance criteria
@@ -69,7 +95,7 @@ Write pull request titles and descriptions in **Traditional Chinese**
 (繁體中文). Git commit messages are English, imperative, subject under 72
 characters. This file is English throughout.
 
-Open the request with `gh pr create`.
+Open the request with `gh pr create`, and never without the developer asking.
 
 ## Description shape
 
@@ -99,6 +125,16 @@ npm test
 
 <!-- drift:forge github -->
 <!-- drift:entrypoint-cmd npm test -->
+
+**Proof it ran**: the command exits zero.
+
+## Human prerequisites
+
+- [ ] Install Node.
+
+## Capturing evidence
+
+This document is where the capture rules live.
 
 ## Not verified
 
@@ -147,7 +183,10 @@ grep -v 'drift:forge' "$WS/docs/agents/verification.md" \
 if WAZA_WORKSPACE_DIR="$WS_MULTI" bash "$GRADER" 2>"$TMP_DIR/multi.err"; then
   fail "a workspace missing three guarantees was accepted"
 fi
-for expected in 'does not say which diagram' 'does not name the paths exempt' \
+# Two of the three now come from the shared guarantee list and are reported by
+# the name a developer reads there; the forge value stays the grader's own.
+for expected in 'which diagram belongs to which change' \
+  'the paths exempt from landing with tests' \
   'does not record GitHub as the forge'; do
   grep -q "$expected" "$TMP_DIR/multi.err" \
     || fail "grader stopped early; '$expected' never reported: $(cat "$TMP_DIR/multi.err")"
