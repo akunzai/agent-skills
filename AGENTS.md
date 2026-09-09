@@ -1,7 +1,7 @@
 # agent-skills Developer Guidelines
 
-This is a repository of reusable agent skills (Memory, Git, Toolchain, Testing)
-for AI coding assistants.
+This is a repository of reusable agent skills (Memory, Git, Toolchain, Testing,
+Media).
 
 This project uses mise for the toolchain and task runner.
 
