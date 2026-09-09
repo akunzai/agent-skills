@@ -90,11 +90,12 @@ missing, that is a conversation with the maintainer, not a label to create.
 
 - **Required on every issue**: none.
 - **Applied when it applies**: `bug`, `enhancement`, `documentation`,
-  `question`, `duplicate`, `invalid`, `wontfix`, `help wanted`,
-  `good first issue`, `ready-for-agent` (fully specified for an AFK agent),
-  `dependencies` and `github_actions` (applied by Dependabot, not by hand).
-
-Triage roles map to these strings in @docs/agents/triage-labels.md.
+  `question`, `duplicate`, `invalid`, `help wanted`, `good first issue`.
+  `dependencies` and `github_actions` are applied by Dependabot, not by hand.
+- **Triage roles**: owned by @docs/agents/triage-labels.md, not repeated here.
+  Of the five it maps, only `ready-for-agent` and `wontfix` exist on this
+  repo's tracker; the other three have no label yet, which is a conversation
+  with the maintainer rather than a label to create.
 
 ## Pull requests as a triage surface
 

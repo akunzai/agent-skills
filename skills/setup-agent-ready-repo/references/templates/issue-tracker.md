@@ -94,6 +94,11 @@ first page reads as absent. Nothing here invents a vocabulary; when a
 label really is missing, that is a conversation with the maintainer, not
 a label to create.
 
+Check the other documents under `docs/agents/` before listing. Where one
+already owns part of this vocabulary — `triage-labels.md` owns the triage
+roles — point at it and list only what it does not cover. A label named in
+both places has two owners and one of them goes stale on the next rename.
+
 - **Required on every issue**: <labels, or "none">
 - **Applied when it applies**: <labels and what each one means>
 
