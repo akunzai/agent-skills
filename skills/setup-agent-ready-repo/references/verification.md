@@ -57,10 +57,7 @@ answers the only question a prerequisite check asks. A bare expansion,
 an `echo`, or a `set -x` around one puts the value in the transcript,
 and a transcript is not a place a secret can be taken back from — the
 remedy is rotation, paid by whoever owns the credential. This applies to
-every `.env` line, not only the ones that look secret. When the `wizard` skill is installed, suggest the developer use
-it to turn the checklist into an interactive script — it exists for
-exactly this and explicitly should not be driven by an agent. Do not
-generate or run that script here.
+every `.env` line, not only the ones that look secret.
 
 ## Ports, with several agents at once
 
@@ -117,3 +114,10 @@ An explicit section, not a silent omission. Each entry names the path
 that went unverified and why — missing credentials, a service this repo
 does not run, a device that is not available. A document that quietly
 claims full coverage is worse than one that admits a gap.
+
+A gap you could have closed is not a gap. Check each entry against what
+this session already probed: a dependency you saw running is a reason to
+run the check, not a reason to record it as unrunnable. A check you
+merely skipped belongs in the hand-back, named as untried — the document
+records what this repo cannot verify, not what this session did not get
+to.
