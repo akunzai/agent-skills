@@ -27,7 +27,9 @@ fold_prose() {
 
 require() {
   # require <file> <extended-regex> <message>
-  fold_prose < "$1" 2>/dev/null | grep -qiE "$2" || fail "$3"
+  local folded
+  folded="$(fold_prose < "$1" 2>/dev/null || true)"
+  printf '%s' "$folded" | grep -qiE "$2" || fail "$3"
 }
 
 pr="docs/agents/pull-request.md"

@@ -14,7 +14,10 @@
 #
 # A guarantee belongs here when the template pins it for every repo. A fact
 # that varies by forge, by task, or by the language answer stays in the grader,
-# which knows what it asked for.
+# which knows what it asked for. A section the template tells some repos to
+# delete is not pinned for every repo either: a library with no stack deletes
+# the deployed-verification path, and a repo with no human-only step deletes
+# its prerequisites, so neither can be required here.
 #
 # A pattern decides that a document addresses the guarantee, never that it
 # addresses it correctly: a one-word pattern matches a sentence that says the
@@ -28,17 +31,14 @@ issue-tracker	the CLI conventions for issue operations	issue (create|view|list)	
 issue-tracker	the collapsed technical section	<details>	issue-tracker.md, Description shape
 issue-tracker	the shape of an issue an agent implements from	acceptance criteria	issue-tracker.md, Spec issues
 issue-tracker	the rule against personally identifiable information	personally identifiable|\bPII\b	issue-tracker.md, below Description shape
-issue-tracker	labels read from the forge rather than invented	label list	issue-tracker.md, Labels
 request	the language requests are written in	write [^.]*(titles|descriptions)	pull-request.md, opening paragraph
 request	commit messages staying English	commit[^.]*english|english[^.]*commit	pull-request.md, opening paragraph
 request	which diagram belongs to which change	mermaid|flowchart|sequencediagram|erdiagram	pull-request.md, Description shape
 request	the rule against personally identifiable information	personally identifiable|\bPII\b	pull-request.md, Description shape
-request	the paths exempt from landing with tests	exempt	pull-request.md, Tests land with the behaviour
-request	the draft-first order for deployed verification	draft	pull-request.md, Review readiness
+request	the paths exempt from landing with tests	exempt|excluded	pull-request.md, Tests land with the behaviour
 request	that a request is opened only when asked for	only when asked|developer ask	pull-request.md, Preparing
 verification	the entrypoint marker check-drift.sh reads	drift:entrypoint	verification.md, Starting the environment
 verification	the forge marker check-drift.sh reads	drift:forge	verification.md, Starting the environment
 verification	the proof that the entrypoint came up	[*][*]proof	verification.md, Starting the environment
-verification	the prerequisites only a human can meet	human prerequisites	verification.md, Human prerequisites
 verification	what could not be verified, and why	not verified|unverified|could not be verified	verification.md, Not verified
 verification	the capture rules the request document points at	capture rules|capturing evidence	verification.md, Capturing evidence

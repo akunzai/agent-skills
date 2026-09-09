@@ -80,11 +80,12 @@ fold_prose() {
 # carries. The document keeps whatever the repo edited into it; what is
 # reported is the guarantee, and where in the template to read the original.
 check_guarantees() {
-  local target=$1 kind=$2 found=0 doc name pattern origin
+  local target=$1 kind=$2 found=0 doc name pattern origin folded
+  folded="$(fold_prose < "$target")"
   while IFS=$'\t' read -r doc name pattern origin; do
     case "$doc" in \#*|"") continue ;; esac
     [ "$doc" = "$kind" ] || continue
-    fold_prose < "$target" | grep -qiE "$pattern" && continue
+    printf '%s' "$folded" | grep -qiE "$pattern" && continue
     printf 'BEHIND      %s no longer carries %s\n            template: %s   looked for: /%s/\n' \
       "${target#"$DIR"/}" "$name" "$origin" "$pattern"
     found=1

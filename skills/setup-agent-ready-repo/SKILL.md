@@ -222,6 +222,10 @@ files the document depends on still being present. It reads them from
 document stays the single source and the markers stay invisible when
 rendered. Write those markers whenever you write the file.
 
+[install-templates.sh](scripts/install-templates.sh) `--check` answers the
+other half: which guarantees the current templates pin that these
+documents no longer carry. Run both on a re-run, before asking anything.
+
 Report drift and stop. Fixing it needs the same confirmation as writing
 it did.
 
