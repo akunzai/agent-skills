@@ -1,12 +1,20 @@
 <!-- Template. Name the file pull-request.md on GitHub, merge-request.md on GitLab. -->
 <!-- Replace every <angle placeholder>; delete lines that do not apply. -->
+<!-- Write the file in English, whatever <language> turns out to be: a
+     document about requests is not a request. <language> is the English
+     name of a language, substituted into a sentence, never an instruction
+     to translate what surrounds it. Write that name in English too: the
+     first non-English word in the file is what pulls the rest of it
+     across. -->
 
 # <Pull | Merge> requests
 
+**This file is English throughout**, sample blocks included, whatever
+language the repo chose for its requests.
+
 Write <PR | MR> titles, descriptions, and comments in **<language>**.
 **Git commit messages are English**, imperative, subject under 72
-characters — they live in history and get searched by tooling. This file
-itself stays English throughout, sample blocks included.
+characters — they live in history and get searched by tooling.
 
 <!-- If the repo has a native template, say so and stop duplicating it:
 This repo's `<.github/PULL_REQUEST_TEMPLATE.md | .gitlab/merge_request_templates/X.md>`
@@ -37,8 +45,6 @@ is authoritative on structure. What follows only adds what it does not say. -->
    | Backend or library only | None; test output instead |
 
    Pair before and after. At most one diagram unless it is such a pair.
-   No personally identifiable information in any attachment —
-   `verification.md`'s capture rules say what that means here.
 
    Upload the file with the repeatable `--attach` flag —
    `<gh pr create --attach './after.png#After' | glab mr create --attach ./after.png>`.
@@ -48,6 +54,12 @@ is authoritative on structure. What follows only adds what it does not say. -->
    named placeholder comment.
 3. A collapsed technical trailer holding affected paths, implementation
    notes, verification commands, and log excerpts.
+
+<!-- Keep the line below even when the visual guidance above is cut
+short. It is the one rule whose absence costs someone else. -->
+**No personally identifiable information in any attachment**, whatever
+you end up attaching. `verification.md`'s capture rules say what that
+means here.
 
 ## Tests land with the behaviour
 

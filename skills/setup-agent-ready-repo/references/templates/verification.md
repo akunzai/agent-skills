@@ -1,4 +1,7 @@
 <!-- Template. Replace every <angle placeholder>; delete sections that do not apply. -->
+<!-- Write the file in English, whatever language the repo chose for its
+     tickets: that answer governs what an agent types into the forge, not the
+     documents recording the conventions. -->
 
 # Verification
 

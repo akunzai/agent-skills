@@ -70,6 +70,12 @@ jobs:
       - name: Run setup-agent-ready-repo drift checks
         run: bash tests/setup-agent-ready-repo-drift.sh
 
+      - name: Run setup-agent-ready-repo eval grader checks
+        run: bash tests/setup-agent-ready-repo-grader.sh
+
+      - name: Run setup-agent-ready-repo template install checks
+        run: bash tests/setup-agent-ready-repo-install-templates.sh
+
   skill-catalog:
     runs-on: ubuntu-latest
     steps:

@@ -52,9 +52,21 @@ Keep each document to about 150 lines. They load on every turn through
 the `@` pointers, so the budget is the reason detail gets cut, not a
 reason to switch to lazy loading.
 
-Templates: [templates/issue-tracker.md](references/templates/issue-tracker.md),
-[templates/pull-request.md](references/templates/pull-request.md),
-[templates/verification.md](references/templates/verification.md).
+Copy each file from its template rather than writing one.
+[install-templates.sh](scripts/install-templates.sh) `--forge
+<github|gitlab|none>` places
+[issue-tracker.md](references/templates/issue-tracker.md),
+[pull-request.md](references/templates/pull-request.md) and
+[verification.md](references/templates/verification.md) under
+`docs/agents/`, skipping any that already exist. Then edit the copies in
+place: replace every `<angle placeholder>`, delete what does not apply,
+and leave the English prose alone. Writing a document from a template
+regenerates it, and regeneration follows the conversation's language;
+copying bytes does not.
+
+`--check` scans the installed documents for stray CJK and for a
+placeholder nobody replaced. Run it before asking for confirmation, and
+fix what it names rather than explaining it.
 
 Link to what a `README` or `CONTRIBUTING.md` already says, and keep only
 what is agent-specific. Where `AGENTS.md` already lists build and test
@@ -88,14 +100,19 @@ installed, say which one the remote suggests and ask.
 
 Ask one language question: which language issues and PR/MR bodies use.
 Everything else is fixed and is not asked. Commit messages are English,
-because they live in history and get searched by tooling. Human-facing
-documentation follows the answer. Each rule is written into the document
-it governs; no language table goes into `AGENTS.md`.
+because they live in history and get searched by tooling. Each rule is
+written into the document it governs; no language table goes into
+`AGENTS.md`.
 
 **The documents you write are English throughout** — headings, prose,
 and the placeholder text inside a sample block alike. They are read by
-models, and one language means one reading. The answer to the question
-governs only what an agent later types into the forge.
+models, and one language means one reading. The answer names the
+language an agent later types into the forge; it never changes the
+language of the file that records the rule. `pull-request.md` is a
+document about pull requests, not a pull request, so "requests are in
+<language>" leaves the file English and puts `<language>` inside the
+sentence the file states. Translating the document is the failure to
+avoid here, and it looks like obedience while you do it.
 
 The exception is a **literal**: a string reproduced character for
 character, such as a label that lands in a published release note, or a
@@ -157,7 +174,8 @@ Entrypoint detection, port strategy, local and deployed verification:
 [verification.md](references/verification.md). Capture tooling per
 platform: [capture.md](references/capture.md).
 
-**Done when** `verification.md` exists, the entrypoint has run clean or
+**Done when** `verification.md` exists and carries its `drift:` markers,
+the entrypoint has run clean or
 its failure is recorded as a named gap,
 and `AGENTS.md` carries the pointers. Where `AGENTS.md` does not exist, hand that off to the
 `agents-md` skill, which owns the quality bar and the `CLAUDE.md`
