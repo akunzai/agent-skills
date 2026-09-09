@@ -4,22 +4,53 @@ set -euo pipefail
 ws="${WAZA_WORKSPACE_DIR:?WAZA_WORKSPACE_DIR is unset}"
 cd "$ws"
 
+# Every assertion runs, then the grader exits once. Stopping at the first
+# failure reported one arbitrary symptom per run and made a single defect look
+# like several unrelated flaky ones.
+failures=0
+
 fail() {
   echo "$*" >&2
-  exit 1
+  failures=$((failures + 1))
 }
 
 require() {
   # require <file> <extended-regex> <message>
-  grep -qiE "$2" "$1" || fail "$3"
+  grep -qiE "$2" "$1" 2>/dev/null || fail "$3"
 }
 
 pr="docs/agents/pull-request.md"
 issues="docs/agents/issue-tracker.md"
 verification="docs/agents/verification.md"
 
+missing=0
 for f in "$pr" "$issues" "$verification"; do
-  [ -f "$f" ] || fail "$f is missing"
+  if [ ! -f "$f" ]; then
+    fail "$f is missing"
+    missing=1
+  fi
+done
+# The remaining assertions all read those files; without them every one would
+# fire and bury the single real finding.
+[ "$missing" -eq 0 ] || exit 1
+
+# --- the documents are English throughout ---
+# The skill's Phase 1 rule: the language answer governs what an agent later
+# types into the forge, never the language of the file recording that rule.
+# Asserting it directly beats inferring it from whether some English word
+# happens to survive further down the file.
+# Matches the UTF-8 byte range for CJK ideographs; the language's own name is
+# the one literal the skill lets through.
+cjk=$'[\xe4-\xe9][\x80-\xbf][\x80-\xbf]'
+english_throughout() {
+  local f=$1 stray
+  stray=$(sed 's/繁體中文//g; s/繁体中文//g' "$f" \
+    | LC_ALL=C grep -nE "$cjk" | head -n 1 || true)
+  [ -z "$stray" ] \
+    || fail "$f is not English throughout (first offending line: ${stray:0:80})"
+}
+for f in "$pr" "$issues" "$verification"; do
+  english_throughout "$f"
 done
 
 # --- GitHub vocabulary, not GitLab ---
@@ -45,7 +76,7 @@ require "$pr" 'commit[^.]*english|english[^.]*commit' \
 
 # --- the body shape is carried, not merely named ---
 require "$issues" '<details>' "$issues lacks the collapsed technical section"
-require "$issues" 'acceptance criteria|驗收條件' \
+require "$issues" 'acceptance criteria' \
   "$issues has no shape for an issue an agent implements from"
 require "$pr" 'mermaid|flowchart|sequencediagram|erdiagram' \
   "$pr does not say which diagram to use"
@@ -79,3 +110,5 @@ for leak in .env .env.local secrets.md; do
     fail "wrote $leak"
   fi
 done
+
+[ "$failures" -eq 0 ] || exit 1
