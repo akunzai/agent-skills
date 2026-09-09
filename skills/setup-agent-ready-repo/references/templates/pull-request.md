@@ -1,8 +1,11 @@
 <!-- Template. Name the file pull-request.md on GitHub, merge-request.md on GitLab. -->
 <!-- Replace every <angle placeholder>; delete lines that do not apply. -->
-<!-- Write the file in English, whatever <language> turns out to be: a document
-     about requests is not a request. <language> is a name you substitute into
-     a sentence, never an instruction to translate what surrounds it. -->
+<!-- Write the file in English, whatever <language> turns out to be: a
+     document about requests is not a request. <language> is the English
+     name of a language, substituted into a sentence, never an instruction
+     to translate what surrounds it. Write that name in English too: the
+     first non-English word in the file is what pulls the rest of it
+     across. -->
 
 # <Pull | Merge> requests
 
