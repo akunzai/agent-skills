@@ -163,7 +163,8 @@ Entrypoint detection, port strategy, local and deployed verification:
 [verification.md](references/verification.md). Capture tooling per
 platform: [capture.md](references/capture.md).
 
-**Done when** `verification.md` exists, the entrypoint has run clean or
+**Done when** `verification.md` exists and carries its `drift:` markers,
+the entrypoint has run clean or
 its failure is recorded as a named gap,
 and `AGENTS.md` carries the pointers. Where `AGENTS.md` does not exist, hand that off to the
 `agents-md` skill, which owns the quality bar and the `CLAUDE.md`
