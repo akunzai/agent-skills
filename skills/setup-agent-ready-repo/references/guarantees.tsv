@@ -16,6 +16,12 @@
 # that varies by forge, by task, or by the language answer stays in the grader,
 # which knows what it asked for.
 #
+# A pattern decides that a document addresses the guarantee, never that it
+# addresses it correctly: a one-word pattern matches a sentence that says the
+# opposite just as readily. That judgement is the reviewer's, the same bound
+# check-drift.sh states for the facts a script can decide. Prefer a phrase over
+# a word, and one that survives being reworded for another repo.
+#
 # document	name	pattern	origin
 issue-tracker	the language tickets are written in	write [^.]*(titles|descriptions)	issue-tracker.md, opening paragraph
 issue-tracker	the CLI conventions for issue operations	issue (create|view|list)	issue-tracker.md, Conventions
@@ -29,7 +35,7 @@ request	which diagram belongs to which change	mermaid|flowchart|sequencediagram|
 request	the rule against personally identifiable information	personally identifiable|\bPII\b	pull-request.md, Description shape
 request	the paths exempt from landing with tests	exempt	pull-request.md, Tests land with the behaviour
 request	the draft-first order for deployed verification	draft	pull-request.md, Review readiness
-request	that a request is opened only when asked for	developer ask	pull-request.md, Preparing
+request	that a request is opened only when asked for	only when asked|developer ask	pull-request.md, Preparing
 verification	the entrypoint marker check-drift.sh reads	drift:entrypoint	verification.md, Starting the environment
 verification	the forge marker check-drift.sh reads	drift:forge	verification.md, Starting the environment
 verification	the proof that the entrypoint came up	[*][*]proof	verification.md, Starting the environment

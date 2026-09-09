@@ -82,8 +82,8 @@ check_guarantees() {
     case "$doc" in \#*|"") continue ;; esac
     [ "$doc" = "$kind" ] || continue
     fold_prose < "$target" | grep -qiE "$pattern" && continue
-    printf 'BEHIND      %s no longer carries %s (template: %s)\n' \
-      "${target#"$DIR"/}" "$name" "$origin"
+    printf 'BEHIND      %s no longer carries %s\n            template: %s   looked for: /%s/\n' \
+      "${target#"$DIR"/}" "$name" "$origin" "$pattern"
     found=1
   done < "$GUARANTEES"
   return "$found"

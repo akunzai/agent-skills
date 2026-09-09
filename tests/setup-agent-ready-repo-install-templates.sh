@@ -107,6 +107,12 @@ case "$OUT" in
   *"issue-tracker.md, Description shape"*) ;;
   *) fail "--check did not say where in the template to read it: $OUT" ;;
 esac
+# Reading the guarantee list to find out what was actually looked for is
+# archaeology the report should spare its reader.
+case "$OUT" in
+  *"looked for: /<details>/"*) ;;
+  *) fail "--check did not show the pattern it matched with: $OUT" ;;
+esac
 # The one guarantee it does carry is not reported.
 case "$OUT" in
   *"the language tickets are written in"*)
