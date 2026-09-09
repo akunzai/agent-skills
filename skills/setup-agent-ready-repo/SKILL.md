@@ -52,7 +52,8 @@ Keep each document to about 150 lines. They load on every turn through
 the `@` pointers, so the budget is the reason detail gets cut, not a
 reason to switch to lazy loading.
 
-Templates: [templates/issue-tracker.md](references/templates/issue-tracker.md),
+Write each file from its template rather than from memory:
+[templates/issue-tracker.md](references/templates/issue-tracker.md),
 [templates/pull-request.md](references/templates/pull-request.md),
 [templates/verification.md](references/templates/verification.md).
 
@@ -88,14 +89,19 @@ installed, say which one the remote suggests and ask.
 
 Ask one language question: which language issues and PR/MR bodies use.
 Everything else is fixed and is not asked. Commit messages are English,
-because they live in history and get searched by tooling. Human-facing
-documentation follows the answer. Each rule is written into the document
-it governs; no language table goes into `AGENTS.md`.
+because they live in history and get searched by tooling. Each rule is
+written into the document it governs; no language table goes into
+`AGENTS.md`.
 
 **The documents you write are English throughout** — headings, prose,
 and the placeholder text inside a sample block alike. They are read by
-models, and one language means one reading. The answer to the question
-governs only what an agent later types into the forge.
+models, and one language means one reading. The answer names the
+language an agent later types into the forge; it never changes the
+language of the file that records the rule. `pull-request.md` is a
+document about pull requests, not a pull request, so "requests are in
+<language>" leaves the file English and puts `<language>` inside the
+sentence the file states. Translating the document is the failure to
+avoid here, and it looks like obedience while you do it.
 
 The exception is a **literal**: a string reproduced character for
 character, such as a label that lands in a published release note, or a

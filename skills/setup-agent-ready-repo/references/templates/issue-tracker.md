@@ -1,13 +1,17 @@
 <!-- Template. Replace every <angle placeholder>; delete lines that do not apply. -->
+<!-- Write the file in English, whatever <language> turns out to be: a document
+     about issues is not an issue. <language> is a name you substitute into a
+     sentence, never an instruction to translate what surrounds it. -->
 
 # Issue tracker: <GitHub | GitLab | other>
+
+**This file is English throughout**, sample blocks included, so it reads
+one way to every model, whatever `<language>` is below.
 
 Issues live as <forge> issues. Use the `<gh | glab>` CLI for all
 operations; it infers the repo when run inside a clone.
 
-Write issue titles and descriptions in **<language>**. This file itself
-stays English throughout, sample blocks included, so it reads one way to
-every model.
+Write issue titles and descriptions in **<language>**.
 
 ## Conventions
 
