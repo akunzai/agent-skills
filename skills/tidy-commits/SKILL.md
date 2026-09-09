@@ -114,7 +114,10 @@ unavailable or unsupported.
 - Compare the final tree against the backup ref unless commits were intentionally dropped: `git diff --stat <backup-ref> HEAD` and `git diff <backup-ref> HEAD`.
 - Inspect per-commit file scope & file absence: Run `git diff --name-status <base>..HEAD` and verify that no unrelated files (or files not touched by the original feature branch) were accidentally deleted or added.
 - Show the new story: `git log --oneline --decorate <base>..HEAD`.
-- Run relevant tests, type checks, linters, or focused reproductions.
+- Run relevant tests, type checks, linters, or focused reproductions — only
+  where the tree comparison showed a difference, or commits were intentionally
+  dropped. A rewrite that preserved the tree cannot change what they report,
+  and dispatching a `check-runner` for it spends a worker on a known answer.
 - If branch protection requires verified signatures, check commit signatures with `git log --show-signature <base>..HEAD` or the repo's GitHub status. Re-sign rewritten commits before pushing when needed.
 
 ## Push Safety
