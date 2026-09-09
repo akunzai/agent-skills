@@ -1,16 +1,16 @@
-# Agent Skills
+# Charley's Agent Skills
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://github.com/akunzai/agent-skills/actions/workflows/tests.yml/badge.svg)](https://github.com/akunzai/agent-skills/actions/workflows/tests.yml)
 
-My personal agent skills for AI coding assistants — compatible with Antigravity, Claude Code, Codex, and more.
-Those assistants can load the skills; **effectiveness is measured only on
+Reusable agent skills — compatible with Antigravity, Claude Code, Codex, and more.
+Those runtimes can load the skills; **effectiveness is measured only on
 GitHub Copilot** via [Waza](https://github.com/microsoft/waza). See
 [docs/evals/waza.md](docs/evals/waza.md).
 
 ## Why
 
-AI coding assistants are powerful out of the box, but they lack persistent memory
+AI agents are powerful out of the box, but they lack persistent memory
 and opinionated workflows across sessions. This project fills that gap with
 reusable skills grouped into five areas: **Memory** (durable project context
 that survives across sessions), **Git** (clean commit history and safe PR/issue
