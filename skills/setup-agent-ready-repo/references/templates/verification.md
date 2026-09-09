@@ -17,7 +17,8 @@ holds only what an agent needs.
 
 <!-- drift:forge <github|gitlab|other|none> -->
 <!-- A script entrypoint is recorded as a path, a task-runner one as a
-     command. Keep the line that applies and delete the other. -->
+     command. Keep the line that applies and delete the other; repeat
+     either marker where the gate is genuinely more than one command. -->
 <!-- drift:entrypoint <scripts/dev-up.sh> -->
 <!-- drift:entrypoint-cmd <mise run check> -->
 

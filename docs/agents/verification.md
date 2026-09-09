@@ -39,6 +39,7 @@ What that lookup cannot give:
 | Skill behaviour, live against Copilot | `mise run waza -- <suite>` |
 | Only the suites touched vs `origin/main` | `mise run waza -- --changed` |
 | SKILL.md token budget (3000, `.waza.yaml`) | `waza tokens compare origin/main --skills --threshold 10 --strict` |
+| This document still matching the repo | `bash skills/setup-agent-ready-repo/scripts/check-drift.sh --run-entrypoint .` |
 
 `mise run test` runs `tests/agentsview-cli-contract.sh` through the
 `test-agentsview-contract` task, which supplies the CLI; running that one file
