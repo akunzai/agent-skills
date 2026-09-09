@@ -52,10 +52,21 @@ Keep each document to about 150 lines. They load on every turn through
 the `@` pointers, so the budget is the reason detail gets cut, not a
 reason to switch to lazy loading.
 
-Write each file from its template rather than from memory:
-[templates/issue-tracker.md](references/templates/issue-tracker.md),
-[templates/pull-request.md](references/templates/pull-request.md),
-[templates/verification.md](references/templates/verification.md).
+Copy each file from its template rather than writing one.
+[install-templates.sh](scripts/install-templates.sh) `--forge
+<github|gitlab|none>` places
+[issue-tracker.md](references/templates/issue-tracker.md),
+[pull-request.md](references/templates/pull-request.md) and
+[verification.md](references/templates/verification.md) under
+`docs/agents/`, skipping any that already exist. Then edit the copies in
+place: replace every `<angle placeholder>`, delete what does not apply,
+and leave the English prose alone. Writing a document from a template
+regenerates it, and regeneration follows the conversation's language;
+copying bytes does not.
+
+`--check` scans the installed documents for stray CJK and for a
+placeholder nobody replaced. Run it before asking for confirmation, and
+fix what it names rather than explaining it.
 
 Link to what a `README` or `CONTRIBUTING.md` already says, and keep only
 what is agent-specific. Where `AGENTS.md` already lists build and test
