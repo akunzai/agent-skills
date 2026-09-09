@@ -47,8 +47,27 @@ compares rather than infers.
 - **No personally identifiable information** in any attachment. Use test
   data, masking, or cropping. This is not a judgement call about whether
   a field looks sensitive.
-- **When capture is impossible, leave a named placeholder** rather than
-  omitting the visual silently, so the gap is visible in review:
+- **Local capture identifies as much as a shared environment does.** A
+  terminal or desktop capture on the developer's own machine carries
+  their account's real data, their username, and their home paths, and a
+  CLI or TUI is normally captured exactly that way. Assert on the frame,
+  a marker, or fixture data rather than on whatever the tool happened to
+  be showing.
+- **Attach the file from the CLI.** Both forges upload local media and
+  embed it in the body through a repeatable `--attach` flag:
+  `gh pr create --attach './after.png#Tree after'`, and the same flag on
+  `gh pr edit|comment` and `gh issue create|edit|comment`;
+  `glab mr create --attach ./after.png` on GitLab, where the flag is
+  still marked experimental. Alt text follows the path after `#`. A path
+  the body already references as `![alt](./after.png)` is rewritten in
+  place to point at the uploaded asset. `gh`'s flag does not cover
+  GitHub Enterprise Server, and it needs push access to the repository,
+  so a fork-based contributor still falls back to the placeholder below. Confirm it against the installed binary's
+  `--help` rather than from memory: it is recent, and an agent that
+  assumes attachment is impossible falls back to a placeholder for a
+  visual it could have uploaded.
+- **When capture is genuinely impossible, leave a named placeholder**
+  rather than omitting the visual silently, so the gap is visible in review:
   `<!-- screenshot pending: before -->`,
   `<!-- screenshot pending: after -->`,
   `<!-- recording pending: <what it should show> -->`.

@@ -14,7 +14,11 @@ relocate the prose.
 
 ## Non-interactive contract
 
-The script this skill writes must satisfy all four:
+This applies to a script this skill writes. Where the project already has
+one non-interactive command, record that command and skip the contract;
+a wrapper exists only to satisfy a checklist, and it drifts.
+
+A script, where one is warranted, must satisfy all four:
 
 - **Mode detection, layered**: an explicit `--non-interactive` flag,
   then `NON_INTERACTIVE=true|false`, then `CI=true`, then stdin not
@@ -31,6 +35,15 @@ The script this skill writes must satisfy all four:
 A dependency's own log is often too quiet to show the request that
 proves an integration. Raise its level for the check and restore the
 repo's configuration afterwards, rather than concluding from silence.
+
+## Sweeping after the move
+
+Where `AGENTS.md`'s build and test commands moved into `verification.md`,
+grep the source tree, not Markdown and config alone. A doc comment naming
+an `AGENTS.md` section outlives the move as readily as a task-runner
+comment does, and it is the hit a docs-only sweep misses. Run the sweep
+even where this skill relocated nothing: it catches whatever moved things
+last, not only this skill's move.
 
 ## Human prerequisites
 

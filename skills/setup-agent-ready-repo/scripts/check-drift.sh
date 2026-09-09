@@ -9,6 +9,7 @@ set -euo pipefail
 #
 #   <!-- drift:forge github -->
 #   <!-- drift:entrypoint scripts/dev-up.sh -->
+#   <!-- drift:entrypoint-cmd mise run check -->
 #   <!-- drift:port 8080 -->
 #   <!-- drift:file .devcontainer/mock/mappings/tenant.json -->
 #
@@ -69,6 +70,13 @@ markers() {
     | sed -E "s|<!--[[:space:]]*drift:$1[[:space:]]+||; s|[[:space:]]*-->||" || true
 }
 
+# A task-runner entrypoint holds whitespace, so it cannot use markers().
+# One marker per line; the greedy match ends at the line's last '-->'.
+command_markers() {
+  grep -oE "<!--[[:space:]]*drift:entrypoint-cmd[[:space:]]+.+-->" "$DOC" \
+    | sed -E "s|<!--[[:space:]]*drift:entrypoint-cmd[[:space:]]+||; s|[[:space:]]*-->$||" || true
+}
+
 # An unedited template still carries <angle> placeholders. That is a
 # document nobody finished, which is exactly what this script is for.
 unfilled() {
@@ -96,7 +104,10 @@ remote_forge() {
     echo "github"
     return
   fi
-  if (cd "$DIR" && glab api version) >/dev/null 2>&1; then
+  # Repo-scoped, like the gh probe above. `glab api version` only asks
+  # the configured GitLab instance for its version and succeeds inside a
+  # GitHub clone, which reported every such repo as GitLab.
+  if (cd "$DIR" && glab repo view) >/dev/null 2>&1; then
     echo "gitlab"
     return
   fi
@@ -171,6 +182,31 @@ while IFS= read -r path; do
     report_ok "entrypoint: $path present and executable"
   fi
 done < <(markers entrypoint)
+
+# --- entrypoint recorded as a command rather than a script ---
+# A task runner that is not installed here says nothing about the repo,
+# so that is a skip. Only a recorded command that fails is drift.
+while IFS= read -r cmd; do
+  [ -n "$cmd" ] || continue
+  if unfilled "$cmd"; then
+    report_drift "entrypoint-cmd: '$cmd' is an unfilled template placeholder"
+    continue
+  fi
+  runner="${cmd%% *}"
+  if ! command -v "$runner" >/dev/null 2>&1; then
+    report_skip "entrypoint-cmd: $runner is not installed here"
+    continue
+  fi
+  if [ "$RUN_ENTRYPOINT" = true ]; then
+    if (cd "$DIR" && NON_INTERACTIVE=true CI=true sh -c "$cmd") >/dev/null 2>&1; then
+      report_ok "entrypoint-cmd: $cmd ran clean"
+    else
+      report_drift "entrypoint-cmd: $cmd exited non-zero"
+    fi
+  else
+    report_ok "entrypoint-cmd: $runner available for '$cmd'"
+  fi
+done < <(command_markers)
 
 # --- ports, against a compose file when there is one ---
 COMPOSE=""

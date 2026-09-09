@@ -51,6 +51,44 @@ echo "$OUT" | grep -q "ran clean" || fail "entrypoint not executed: $OUT"
 # flag may appear after DIR
 "$SCRIPT" "$REPO" --run-entrypoint >/dev/null || fail "flag after DIR should work"
 
+# --- an entrypoint recorded as a task-runner command, not a script ---
+CMDREPO="$TMP_DIR/entrypoint-cmd"
+mkdir -p "$CMDREPO/docs/agents"
+git -C "$CMDREPO" init -b main >/dev/null
+git -C "$CMDREPO" remote add origin https://github.com/example/demo.git
+DOC_CMD="$CMDREPO/docs/agents/verification.md"
+cat > "$DOC_CMD" <<'DOC'
+# Verification
+
+<!-- drift:forge github -->
+<!-- drift:entrypoint-cmd sh -c "exit 0" -->
+DOC
+
+OUT="$("$SCRIPT" "$CMDREPO")" || fail "recorded command should exit 0: $OUT"
+echo "$OUT" | grep -q "^ok    entrypoint-cmd: sh available" \
+  || fail "command entrypoint not reported available: $OUT"
+
+OUT="$("$SCRIPT" --run-entrypoint "$CMDREPO")" \
+  || fail "recorded command should run clean: $OUT"
+echo "$OUT" | grep -q "entrypoint-cmd:.*ran clean" \
+  || fail "command entrypoint not executed: $OUT"
+
+# a failing command is drift only under --run-entrypoint
+printf '<!-- drift:entrypoint-cmd sh -c "exit 3" -->\n' > "$DOC_CMD"
+"$SCRIPT" "$CMDREPO" >/dev/null \
+  || fail "failing command should pass the availability check"
+STATUS=0
+OUT="$("$SCRIPT" --run-entrypoint "$CMDREPO" 2>/dev/null)" || STATUS=$?
+[ "$STATUS" -eq 1 ] || fail "failing command should exit 1 under --run-entrypoint"
+echo "$OUT" | grep -q "DRIFT entrypoint-cmd:.*exited non-zero" \
+  || fail "failing command not reported: $OUT"
+
+# a runner this machine lacks says nothing about the repo, so it is a skip
+printf '<!-- drift:entrypoint-cmd definitely-not-installed run check -->\n' > "$DOC_CMD"
+OUT="$("$SCRIPT" "$CMDREPO")" || fail "absent runner should not be drift: $OUT"
+echo "$OUT" | grep -q "^skip  entrypoint-cmd: definitely-not-installed is not installed" \
+  || fail "absent runner not skipped: $OUT"
+
 # --- each drift is detected independently ---
 drift_case() {
   local name="$1" pattern="$2" mutate="$3"
@@ -118,7 +156,7 @@ cp "$TEMPLATE" "$PLACEHOLDER/docs/agents/verification.md"
 STATUS=0
 OUT="$("$SCRIPT" "$PLACEHOLDER" 2>/dev/null)" || STATUS=$?
 [ "$STATUS" -eq 1 ] || fail "unedited template should be drift, got $STATUS: $OUT"
-for kind in forge entrypoint port file; do
+for kind in forge entrypoint entrypoint-cmd port file; do
   echo "$OUT" | grep -q "DRIFT $kind: .*unfilled template placeholder" \
     || fail "unedited template did not flag the $kind placeholder: $OUT"
 done
