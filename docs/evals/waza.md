@@ -2,7 +2,7 @@
 
 Suites under `evals/<skill>/` measure those skills on **GitHub Copilot
 only**, using the pinned catalog id in each `eval.yaml` `config.model`.
-The three worker-routing suites use `gemini-3.7-flash`; the remaining suites
+The three worker-routing suites use `gemini-3.8-flash`; the remaining suites
 use their own pinned model. Skills remain usable in other assistants; those
 runtimes are not the effectiveness instrument.
 
