@@ -32,7 +32,7 @@ request	the draft-first order for deployed verification	draft	pull-request.md, R
 request	that a request is opened only when asked for	developer ask	pull-request.md, Preparing
 verification	the entrypoint marker check-drift.sh reads	drift:entrypoint	verification.md, Starting the environment
 verification	the forge marker check-drift.sh reads	drift:forge	verification.md, Starting the environment
-verification	the proof that the entrypoint came up	proof it ran	verification.md, Starting the environment
+verification	the proof that the entrypoint came up	[*][*]proof	verification.md, Starting the environment
 verification	the prerequisites only a human can meet	human prerequisites	verification.md, Human prerequisites
 verification	what could not be verified, and why	not verified|unverified|could not be verified	verification.md, Not verified
 verification	the capture rules the request document points at	capture rules|capturing evidence	verification.md, Capturing evidence
