@@ -74,6 +74,16 @@ Clean up local git commit history before review or merge. Use it to turn WIP,
 fixup, review-fix, format-only, poorly ordered, unsigned, or poorly messaged
 commits into a clear, verified branch story.
 
+#### [`setup-agent-ready-repo`](skills/setup-agent-ready-repo/SKILL.md)
+
+Set up a repository so agents can file tickets, open pull or merge
+requests, and verify their own changes. Interviews once, then writes
+`docs/agents/issue-tracker.md`, a forge-specific pull/merge request
+document, `docs/agents/verification.md`, and the `AGENTS.md` pointers
+that load them. Wraps whatever already starts the project into one
+non-interactive command, runs it, and records what it could not verify
+rather than claiming a pass.
+
 #### [`pr-workflow`](skills/pr-workflow/SKILL.md)
 
 Standard operating procedure for preparing, opening, and managing Pull Requests (PR) and Merge Requests (MR) safely with preflight checks, commit scoping, and issue auto-closing rules.

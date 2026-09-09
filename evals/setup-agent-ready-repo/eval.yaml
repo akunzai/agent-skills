@@ -1,0 +1,68 @@
+name: setup-agent-ready-repo-eval
+description: |
+  Isolated-workspace suite for setup-agent-ready-repo. After explicit
+  confirmation, the agent writes the three agent-facing documents for a
+  GitHub repo, keeps commits English while tickets follow the chosen
+  language, and records what it could not verify.
+skill: setup-agent-ready-repo
+schemaVersion: "1.0"
+version: "1.0"
+
+config:
+  trials_per_task: 1
+  timeout_seconds: 600
+  parallel: false
+  executor: copilot-sdk
+  model: mai-code-1.1-flash
+  inject_skill_body: true
+
+metrics:
+  - name: setup_documents
+    weight: 1.0
+    threshold: 1.0
+    description: Isolated-workspace graders for the documents and pointers written
+
+graders:
+  - type: file
+    name: documents-written
+    config:
+      must_exist:
+        - docs/agents/issue-tracker.md
+        - docs/agents/pull-request.md
+        - docs/agents/verification.md
+        - AGENTS.md
+      must_not_exist:
+        - docs/agents/merge-request.md
+        - docs/agents/triage-labels.md
+        - .env
+        - secrets.md
+
+  - type: diff
+    name: pointers-added
+    config:
+      expected_files:
+        - path: AGENTS.md
+          contains:
+            - "@docs/agents/issue-tracker.md"
+            - "@docs/agents/pull-request.md"
+            - "@docs/agents/verification.md"
+
+  - type: program
+    name: documents
+    config:
+      command: bash
+      args:
+        - -c
+        - |
+          for script in evals/setup-agent-ready-repo/graders/documents.sh \
+            graders/documents.sh; do
+            if [ -f "$script" ]; then
+              exec bash "$script"
+            fi
+          done
+          echo "documents.sh not found" >&2
+          exit 1
+      timeout: 30
+
+tasks:
+  - "tasks/*.yaml"

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Setup Agent-Ready Repo"
+  short_description: "Set up a repo so agents can file, request, and verify"
+policy:
+  allow_implicit_invocation: false
