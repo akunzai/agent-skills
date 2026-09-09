@@ -26,6 +26,7 @@ USAGE
 
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMPLATES="$SKILL_DIR/references/templates"
+GUARANTEES="$SKILL_DIR/references/guarantees.tsv"
 
 FORGE=""
 MODE="install"
@@ -64,8 +65,32 @@ DEST="$DIR/docs/agents"
 # grader applies, so the skill and its grader cannot disagree.
 CJK=$'[\xe4-\xe9][\x80-\xbf][\x80-\xbf]'
 
+# Markdown hard-wraps prose and indents continuation lines, so a guarantee
+# spanning more than a few words straddles a line break and picks up the
+# indentation with it. Fold to one line and squeeze the runs, or where the wrap
+# happens to fall decides whether a pattern is found.
+fold_prose() {
+  tr '\n' ' ' | tr -s '[:space:]' ' '
+}
+
+# Reports a guarantee the current templates pin that this document no longer
+# carries. The document keeps whatever the repo edited into it; what is
+# reported is the guarantee, and where in the template to read the original.
+check_guarantees() {
+  local target=$1 kind=$2 found=0 doc name pattern origin
+  while IFS=$'\t' read -r doc name pattern origin; do
+    case "$doc" in \#*|"") continue ;; esac
+    [ "$doc" = "$kind" ] || continue
+    fold_prose < "$target" | grep -qiE "$pattern" && continue
+    printf 'BEHIND      %s no longer carries %s (template: %s)\n' \
+      "${target#"$DIR"/}" "$name" "$origin"
+    found=1
+  done < "$GUARANTEES"
+  return "$found"
+}
+
 check_docs() {
-  local found=0 f stray leftover
+  local found=0 f stray leftover kind
   for f in "$DEST/issue-tracker.md" "$DEST/pull-request.md" \
            "$DEST/merge-request.md" "$DEST/verification.md"; do
     [ -f "$f" ] || continue
@@ -82,9 +107,15 @@ check_docs() {
       printf 'PLACEHOLDER %s still carries %s\n' "${f#"$DIR"/}" "$leftover"
       found=1
     fi
+    case "$(basename "$f")" in
+      pull-request.md|merge-request.md) kind=request ;;
+      *) kind="$(basename "$f" .md)" ;;
+    esac
+    check_guarantees "$f" "$kind" || found=1
   done
   if [ "$found" -eq 0 ]; then
-    echo "documents are English and carry no unresolved placeholder"
+    echo "documents are English, carry no unresolved placeholder, and are level"
+    echo "with every guarantee the current templates pin"
   fi
   return "$found"
 }

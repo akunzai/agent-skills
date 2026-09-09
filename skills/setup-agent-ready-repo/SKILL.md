@@ -64,9 +64,17 @@ and leave the English prose alone. Writing a document from a template
 regenerates it, and regeneration follows the conversation's language;
 copying bytes does not.
 
-`--check` scans the installed documents for stray CJK and for a
-placeholder nobody replaced. Run it before asking for confirmation, and
-fix what it names rather than explaining it.
+`--check` scans the installed documents for stray CJK, for a placeholder
+nobody replaced, and for any guarantee in
+[guarantees.tsv](references/guarantees.tsv) the document no longer
+carries. Run it before asking for confirmation, and fix what it names.
+
+A repo set up by an earlier version reaches the current one through that
+last check. It reports the guarantee and where in the template to read
+the original, never a diff: the installed document holds this repo's own
+labels, paths and gate commands, and those edits are the reason it is
+worth keeping. Adapt the template's wording to what the document already
+says, one guarantee at a time, each on its own confirmation.
 
 Link to what a `README` or `CONTRIBUTING.md` already says, and keep only
 what is agent-specific. Where `AGENTS.md` already lists build and test
