@@ -156,6 +156,24 @@ for wrapped in "commit messages staying English" \
   esac
 done
 
+# --- a GitLab repo's merge-request.md is checked as a request document ---
+# It is a copy of the same template under another name; without this the
+# request guarantees would silently apply to GitHub repos only.
+GL_CHECK="$TMP_DIR/gl-check"
+mkdir -p "$GL_CHECK/docs/agents"
+printf '# Merge requests\n\nWrite MR titles and descriptions in English.\n' \
+  > "$GL_CHECK/docs/agents/merge-request.md"
+OUT="$("$SCRIPT" --check "$GL_CHECK" 2>&1 || true)"
+case "$OUT" in
+  *"merge-request.md no longer carries"*) ;;
+  *) fail "--check did not apply the request guarantees to merge-request.md: $OUT" ;;
+esac
+# The origin still points at the template the copy came from.
+case "$OUT" in
+  *"pull-request.md,"*) ;;
+  *) fail "--check did not cite the template a merge-request.md came from: $OUT" ;;
+esac
+
 # --- argument handling ---
 if "$SCRIPT" --forge bogus "$TMP_DIR" >/dev/null 2>&1; then
   fail "an unknown forge should fail"

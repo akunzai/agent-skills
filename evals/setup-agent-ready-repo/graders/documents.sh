@@ -102,7 +102,12 @@ require "$verification" '<!--[[:space:]]*drift:forge[[:space:]]+github[[:space:]
 # --- everything the templates pin for every repo ---
 # One source, shared with install-templates.sh --check, so the skill and its
 # grader cannot disagree about what a document is supposed to carry.
-[ -f "$GUARANTEES" ] || fail "guarantee list $GUARANTEES is missing"
+# A missing list is a broken grader, not a defect in the workspace, so it
+# stops here rather than joining the accumulated findings.
+if [ ! -f "$GUARANTEES" ]; then
+  echo "guarantee list $GUARANTEES is missing" >&2
+  exit 1
+fi
 while IFS=$'\t' read -r doc name pattern origin; do
   case "$doc" in \#*|"") continue ;; esac
   case "$doc" in

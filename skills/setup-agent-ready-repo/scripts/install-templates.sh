@@ -2,8 +2,9 @@
 set -euo pipefail
 
 # Copies this skill's document templates into a target repository, and checks
-# installed documents for the two defects an instruction cannot prevent: prose
-# that is not English, and an unresolved <angle placeholder>.
+# installed documents for what an instruction cannot prevent: prose that is not
+# English, an unresolved <angle placeholder>, and a guarantee the current
+# templates pin that the document no longer carries.
 #
 # Copying is the point. A model asked to write a document from a template
 # regenerates it, and regeneration follows the conversation's language, which
@@ -19,7 +20,9 @@ usage: install-templates.sh --forge <github|gitlab|none> [--force] [DIR]
             github writes pull-request.md, gitlab writes merge-request.md,
             none writes verification.md alone (no remote)
   --force   overwrite a destination that already exists
-  --check   scan installed documents for stray CJK and unresolved placeholders
+  --check   scan installed documents for stray CJK, unresolved placeholders,
+            and guarantees the current templates pin but the document lost;
+            exits non-zero when it finds any
   DIR       repository root (default: current directory)
 USAGE
 }

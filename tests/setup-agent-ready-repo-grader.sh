@@ -33,11 +33,10 @@ while IFS=$'\t' read -r doc name pattern origin; do
   rows=$((rows + 1))
   [ -n "$name" ] && [ -n "$pattern" ] && [ -n "$origin" ] \
     || fail "guarantee '$doc/$name' has an empty field"
-  case "$doc" in
-    issue-tracker|verification) template="$TEMPLATES/$doc.md" ;;
-    request) template="$TEMPLATES/pull-request.md" ;;
-    *) fail "guarantee list names an unknown document: $doc" ;;
-  esac
+  # The origin column already names the template file; reading it from there
+  # keeps the document-to-template mapping in one place.
+  template="$TEMPLATES/${origin%%,*}"
+  [ -f "$template" ] || fail "guarantee '$name' cites a template that does not exist: $origin"
   grep -qiE "$pattern" "$template" \
     || fail "guarantee '$name' matches nothing in $(basename "$template")"
 done < "$GUARANTEES"
