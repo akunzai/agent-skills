@@ -61,6 +61,15 @@ jobs:
       - name: Run to-walkthrough-video checks
         run: bash tests/to-walkthrough-video.sh
 
+  setup-agent-ready-repo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Run setup-agent-ready-repo drift checks
+        run: bash tests/setup-agent-ready-repo-drift.sh
+
   skill-catalog:
     runs-on: ubuntu-latest
     steps:

@@ -1,0 +1,39 @@
+id: setup-github-repo
+name: Set up a GitHub-hosted repo for agent work
+description: |
+  The agent writes the three agent-facing documents and the AGENTS.md
+  pointers for a GitHub repo, keeps commit messages English while
+  tickets follow the developer's chosen language, and records the
+  verification it could not perform instead of claiming a pass.
+
+tags:
+  - setup-agent-ready-repo
+  - verification
+
+inputs:
+  prompt: |
+    Use the setup-agent-ready-repo skill on this repository.
+
+    Take these as given, since this workspace is offline:
+
+    - The repo is hosted on GitHub at github.com/example/storefront.
+    - Docker is not available here, so the stack cannot actually be
+      started. Do not run docker, npm install, or any network command.
+
+    Work through phase 1 and phase 2. Show me what you propose to write
+    and wait for my confirmation before writing anything.
+  follow_up_prompts:
+    - |
+      Confirmed, write them now. Issues and pull requests are written in
+      Traditional Chinese. Everything else keeps your defaults. Since the
+      stack cannot be started here, record that honestly rather than
+      claiming it was verified.
+  files:
+    - path: AGENTS.md
+    - path: package.json
+    - path: compose.yml
+    - path: README.md
+
+expected:
+  outcomes:
+    - type: task_completed

@@ -1,0 +1,9 @@
+{
+  "name": "fixture-storefront",
+  "private": true,
+  "scripts": {
+    "dev": "node server.js",
+    "test": "node --test",
+    "lint": "eslint ."
+  }
+}
