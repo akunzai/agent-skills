@@ -1,6 +1,10 @@
 # Issue tracker: GitHub
 
-Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
+Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all
+operations; it infers the repo from `git remote -v` when run inside a clone.
+
+Write issue titles and descriptions in **English**. This file itself stays
+English throughout, sample blocks included, so it reads one way to every model.
 
 ## Conventions
 
@@ -11,7 +15,87 @@ Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all op
 - **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close <number> --comment "..."`
 
-Infer the repo from `git remote -v` — `gh` does this automatically when run inside a clone.
+Title: a concise descriptive phrase. This repo's merged history prefixes issue
+titles with the same Conventional Commit type the eventual commit will use
+(`feat(<skill>): …`, `fix(<skill>): …`, `spec: …`, `docs(<skill>): …`), so keep
+that shape when the issue already names its target skill.
+
+## Description shape
+
+1. Open with what a maintainer or a new contributor would observe: the symptom
+   or the request, in plain language. Skip file paths and function names unless
+   the reader cannot otherwise locate the issue.
+2. Add a visual the forge renders inline — a Mermaid diagram for a flow or a
+   decision tree, a terminal recording for a CLI or hook behaviour. Skip formats
+   the description editor cannot render, such as a link to an external artifact
+   or a raw HTML or SVG file. Attachments must not contain personally
+   identifiable information; use test data, masking, or cropping. Upload with the
+   repeatable `--attach` flag (`gh issue create --attach './bug.png#The error state'`);
+   alt text follows the path after `#`. Only when capture is genuinely impossible,
+   leave `<!-- screenshot pending: <what it should show> -->` rather than omitting
+   it silently.
+3. Close with a collapsed technical section, so it does not push the human
+   summary below the fold:
+
+```markdown
+<details>
+<summary>Technical details</summary>
+
+suspected cause, related code paths, repro commands, log excerpts
+
+</details>
+```
+
+## Spec issues
+
+An issue an agent will implement from carries a different shape, because its
+reader is building rather than triaging. Acceptance criteria stay above the
+fold; only background goes into `<details>`.
+
+```markdown
+<one paragraph: the observable outcome>
+
+## Acceptance criteria
+
+- [ ] <checkable statement about observable behaviour>
+- [ ] <one per criterion; a reviewer can tick these without reading code>
+
+## Scope
+
+- In: <paths or areas>
+- Out: <what this issue deliberately does not change>
+
+## Verification
+
+<how to prove it works, per docs/agents/verification.md; say here when a
+Waza suite under evals/<skill>/ is the only thing that can cover it>
+
+<details>
+<summary>Technical details</summary>
+
+related code paths, prior art, log excerpts, open questions
+
+</details>
+```
+
+An issue with unanswered open questions is not ready to implement. Say so in
+the issue rather than letting an agent guess.
+
+## Labels
+
+This repo's own labels, read from `gh label list --limit 100`. The CLI defaults
+to 30 and reports that page as the whole set, so a label past the first page
+reads as absent. Nothing here invents a vocabulary; when a label really is
+missing, that is a conversation with the maintainer, not a label to create.
+
+- **Required on every issue**: none.
+- **Applied when it applies**: `bug`, `enhancement`, `documentation`,
+  `question`, `duplicate`, `invalid`, `help wanted`, `good first issue`.
+  `dependencies` and `github_actions` are applied by Dependabot, not by hand.
+- **Triage roles**: owned by @docs/agents/triage-labels.md, not repeated here.
+  Of the five it maps, only `ready-for-agent` and `wontfix` exist on this
+  repo's tracker; the other three have no label yet, which is a conversation
+  with the maintainer rather than a label to create.
 
 ## Pull requests as a triage surface
 
