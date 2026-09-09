@@ -6,7 +6,7 @@
 # Issue tracker: <GitHub | GitLab | other>
 
 **This file is English throughout**, sample blocks included, so it reads
-one way to every model, whatever `<language>` is below.
+one way to every model, whatever language the repo chose for its issues.
 
 Issues live as <forge> issues. Use the `<gh | glab>` CLI for all
 operations; it infers the repo when run inside a clone.

@@ -104,7 +104,10 @@ The line it has to hold:
   reason only by luck, and names the wrong defect when it does.
 - **Assert a section's existence, not its prose.** That a diagram table, an
   exempt-paths list, or a `drift:` marker another script parses is present is
-  pinned by `references/templates/`; the sentences around them are not.
+  pinned by `references/templates/`; the sentences around them are not. Every
+  template opens with "Replace every `<angle placeholder>`", so a leaked
+  `<language>` or `<gh | glab>` is fair game too, while the `<number>` inside a
+  sample command is not.
 - **Report every failing assertion, then exit once.** Fail-fast made one defect
   — documents translated into the ticket language — surface as a different
   single message per run, which read as four unrelated flaky assertions and hid

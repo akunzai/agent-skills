@@ -153,6 +153,32 @@ for expected in 'does not say which diagram' 'does not name the paths exempt' \
     || fail "grader stopped early; '$expected' never reported: $(cat "$TMP_DIR/multi.err")"
 done
 
+# --- an unresolved template placeholder is caught ---
+WS_PLACEHOLDER="$TMP_DIR/placeholder"
+cp -R "$WS" "$WS_PLACEHOLDER"
+cat >> "$WS_PLACEHOLDER/docs/agents/pull-request.md" <<'DOC'
+
+Write titles in **<language>**, and read them back with
+`<gh | glab> pr view <number>`.
+DOC
+
+if WAZA_WORKSPACE_DIR="$WS_PLACEHOLDER" bash "$GRADER" 2>"$TMP_DIR/placeholder.err"; then
+  fail "a document shipping <language> and <gh | glab> was accepted"
+fi
+grep -q "unresolved template placeholder" "$TMP_DIR/placeholder.err" \
+  || fail "placeholder leak not reported: $(cat "$TMP_DIR/placeholder.err")"
+
+# `gh issue view <number>` is a sample command, not a leaked placeholder.
+WS_SAMPLE="$TMP_DIR/sample"
+cp -R "$WS" "$WS_SAMPLE"
+cat >> "$WS_SAMPLE/docs/agents/pull-request.md" <<'DOC'
+
+Read it with `gh pr view <number> --comments`.
+DOC
+if ! WAZA_WORKSPACE_DIR="$WS_SAMPLE" bash "$GRADER" 2>"$TMP_DIR/sample.err"; then
+  fail "an angle placeholder inside a sample command was rejected: $(cat "$TMP_DIR/sample.err")"
+fi
+
 # --- a missing document is reported alone, without cascading ---
 WS_GONE="$TMP_DIR/missing"
 cp -R "$WS" "$WS_GONE"

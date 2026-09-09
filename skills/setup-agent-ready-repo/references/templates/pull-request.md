@@ -7,7 +7,7 @@
 # <Pull | Merge> requests
 
 **This file is English throughout**, sample blocks included, whatever
-`<language>` is below.
+language the repo chose for its requests.
 
 Write <PR | MR> titles, descriptions, and comments in **<language>**.
 **Git commit messages are English**, imperative, subject under 72

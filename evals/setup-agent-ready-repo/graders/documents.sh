@@ -53,6 +53,16 @@ for f in "$pr" "$issues" "$verification"; do
   english_throughout "$f"
 done
 
+# --- no unresolved template placeholder reaches the repo ---
+# Every template opens with "Replace every <angle placeholder>". A bare
+# <language> or an alternation such as <gh | glab> is a template artefact;
+# an angle placeholder inside a sample command (`gh issue view <number>`)
+# is not, so only those two shapes are caught.
+for f in "$pr" "$issues" "$verification"; do
+  leftover=$(grep -oE '<language>|<[^<>]+ \| [^<>]+>' "$f" | head -n 1 || true)
+  [ -z "$leftover" ] || fail "$f ships an unresolved template placeholder: $leftover"
+done
+
 # --- GitHub vocabulary, not GitLab ---
 if [ -f docs/agents/merge-request.md ]; then
   fail "wrote merge-request.md for a GitHub repo"
