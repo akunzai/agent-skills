@@ -42,8 +42,6 @@ is authoritative on structure. What follows only adds what it does not say. -->
    | Backend or library only | None; test output instead |
 
    Pair before and after. At most one diagram unless it is such a pair.
-   No personally identifiable information in any attachment —
-   `verification.md`'s capture rules say what that means here.
 
    Upload the file with the repeatable `--attach` flag —
    `<gh pr create --attach './after.png#After' | glab mr create --attach ./after.png>`.
@@ -53,6 +51,12 @@ is authoritative on structure. What follows only adds what it does not say. -->
    named placeholder comment.
 3. A collapsed technical trailer holding affected paths, implementation
    notes, verification commands, and log excerpts.
+
+<!-- Keep the line below even when the visual guidance above is cut
+short. It is the one rule whose absence costs someone else. -->
+**No personally identifiable information in any attachment**, whatever
+you end up attaching. `verification.md`'s capture rules say what that
+means here.
 
 ## Tests land with the behaviour
 

@@ -32,9 +32,7 @@ Use a concise descriptive title with no Conventional Commit prefix.
 2. Add a visual the forge renders inline — a screenshot or recording for
    a UI bug, a Mermaid diagram for a flow or state problem. Skip formats
    the description editor cannot render, such as a link to an external
-   artifact or a raw HTML or SVG file. Attachments must not contain
-   personally identifiable information; use test data, masking, or
-   cropping. Upload it with the repeatable `--attach` flag
+   artifact or a raw HTML or SVG file. Upload it with the repeatable `--attach` flag
    (`<gh issue create --attach './bug.png#The error state' | glab issue create --attach ./bug.png>`);
    alt text follows the path after `#`. Only when capture is genuinely
    impossible, leave `<!-- screenshot pending: <what it should show> -->`
@@ -50,6 +48,11 @@ suspected cause, related code paths, repro commands, log excerpts
 
 </details>
 ```
+
+<!-- Keep the line below even when the visual guidance above is cut
+short. It is the one rule whose absence costs someone else. -->
+**No personally identifiable information in any attachment**; use test
+data, masking, or cropping.
 
 ## Spec issues
 
