@@ -15,8 +15,10 @@ is authoritative on structure. What follows only adds what it does not say. -->
 ## Preparing
 
 - Work on a feature branch. Never prepare a request from the default branch.
-- Use a concise descriptive title with no Conventional Commit prefix. One
-  request may carry more than one kind of change.
+- <Use a concise descriptive title with no Conventional Commit prefix,
+  because one request may carry more than one kind of change. | Prefix the
+  title with a Conventional Commit type, matching this repo's merged
+  history.> Delete the alternative that does not apply.
 - **Do not open a request, draft included, without the developer asking.**
 
 ## Description shape
@@ -35,8 +37,15 @@ is authoritative on structure. What follows only adds what it does not say. -->
    | Backend or library only | None; test output instead |
 
    Pair before and after. At most one diagram unless it is such a pair.
-   No personally identifiable information in any attachment. When
-   capture is impossible, leave a named placeholder comment.
+   No personally identifiable information in any attachment —
+   `verification.md`'s capture rules say what that means here.
+
+   Upload the file with the repeatable `--attach` flag —
+   `<gh pr create --attach './after.png#After' | glab mr create --attach ./after.png>`.
+   Alt text follows the path after `#`, and a path the body already
+   references as `![alt](./after.png)` is rewritten to point at the
+   uploaded asset. Only when capture is genuinely impossible, leave a
+   named placeholder comment.
 3. A collapsed technical trailer holding affected paths, implementation
    notes, verification commands, and log excerpts.
 

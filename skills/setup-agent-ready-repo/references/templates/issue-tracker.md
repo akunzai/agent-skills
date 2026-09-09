@@ -30,9 +30,11 @@ Use a concise descriptive title with no Conventional Commit prefix.
    the description editor cannot render, such as a link to an external
    artifact or a raw HTML or SVG file. Attachments must not contain
    personally identifiable information; use test data, masking, or
-   cropping. When capture is impossible, leave
-   `<!-- screenshot pending: <what it should show> -->` rather than
-   omitting it silently.
+   cropping. Upload it with the repeatable `--attach` flag
+   (`<gh issue create --attach './bug.png#The error state' | glab issue create --attach ./bug.png>`);
+   alt text follows the path after `#`. Only when capture is genuinely
+   impossible, leave `<!-- screenshot pending: <what it should show> -->`
+   rather than omitting it silently.
 3. Close with a collapsed technical section, so it does not push the
    human summary below the fold:
 

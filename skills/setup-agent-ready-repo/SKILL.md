@@ -36,8 +36,8 @@ differently gets a section, not a second file.
 | `docs/agents/issue-tracker.md` | Forge, CLI, issue body shape, labels |
 | `docs/agents/pull-request.md` or `merge-request.md` | PR/MR body shape, commits, tests, review readiness |
 | `docs/agents/verification.md` | Non-interactive entrypoint, evidence, gaps |
-| `AGENTS.md` | Three `@` pointer lines under Pointers |
-| a non-interactive entrypoint script | One command an agent can run |
+| `AGENTS.md` | One `@` pointer line per document |
+| a non-interactive entrypoint | One command an agent can run; a script only where none exists |
 
 The pointers go under `AGENTS.md`'s existing Pointers section, one line
 each, in the repo's own wording:
@@ -73,8 +73,9 @@ lands correctly. Both probes below resolve the host from that remote.
 
 1. `gh repo view --json name` succeeds — GitHub or GHES. Write
    `pull-request.md`.
-2. `glab api version` succeeds — GitLab, any tier. Write
-   `merge-request.md`.
+2. `glab repo view` succeeds — GitLab, any tier. Write
+   `merge-request.md`. `glab api version` is not repo-scoped: it
+   succeeds in a GitHub clone.
 3. A remote, but neither probe — another forge. Write the generic issue
    profile and ask which CLI the repo uses.
 4. No remote — skip both ticket documents and their pointers.
@@ -105,13 +106,15 @@ structure, that template wins; nothing else does.
 
 Then propose rather than interview. Probe and offer a concrete default
 the developer confirms or edits: the source paths whose changes must
-land with tests, and which of the repo's existing labels an agent should
-apply. Read the labels from the forge with the page size raised
-(`gh label list --limit 100`, `glab label list --per-page 100`) and
-record what is there. At their default of 30 both CLIs present the first
-page as the complete set, so a label further down reads as missing. Inventing a label
-vocabulary, or importing one from another project, produces labels
-nobody uses; a missing label is a conversation with the maintainer.
+land with tests, which of the repo's existing labels an agent should
+apply, and the request-title convention, read from merged requests
+(`gh pr list --state merged --limit 30 --json title`,
+`glab mr list --merged`). Read the labels with the page size raised
+(`gh label list --limit 100`, `glab label list --per-page 100`): both
+default to 30 and present that page as the whole set, so a label further
+down reads as missing. Inventing a label vocabulary, or importing one
+from another project, produces labels nobody uses; a missing label is a
+conversation with the maintainer.
 
 Body shape, diagram selection, evidence and PII rules:
 [ticket-and-pr.md](references/ticket-and-pr.md).
@@ -121,32 +124,42 @@ carries its language rule, and the developer has confirmed both.
 
 ## Phase 2 — verification
 
-The deliverable is one recorded, repeatable command that starts the
-project without blocking on a TTY, plus a check proving it came up.
+The deliverable is one recorded, repeatable command that runs without a
+TTY, plus a check proving it worked.
 Wrap what the project already has, and record an unrunnable dependency
 as a gap. Generating a compose file or inventing a mock produces
 plausible, wrong configuration, which is the failure this skill exists
 to prevent.
 
+Where the project already has one non-interactive command, record that
+command; a wrapper is a second source of truth that drifts. A library,
+CLI, or TUI has no stack to start and no port to allocate: record its
+gate command plus a check that the built artifact runs, and delete the
+Ports and deployed sections.
+
 Human-only prerequisites — installing tools, trusting a certificate,
 anything needing sudo, obtaining credentials — go into the document as a
-checklist. The agent script exits non-zero naming them; it never
+checklist. The entrypoint exits non-zero naming them; it never
 prompts. When the `wizard` skill is installed, suggest the developer use
 it to turn that checklist into an interactive script. Do not produce or
 run one here.
 
-Then run it. If it comes up, the setup is verified. If it cannot —
-missing credentials, a dependency this repo does not run — record that
-under the document's unverified section with the reason, rather than
-claiming a pass.
+Then run it. Three outcomes. It comes up; or its entrypoint needs a TTY,
+and the non-TTY readiness subcommand the project ships counts as coming
+up; or neither is possible — missing credentials, a dependency this repo
+does not run — and it goes under the document's unverified section with
+the reason, rather than claiming a pass.
+
+Then sweep for references to the section you shrank, source comments
+included.
 
 Entrypoint detection, port strategy, local and deployed verification:
 [verification.md](references/verification.md). Capture tooling per
 platform: [capture.md](references/capture.md).
 
-**Done when** `verification.md` exists, the entrypoint has either run
-clean or its failure is recorded as a named gap, and `AGENTS.md` carries
-the pointers. Where `AGENTS.md` does not exist, hand that off to the
+**Done when** `verification.md` exists, the entrypoint has run clean or
+its failure is recorded as a named gap,
+and `AGENTS.md` carries the pointers. Where `AGENTS.md` does not exist, hand that off to the
 `agents-md` skill, which owns the quality bar and the `CLAUDE.md`
 symlink. Where that skill is not installed, write a minimal `AGENTS.md`
 holding a one-line project description and the three pointers, and say
@@ -171,12 +184,14 @@ Offer each of these on its own confirmation.
 ## Re-running
 
 Resume at the first incomplete phase; do not re-ask what a document
-already answers.
+already answers. Present is not complete: a document another skill wrote
+counts as this skill's only if it carries the Phase 1 language rule.
 
 [check-drift.sh](scripts/check-drift.sh) compares four mechanical facts:
-documented forge against the remote, the entrypoint still existing and
-runnable, documented ports against the compose file, and files the
-document depends on still being present. It reads them from
+documented forge against the remote, the entrypoint still resolving and
+running (`drift:entrypoint` for a script path, `drift:entrypoint-cmd` for
+a task-runner command), documented ports against the compose file, and
+files the document depends on still being present. It reads them from
 `drift:` HTML-comment markers that `verification.md` carries, so the
 document stays the single source and the markers stay invisible when
 rendered. Write those markers whenever you write the file.
