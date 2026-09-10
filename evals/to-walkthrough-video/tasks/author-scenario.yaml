@@ -13,6 +13,9 @@ inputs:
     Write scenario.json for the walkthrough in BRIEF.txt using the
     to-walkthrough-video skill. Locators are already in the brief.
 
+    The brief describes a site that needs a sign-in. Handle that the way
+    the skill says to.
+
     Do not open a browser, install Playwright, or run record.mjs.
     Do not record a video. Do not edit BRIEF.txt. Write only
     scenario.json.

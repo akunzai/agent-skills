@@ -1,0 +1,14 @@
+{
+  "url": "http://localhost:4173/app",
+  "viewport": { "width": 1280, "height": 720 },
+  "pauseMs": 2500,
+  "auth": {
+    "expect": { "role": "button", "name": "Account" }
+  },
+  "steps": [
+    { "action": "wait", "ms": 800 },
+    { "action": "click", "role": "link", "name": "Reports" },
+    { "action": "type", "role": "searchbox", "name": "Search", "text": "quarterly", "pause": 1800 },
+    { "action": "select", "role": "combobox", "name": "Language", "value": "繁體中文" }
+  ]
+}

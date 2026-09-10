@@ -12,20 +12,22 @@ fi
 node --input-type=module <<'EOF'
 import fs from "node:fs";
 
+const problems = [];
 const fail = (message) => {
-  console.error(message);
-  process.exit(1);
+  problems.push(message);
 };
 
 let doc;
 try {
   doc = JSON.parse(fs.readFileSync("scenario.json", "utf8"));
 } catch (error) {
-  fail(`scenario.json is not JSON: ${error.message}`);
+  console.error(`scenario.json is not JSON: ${error.message}`);
+  process.exit(1);
 }
 
 if (!doc || typeof doc !== "object" || Array.isArray(doc)) {
-  fail("scenario.json must be an object");
+  console.error("scenario.json must be an object");
+  process.exit(1);
 }
 if (typeof doc.url !== "string" || !doc.url.includes("example.com")) {
   fail("scenario.json needs url pointing at example.com");
@@ -62,5 +64,19 @@ if (String(value ?? "") !== "English") {
 const more = doc.steps.find((step) => String(step.name ?? step.text ?? "").includes("More information"));
 if (!more) {
   fail("missing More information locator");
+}
+
+// The brief says the site needs a sign-in, so the scenario must carry the
+// assertion that proves the saved session is still alive.
+const expect = doc.auth?.expect;
+if (!expect || typeof expect !== "object") {
+  fail("scenario.json needs auth.expect for a site that requires signing in");
+} else if (!String(expect.name ?? expect.text ?? expect.label ?? expect.selector ?? "").includes("Account")) {
+  fail("auth.expect must locate the Account control that only a signed-in user sees");
+}
+
+if (problems.length > 0) {
+  console.error(problems.join("\n"));
+  process.exit(1);
 }
 EOF

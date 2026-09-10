@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SUGGEST="$ROOT_DIR/skills/to-walkthrough-video/scripts/suggest-zooms.mjs"
 RENDER="$ROOT_DIR/skills/to-walkthrough-video/scripts/render-auto-zoom.mjs"
 RECORD="$ROOT_DIR/skills/to-walkthrough-video/scripts/record.mjs"
+SERVE="$ROOT_DIR/skills/to-walkthrough-video/examples/site/serve.mjs"
 
 fail() {
   echo "to-walkthrough-video test failed: $*" >&2
@@ -14,8 +15,10 @@ fail() {
 [ -f "$SUGGEST" ] || fail "scripts/suggest-zooms.mjs is missing"
 [ -f "$RENDER" ] || fail "scripts/render-auto-zoom.mjs is missing"
 [ -f "$RECORD" ] || fail "scripts/record.mjs is missing"
+[ -f "$SERVE" ] || fail "examples/site/serve.mjs is missing"
 
 command -v node >/dev/null || fail "node is not on PATH"
+command -v curl >/dev/null || fail "curl is not on PATH"
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
@@ -41,9 +44,17 @@ set -e
 node "$SUGGEST" --help >"$TMP_DIR/help"
 grep -q -- "--clicks" "$TMP_DIR/help" || fail "suggest-zooms --help missing --clicks"
 
+# Skills are installed as symlinks; invoking through one must still run main().
+ln -s "$ROOT_DIR/skills/to-walkthrough-video" "$TMP_DIR/skill-link"
+node "$TMP_DIR/skill-link/scripts/record.mjs" --help >"$TMP_DIR/symlink-help" \
+  || fail "record.mjs through a symlink should exit 0"
+grep -q -- "--scenario" "$TMP_DIR/symlink-help" \
+  || fail "record.mjs through a symlink printed nothing: main() did not run"
+
 node "$RECORD" --help >"$TMP_DIR/record-help"
 grep -q -- "--width" "$TMP_DIR/record-help" || fail "record --help missing --width"
 grep -q -- "--pause-ms" "$TMP_DIR/record-help" || fail "record --help missing --pause-ms"
+grep -q -- "--storage-state" "$TMP_DIR/record-help" || fail "record --help missing --storage-state"
 
 node --input-type=module <<EOF || fail "record helper exports"
 import { parseArgs, resolveViewport, resolvePauseMs } from "file://${RECORD}";
@@ -95,6 +106,118 @@ if (resolvePauseMs({}, { pauseMs: 3000 }) !== 3000) {
   fail("state pause");
 }
 EOF
+
+# --- credential and storage-state guards -------------------------------------
+
+GIT_REPO="$TMP_DIR/repo"
+mkdir -p "$GIT_REPO"
+git -C "$GIT_REPO" init -b main >/dev/null
+printf '{"cookies":[],"origins":[]}\n' >"$GIT_REPO/auth.json"
+
+OUTSIDE_STATE="$TMP_DIR/auth-outside.json"
+printf '{"cookies":[],"origins":[]}\n' >"$OUTSIDE_STATE"
+
+IGNORED_REPO="$TMP_DIR/repo-ignored"
+mkdir -p "$IGNORED_REPO"
+git -C "$IGNORED_REPO" init -b main >/dev/null
+printf 'auth.json\n' >"$IGNORED_REPO/.gitignore"
+printf '{"cookies":[],"origins":[]}\n' >"$IGNORED_REPO/auth.json"
+
+node --input-type=module <<EOF || fail "record guard behaviour"
+import { parseArgs, storageStateProblems, validateScenario } from "file://${RECORD}";
+
+const fail = (message) => {
+  console.error(message);
+  process.exit(1);
+};
+
+const args = parseArgs(["--scenario", "s.json", "--out", "o.webm", "--storage-state", "auth.json"]);
+if (args.storageState !== "auth.json") {
+  fail("parseArgs --storage-state");
+}
+
+// What a walkthrough types on camera is the author's call: a scenario that
+// fills a login form is recorded, not refused.
+const typesAPassword = {
+  steps: [{ action: "type", label: "Password", text: "whatever-the-author-wants" }],
+};
+if (validateScenario(typesAPassword, {}).length !== 0) {
+  fail("a demo scenario may type into a password field");
+}
+if (validateScenario({ password: "x", steps: [] }, {}).length !== 0) {
+  fail("scenario fields are the author's business");
+}
+
+// auth mode still needs the assertion that proves the session survived.
+const missingExpect = validateScenario({ steps: [] }, { authMode: true });
+if (!missingExpect.some((p) => p.includes("auth.expect"))) {
+  fail("auth mode should require auth.expect");
+}
+const wellFormed = { auth: { expect: { role: "button", name: "Account" } }, steps: [] };
+if (validateScenario(wellFormed, { authMode: true }).length !== 0) {
+  fail("a well-formed auth scenario should pass");
+}
+
+// A storage state that cannot be read is a refusal; where it lives is not.
+if (storageStateProblems("${OUTSIDE_STATE}").length !== 0) {
+  fail("a readable storage state should pass");
+}
+if (storageStateProblems("${GIT_REPO}/auth.json").length !== 0) {
+  fail("a storage state inside a repository should not be refused");
+}
+if (!storageStateProblems("${TMP_DIR}/missing.json")[0].includes("--save-storage")) {
+  fail("a missing storage state should point at the save command");
+}
+EOF
+
+node --input-type=module <<EOF || fail "storage state warnings"
+import { storageStateWarnings } from "file://${RECORD}";
+
+const fail = (message) => {
+  console.error(message);
+  process.exit(1);
+};
+
+// A committable storage state is worth saying out loud, without blocking.
+if (!storageStateWarnings("${GIT_REPO}/auth.json").some((w) => w.includes(".gitignore"))) {
+  fail("a committable storage state should warn");
+}
+if (storageStateWarnings("${IGNORED_REPO}/auth.json").length !== 0) {
+  fail("an ignored storage state should not warn");
+}
+if (storageStateWarnings("${OUTSIDE_STATE}").length !== 0) {
+  fail("a storage state outside any repository should not warn");
+}
+EOF
+
+# --- fixture site ------------------------------------------------------------
+
+node "$SERVE" --port 0 >"$TMP_DIR/serve.log" 2>&1 &
+SERVE_PID=$!
+trap 'kill "$SERVE_PID" 2>/dev/null || true; rm -rf "$TMP_DIR"' EXIT
+
+BASE=""
+for _ in $(seq 1 50); do
+  BASE="$(sed -n 's|.*listening on \(http://[^ ]*\)/|\1|p' "$TMP_DIR/serve.log")"
+  [ -n "$BASE" ] && break
+  sleep 0.1
+done
+[ -n "$BASE" ] || fail "fixture server did not report a port: $(cat "$TMP_DIR/serve.log")"
+
+http_status() {
+  curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$@"
+}
+
+[ "$(http_status "$BASE/")" = "200" ] || fail "fixture public page should be served"
+[ "$(http_status "$BASE/app")" = "302" ] || fail "fixture protected page should redirect without a cookie"
+[ "$(http_status -H 'Cookie: walkthrough_session=1' "$BASE/app")" = "200" ] \
+  || fail "fixture protected page should be served with a session cookie"
+[ "$(http_status -d 'username=a&password=b' "$BASE/login")" = "302" ] || fail "fixture login should redirect"
+curl -s -D- -o /dev/null --max-time 5 -d 'username=a&password=b' "$BASE/login" \
+  | grep -qi '^set-cookie: walkthrough_session=' || fail "fixture login should set the session cookie"
+
+kill "$SERVE_PID" 2>/dev/null || true
+trap 'rm -rf "$TMP_DIR"' EXIT
 
 jq_field() {
   node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); const path=process.argv[2].split('.'); let v=j; for (const k of path) v=v[k]; if (v===undefined||v===null) process.exit(1); process.stdout.write(String(v));" "$@"

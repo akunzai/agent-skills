@@ -1,5 +1,7 @@
 # Playwright CLI output (may contain credentials)
 .playwright-cli/
+# A saved storage state impersonates the account that made it
+auth.json
 
 # Temp files
 tmp/

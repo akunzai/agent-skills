@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fixture — public</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Walkthrough fixture</h1>
+      <a href="/login">Sign in</a>
+    </header>
+    <main>
+      <p>This page needs no session. It exists so a walkthrough can be recorded offline.</p>
+      <p><a href="#more">More information</a></p>
+      <label for="q">Search</label>
+      <input id="q" type="search" placeholder="Type here" />
+      <label for="lang">Language</label>
+      <select id="lang">
+        <option>English</option>
+        <option>日本語</option>
+        <option>繁體中文</option>
+      </select>
+      <section id="more">
+        <h2>More information</h2>
+        <p>Anchored so the click never leaves the page and the later locators stay valid.</p>
+      </section>
+    </main>
+  </body>
+</html>

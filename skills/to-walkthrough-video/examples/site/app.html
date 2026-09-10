@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fixture — dashboard</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Dashboard</h1>
+      <button type="button" id="account">Account</button>
+    </header>
+    <main>
+      <p>Served only when the session cookie is present, so it stands in for any
+        system that needs a sign-in before the interesting screens.</p>
+      <p><a href="#reports">Reports</a></p>
+      <label for="q">Search</label>
+      <input id="q" type="search" placeholder="Type here" />
+      <label for="lang">Language</label>
+      <select id="lang">
+        <option>English</option>
+        <option>日本語</option>
+        <option>繁體中文</option>
+      </select>
+      <section id="reports">
+        <h2>Reports</h2>
+        <p>Anchored so the click never leaves the page.</p>
+      </section>
+    </main>
+  </body>
+</html>
