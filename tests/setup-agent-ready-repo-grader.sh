@@ -139,6 +139,10 @@ This document is where the capture rules live.
 ## Not verified
 
 - The Docker Compose stack: Docker is unavailable here, so it was not verified.
+
+A gap you could have closed is not a gap. Run the check whose dependency
+you have already seen running, and report a check you skipped as untried,
+rather than recording it here as one this repo cannot run.
 DOC
 
 if ! WAZA_WORKSPACE_DIR="$WS" bash "$GRADER" 2>"$TMP_DIR/pass.err"; then
