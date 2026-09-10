@@ -1,0 +1,13 @@
+{
+  "url": "http://localhost:4173/",
+  "viewport": { "width": 1280, "height": 720 },
+  "pauseMs": 2000,
+  "captionLocale": "zh-TW",
+  "effects": { "zoom": false },
+  "steps": [
+    { "action": "wait", "ms": 800 },
+    { "action": "press", "keys": "Control+k", "caption": "按下 Ctrl + K 開啟搜尋" },
+    { "action": "type", "role": "searchbox", "name": "Search", "text": "walkthrough", "pause": 1500 },
+    { "action": "select", "role": "combobox", "name": "Language", "value": "繁體中文" }
+  ]
+}

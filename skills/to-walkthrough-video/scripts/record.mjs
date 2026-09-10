@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { renderAutoZoom } from "./render-auto-zoom.mjs";
+import { renderAutoZoom, transcode } from "./render-auto-zoom.mjs";
 import { parseSamples, suggestZooms } from "./suggest-zooms.mjs";
 
 export const DEFAULT_VIEWPORT = { width: 1280, height: 720 };
@@ -217,8 +217,15 @@ function installCursor() {
       root.appendChild(host);
     }
   };
-  mount();
-  new MutationObserver(mount).observe(document.documentElement, { childList: true, subtree: true });
+  const watch = () => {
+    mount();
+    new MutationObserver(mount).observe(document.documentElement, { childList: true, subtree: true });
+  };
+  if (document.documentElement) {
+    watch();
+  } else {
+    document.addEventListener("DOMContentLoaded", watch, { once: true });
+  }
 
   window.__tvrCursor = {
     mount,
@@ -245,6 +252,161 @@ function installCursor() {
       spawn("echo outer");
     },
   };
+}
+
+export const EFFECT_DEFAULTS = { zoom: true, cursor: true, captions: true };
+
+export function resolveEffects(scenario) {
+  const given = scenario?.effects;
+  if (given === undefined) {
+    return { ...EFFECT_DEFAULTS };
+  }
+  if (given === null || typeof given !== "object" || Array.isArray(given)) {
+    throw new Error("scenario.effects must be an object of booleans");
+  }
+  const effects = { ...EFFECT_DEFAULTS };
+  for (const [key, value] of Object.entries(given)) {
+    if (!(key in EFFECT_DEFAULTS)) {
+      throw new Error(`unknown effect: ${key}; known effects are ${Object.keys(EFFECT_DEFAULTS).join(", ")}`);
+    }
+    if (typeof value !== "boolean") {
+      throw new Error(`effects.${key} must be true or false`);
+    }
+    effects[key] = value;
+  }
+  return effects;
+}
+
+// A viewer reads their own keyboard, not Playwright's key syntax.
+const KEYCAPS = {
+  Meta: "\u2318",
+  Control: "Ctrl",
+  Shift: "\u21e7",
+  Alt: "\u2325",
+  Enter: "\u21b5",
+  Escape: "Esc",
+  Tab: "\u21e5",
+  Backspace: "\u232b",
+  ArrowUp: "\u2191",
+  ArrowDown: "\u2193",
+  ArrowLeft: "\u2190",
+  ArrowRight: "\u2192",
+};
+
+export function formatKeys(keys) {
+  return String(keys ?? "")
+    .split("+")
+    .map((part) => KEYCAPS[part] ?? (part.length === 1 ? part.toUpperCase() : part))
+    .join(" + ");
+}
+
+const CAPTION_TEMPLATES = {
+  en: {
+    click: "Click {}",
+    "double-click": "Double-click {}",
+    type: "Type {}",
+    select: "Select {}",
+    press: "Press {}",
+  },
+  "zh-tw": {
+    click: "\u9ede\u64ca {}",
+    "double-click": "\u9023\u64ca {}",
+    type: "\u8f38\u5165 {}",
+    select: "\u9078\u64c7 {}",
+    press: "\u6309\u4e0b {}",
+  },
+  ja: {
+    click: "{} \u3092\u30af\u30ea\u30c3\u30af",
+    "double-click": "{} \u3092\u30c0\u30d6\u30eb\u30af\u30ea\u30c3\u30af",
+    type: "{} \u3068\u5165\u529b",
+    select: "{} \u3092\u9078\u629e",
+    press: "{} \u3092\u62bc\u3059",
+  },
+};
+
+export const DEFAULT_CAPTION_LOCALE = "en";
+
+export function resolveCaptionLocale(scenario) {
+  const asked = String(scenario?.captionLocale ?? DEFAULT_CAPTION_LOCALE).toLowerCase();
+  return asked in CAPTION_TEMPLATES ? asked : DEFAULT_CAPTION_LOCALE;
+}
+
+function captionSubject(step, action) {
+  if (action === "type") {
+    return String(step.text ?? "");
+  }
+  if (action === "select") {
+    return String(step.value ?? step.option ?? step.label ?? "");
+  }
+  if (action === "press") {
+    return formatKeys(step.keys);
+  }
+  return String(step.name ?? step.label ?? step.text ?? step.selector ?? "");
+}
+
+function captionAction(step) {
+  const action = resolveAction(step);
+  return action === "dblclick" ? "double-click" : action;
+}
+
+export function captionFor(step, locale = DEFAULT_CAPTION_LOCALE) {
+  if (typeof step.caption === "string") {
+    return step.caption;
+  }
+  const action = captionAction(step);
+  const templates = CAPTION_TEMPLATES[locale] ?? CAPTION_TEMPLATES[DEFAULT_CAPTION_LOCALE];
+  const template = templates[action];
+  if (!template) {
+    return null;
+  }
+  const subject = captionSubject(step, action);
+  return subject ? template.replace("{}", subject) : null;
+}
+
+const HTML_ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+
+function escapeHtml(text) {
+  return String(text).replace(/[&<>"']/g, (c) => HTML_ESCAPES[c]);
+}
+
+export function captionPosition(anchor, viewport = DEFAULT_VIEWPORT) {
+  if (!anchor) {
+    return { left: viewport.width / 2, top: viewport.height - 72 };
+  }
+  const below = anchor.y + 44;
+  const top = below > viewport.height - 56 ? Math.max(24, anchor.y - 56) : below;
+  const left = Math.min(Math.max(anchor.x, 140), Math.max(140, viewport.width - 140));
+  return { left, top };
+}
+
+export function captionHtml(text, anchor, viewport = DEFAULT_VIEWPORT) {
+  const { left, top } = captionPosition(anchor, viewport);
+  return `<style>
+    .tvr-caption {
+      position: absolute; left: ${left}px; top: ${top}px; transform: translateX(-50%);
+      font: 600 20px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: #fff; background: rgba(17,18,22,.82); padding: 10px 18px;
+      border-radius: 999px; backdrop-filter: blur(6px); white-space: nowrap;
+      box-shadow: 0 6px 24px rgba(0,0,0,.28);
+    }
+  </style>
+  <div class="tvr-caption">${escapeHtml(text)}</div>`;
+}
+
+async function showCaption(page, state, step, anchor) {
+  if (!state.effects?.captions) {
+    return null;
+  }
+  const text = captionFor(step, state.captionLocale);
+  if (!text) {
+    return null;
+  }
+  const viewport = page.viewportSize() ?? DEFAULT_VIEWPORT;
+  return page.screencast.showOverlay(captionHtml(text, anchor, viewport)).catch(() => null);
+}
+
+async function hideCaption(overlay) {
+  await overlay?.[Symbol.asyncDispose]?.().catch(() => {});
 }
 
 export function resolveAction(step) {
@@ -313,6 +475,7 @@ export function resolvePauseMs(step, state) {
 
 export async function runScenario(page, scenario, log, state) {
   const steps = scenario.steps ?? [];
+  const effects = state.effects ?? EFFECT_DEFAULTS;
   for (let index = 0; index < steps.length; index += 1) {
     const step = steps[index];
     const action = resolveAction(step);
@@ -322,7 +485,16 @@ export async function runScenario(page, scenario, log, state) {
     }
     if (action === "goto") {
       await page.goto(step.url, { waitUntil: "domcontentloaded" });
-      await page.evaluate(installCursor).catch(() => {});
+      await installOverlay(page, state);
+      continue;
+    }
+    if (action === "press") {
+      // The keypress itself is instantaneous, so the caption has to hold for
+      // the step's pause or nobody reads it.
+      const pressCaption = await showCaption(page, state, step);
+      await page.keyboard.press(String(step.keys));
+      await sleep(resolvePauseMs(step, state));
+      await hideCaption(pressCaption);
       continue;
     }
     const locator = locatorFor(page, step);
@@ -333,9 +505,15 @@ export async function runScenario(page, scenario, log, state) {
     }
     const x = box.x + box.width / 2;
     const y = box.y + box.height / 2;
-    await animateMove(page, state, x, y);
-    await page.evaluate(installCursor).catch(() => {});
-    await syncCursor(page, state);
+    if (effects.cursor) {
+      await animateMove(page, state, x, y);
+      await installOverlay(page, state);
+      await syncCursor(page, state);
+    } else {
+      await page.mouse.move(x, y);
+      state.x = x;
+      state.y = y;
+    }
     await sleep(PRE_CLICK_MS);
     const viewport = page.viewportSize() ?? DEFAULT_VIEWPORT;
     const button = step.button ?? "left";
@@ -347,12 +525,15 @@ export async function runScenario(page, scenario, log, state) {
       cx: x / viewport.width,
       cy: y / viewport.height,
     });
-    await page.evaluate(
-      ([cx, cy]) => {
-        window.__tvrCursor?.pulse(cx, cy);
-      },
-      [x, y],
-    ).catch(() => {});
+    if (effects.cursor) {
+      await page.evaluate(
+        ([cx, cy]) => {
+          window.__tvrCursor?.pulse(cx, cy);
+        },
+        [x, y],
+      ).catch(() => {});
+    }
+    const caption = await showCaption(page, state, step, { x, y });
     if (action === "dblclick" || action === "double-click") {
       await page.mouse.dblclick(x, y);
     } else {
@@ -373,12 +554,25 @@ export async function runScenario(page, scenario, log, state) {
       }
     }
     await sleep(resolvePauseMs(step, state));
-    await page.evaluate(installCursor).catch(() => {});
+    await hideCaption(caption);
+    await installOverlay(page, state);
     await syncCursor(page, state);
   }
 }
 
+// A navigation or a framework re-render can drop the host, so the overlay is
+// re-evaluated rather than trusted to survive.
+async function installOverlay(page, state) {
+  if (!state.effects?.cursor) {
+    return;
+  }
+  await page.evaluate(installCursor).catch(() => {});
+}
+
 async function syncCursor(page, state) {
+  if (!state.effects?.cursor) {
+    return;
+  }
   await page.evaluate(
     ([x, y]) => {
       window.__tvrCursor?.move(x, y);
@@ -397,6 +591,7 @@ export async function recordWalkthrough(options) {
   if (problems.length > 0) {
     throw new Error(`refusing to record:\n- ${problems.join("\n- ")}`);
   }
+  const effects = resolveEffects(scenario);
   if (authMode) {
     for (const warning of storageStateWarnings(options.storageState)) {
       process.stderr.write(`warning: ${warning}\n`);
@@ -415,11 +610,18 @@ export async function recordWalkthrough(options) {
   const context = await browser.newContext({
     viewport,
     deviceScaleFactor: 1,
-    recordVideo: { dir: tmp, size: viewport },
     ...(authMode ? { storageState: path.resolve(options.storageState) } : {}),
   });
-  await context.addInitScript(installCursor);
+  if (effects.cursor) {
+    await context.addInitScript(installCursor);
+  }
   const page = await context.newPage();
+  if (typeof page.screencast?.start !== "function") {
+    await context.close().catch(() => {});
+    await browser.close().catch(() => {});
+    fs.rmSync(tmp, { recursive: true, force: true });
+    throw new Error("page.screencast is missing: this skill needs Playwright 1.59 or newer");
+  }
   const clicks = [];
   const log = (entry) => {
     clicks.push(entry);
@@ -433,30 +635,36 @@ export async function recordWalkthrough(options) {
       : Number.isFinite(scenario.pauseMs)
         ? scenario.pauseMs
         : POST_CLICK_MS,
+    effects,
+    captionLocale: resolveCaptionLocale(scenario),
   };
-  const video = page.video();
-  const openedAt = Date.now();
+  const rawPath = path.join(tmp, "raw.webm");
 
   try {
     await page.goto(scenario.url, { waitUntil: "domcontentloaded" });
-    await page.evaluate(installCursor).catch(() => {});
+    await installOverlay(page, state);
     await assertAuthenticated(page, scenario);
     await page.locator("h1").first().waitFor({ state: "visible", timeout: 15_000 }).catch(() => {});
     await sleep(500);
+    // Capture starts where the click timeline starts, so nothing has to be
+    // trimmed back off later.
+    await page.screencast.start({ path: rawPath, size: viewport });
     state.startedAt = Date.now();
     await syncCursor(page, state);
     await runScenario(page, scenario, log, state);
     await sleep(600);
   } catch (error) {
+    await page.screencast.stop().catch(() => {});
     await context.close().catch(() => {});
     await browser.close().catch(() => {});
     fs.rmSync(tmp, { recursive: true, force: true });
     throw error;
   }
 
+  const stoppedAt = Date.now();
+  await page.screencast.stop();
   await context.close();
   await browser.close();
-  const rawPath = video ? await video.path() : null;
   const stem = outPath.replace(/\.(mp4|webm)$/i, "");
   const clicksPath = `${stem}.clicks.jsonl`;
   const zoomsPath = `${stem}.zooms.json`;
@@ -464,22 +672,25 @@ export async function recordWalkthrough(options) {
   fs.writeFileSync(clicksPath, `${clicks.map((entry) => JSON.stringify(entry)).join("\n")}\n`);
 
   try {
-    if (!rawPath || !fs.existsSync(rawPath)) {
+    if (!fs.existsSync(rawPath)) {
       throw new Error("Playwright did not write a video");
     }
 
     let zoomDoc;
-    if (ffmpeg) {
+    if (ffmpeg && effects.zoom) {
       const rendered = await renderAutoZoom({
         video: rawPath,
         out: outPath,
         clicks: clicksPath,
-        trimStartMs: Math.max(0, state.startedAt - openedAt),
       });
       zoomDoc = { status: rendered.status, suggestions: rendered.suggestions };
     } else {
-      fs.copyFileSync(rawPath, outPath);
-      zoomDoc = suggestZooms(clicks, Math.max(1, Date.now() - state.startedAt));
+      if (ffmpeg && !wantWebm) {
+        await transcode({ video: rawPath, out: outPath });
+      } else {
+        fs.copyFileSync(rawPath, outPath);
+      }
+      zoomDoc = suggestZooms(clicks, Math.max(1, stoppedAt - state.startedAt));
     }
     fs.writeFileSync(zoomsPath, `${JSON.stringify(zoomDoc, null, 2)}\n`);
 
@@ -501,6 +712,17 @@ export async function recordWalkthrough(options) {
 // the author's call, so nothing here inspects step text.
 export function validateScenario(scenario, options = {}) {
   const problems = [];
+  const steps = scenario.steps ?? [];
+  for (let index = 0; index < steps.length; index += 1) {
+    if (resolveAction(steps[index]) === "press" && !steps[index].keys) {
+      problems.push(`steps[${index}] is a press step without keys`);
+    }
+  }
+  try {
+    resolveEffects(scenario);
+  } catch (error) {
+    problems.push(error.message);
+  }
   if (options.authMode && !scenario.auth?.expect) {
     problems.push(
       "--storage-state needs scenario.auth.expect: a locator visible only once signed in",

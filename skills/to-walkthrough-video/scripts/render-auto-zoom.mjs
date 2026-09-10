@@ -232,6 +232,11 @@ export function buildFilterComplex(suggestions, probe) {
   return { filter: parts.join(";"), map: "[out]", segments };
 }
 
+// Re-encode without zooming. The caller wants the container, not the effect.
+export function transcode(options) {
+  return renderAutoZoom({ ...options, suggestions: [] });
+}
+
 export async function renderAutoZoom(options) {
   const videoPath = path.resolve(options.video);
   const outPath = path.resolve(options.out);

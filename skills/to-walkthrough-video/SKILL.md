@@ -8,15 +8,14 @@ description: >-
 
 # to-walkthrough-video
 
-Record a website walkthrough with Playwright. Every click draws a pointer,
-a bounce, and a blue echo ring; ffmpeg auto-zooms from the click log.
+Record a website walkthrough with Playwright.
 
 Scripts live in `scripts/` next to this file.
 
 ## Prerequisites
 
 - Node.js
-- Playwright Chromium resolvable from the recording cwd:
+- Playwright 1.59+ with Chromium, resolvable from the recording cwd:
   `npm i -D playwright && npx playwright install chromium`
 - `ffmpeg` on PATH for auto-zoom, and for `.mp4` output
 
@@ -32,15 +31,21 @@ Scripts live in `scripts/` next to this file.
 ```json
 {
   "url": "https://example.com",
+  "captionLocale": "en",
   "auth": { "expect": { "role": "button", "name": "Account" } },
   "steps": [
     { "action": "wait", "ms": 800 },
     { "action": "click", "role": "link", "name": "More information" },
+    { "action": "press", "keys": "Control+k" },
     { "action": "type", "role": "textbox", "name": "Search", "text": "SSH", "pause": 1800 },
     { "action": "select", "role": "combobox", "name": "Language", "value": "English" }
   ]
 }
 ```
+
+Pointer, captions and auto-zoom are on; `effects` turns any off. Set
+`captionLocale` to the language of the conversation asking for the
+recording. See `references/effects.md`.
 
 Behind a sign-in: save state once with `npx playwright open
 --save-storage=auth.json <url>`, then record with `--storage-state
