@@ -1,5 +1,10 @@
 Record a walkthrough of https://example.com.
 
+The site needs a sign-in before any of this is visible. I already signed in
+myself and saved the browser storage state to auth.json, so the recording must
+start already signed in. The button named "Account" appears only once signed
+in.
+
 Steps, in order:
 1. Wait 800ms
 2. Click the link named "More information"

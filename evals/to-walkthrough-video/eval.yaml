@@ -40,6 +40,7 @@ graders:
             - "SSH"
             - "\"action\"\\s*:\\s*\"select\""
             - "English"
+            - "Account"
 
   - type: program
     name: scenario-json

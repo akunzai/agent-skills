@@ -14,6 +14,7 @@ export const POST_CLICK_MS = 2500;
 
 function printUsage(stream) {
   stream.write(`Usage: record.mjs --scenario FILE --out FILE [--width PX] [--height PX] [--pause-ms MS]
+                  [--storage-state FILE]
 
 Drive a Playwright walkthrough with a pointer and click echo.
 WebM keeps those effects without ffmpeg. Auto-zoom (and MP4) needs ffmpeg.
@@ -44,6 +45,7 @@ export function parseArgs(argv) {
     width: null,
     height: null,
     pauseMs: null,
+    storageState: null,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -51,6 +53,9 @@ export function parseArgs(argv) {
       args.help = true;
     } else if (arg === "--scenario" || arg === "--out") {
       args[arg.slice(2)] = argv[i + 1];
+      i += 1;
+    } else if (arg === "--storage-state") {
+      args.storageState = argv[i + 1];
       i += 1;
     } else if (arg === "--width" || arg === "--height" || arg === "--pause-ms") {
       const key = arg === "--pause-ms" ? "pauseMs" : arg.slice(2);
@@ -242,6 +247,10 @@ function installCursor() {
   };
 }
 
+export function resolveAction(step) {
+  return step.action ?? (step.wait !== undefined ? "wait" : "click");
+}
+
 function locatorFor(page, step) {
   if (step.selector) {
     return page.locator(step.selector);
@@ -306,7 +315,7 @@ export async function runScenario(page, scenario, log, state) {
   const steps = scenario.steps ?? [];
   for (let index = 0; index < steps.length; index += 1) {
     const step = steps[index];
-    const action = step.action ?? (step.wait !== undefined ? "wait" : "click");
+    const action = resolveAction(step);
     if (action === "wait") {
       await sleep(Number(step.ms ?? step.wait ?? 0));
       continue;
@@ -380,6 +389,19 @@ async function syncCursor(page, state) {
 
 export async function recordWalkthrough(options) {
   const scenario = options.scenario;
+  const authMode = Boolean(options.storageState);
+  const problems = [
+    ...(authMode ? storageStateProblems(options.storageState) : []),
+    ...validateScenario(scenario, { authMode }),
+  ];
+  if (problems.length > 0) {
+    throw new Error(`refusing to record:\n- ${problems.join("\n- ")}`);
+  }
+  if (authMode) {
+    for (const warning of storageStateWarnings(options.storageState)) {
+      process.stderr.write(`warning: ${warning}\n`);
+    }
+  }
   const outPath = path.resolve(options.out);
   const viewport = resolveViewport(scenario, options);
   const wantWebm = /\.webm$/i.test(outPath);
@@ -394,6 +416,7 @@ export async function recordWalkthrough(options) {
     viewport,
     deviceScaleFactor: 1,
     recordVideo: { dir: tmp, size: viewport },
+    ...(authMode ? { storageState: path.resolve(options.storageState) } : {}),
   });
   await context.addInitScript(installCursor);
   const page = await context.newPage();
@@ -417,6 +440,7 @@ export async function recordWalkthrough(options) {
   try {
     await page.goto(scenario.url, { waitUntil: "domcontentloaded" });
     await page.evaluate(installCursor).catch(() => {});
+    await assertAuthenticated(page, scenario);
     await page.locator("h1").first().waitFor({ state: "visible", timeout: 15_000 }).catch(() => {});
     await sleep(500);
     state.startedAt = Date.now();
@@ -473,6 +497,67 @@ export async function recordWalkthrough(options) {
   }
 }
 
+// What the scenario itself must carry. What a walkthrough types on camera is
+// the author's call, so nothing here inspects step text.
+export function validateScenario(scenario, options = {}) {
+  const problems = [];
+  if (options.authMode && !scenario.auth?.expect) {
+    problems.push(
+      "--storage-state needs scenario.auth.expect: a locator visible only once signed in",
+    );
+  }
+  return problems;
+}
+
+export function storageStateProblems(file) {
+  const abs = path.resolve(file);
+  if (!fs.existsSync(abs)) {
+    return [`${abs} does not exist; create it with: npx playwright open --save-storage=${file} <url>`];
+  }
+  try {
+    JSON.parse(fs.readFileSync(abs, "utf8"));
+  } catch {
+    return [`${abs} is not a Playwright storage state file`];
+  }
+  return [];
+}
+
+// A storage state impersonates the account that made it for as long as the
+// session lives, so a committable one is worth saying out loud. Playwright says
+// the same: https://playwright.dev/docs/auth. It is a warning, not a refusal —
+// where the file lives is the author's call.
+export function storageStateWarnings(file) {
+  const abs = path.resolve(file);
+  const dir = path.dirname(abs);
+  const inWorkTree = spawnSync("git", ["-C", dir, "rev-parse", "--is-inside-work-tree"], {
+    encoding: "utf8",
+  });
+  if (inWorkTree.status !== 0 || inWorkTree.stdout.trim() !== "true") {
+    return [];
+  }
+  const ignored = spawnSync("git", ["-C", dir, "check-ignore", "--quiet", abs], { stdio: "ignore" });
+  if (ignored.status === 0) {
+    return [];
+  }
+  return [`${abs} sits in a git work tree and is not ignored; consider adding it to .gitignore`];
+}
+
+export async function assertAuthenticated(page, scenario) {
+  const expect = scenario.auth?.expect;
+  if (!expect) {
+    return;
+  }
+  try {
+    await locatorFor(page, expect).first().waitFor({ state: "visible", timeout: 15_000 });
+  } catch {
+    throw new Error(
+      "auth.expect never became visible: the saved storage state has most likely expired. " +
+        "Sign in again with: npx playwright open --save-storage=<file> <url>. " +
+        "A session held only in sessionStorage cannot be reused this way.",
+    );
+  }
+}
+
 export async function main(argv = process.argv.slice(2), io = process) {
   let args;
   try {
@@ -494,7 +579,13 @@ export async function main(argv = process.argv.slice(2), io = process) {
   }
 
   try {
-    const scenario = JSON.parse(fs.readFileSync(path.resolve(args.scenario), "utf8"));
+    const scenarioPath = path.resolve(args.scenario);
+    let scenario;
+    try {
+      scenario = JSON.parse(fs.readFileSync(scenarioPath, "utf8"));
+    } catch {
+      throw new Error(`${scenarioPath} is not readable JSON`);
+    }
     if (!scenario.url) {
       throw new Error("scenario.json needs a url");
     }
@@ -504,6 +595,7 @@ export async function main(argv = process.argv.slice(2), io = process) {
       width: args.width,
       height: args.height,
       pauseMs: args.pauseMs,
+      storageState: args.storageState,
     });
     io.stdout.write(
       `${JSON.stringify({ out: result.out, clicks: result.clicks, zooms: result.zooms, status: result.status }, null, 2)}\n`,
@@ -515,8 +607,21 @@ export async function main(argv = process.argv.slice(2), io = process) {
   }
 }
 
-const invoked = process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
-if (invoked) {
+// Skills are installed as symlinks, so argv[1] is the link while import.meta.url
+// is always the real path. Comparing them unresolved makes main() never run, and
+// the command exits 0 having done nothing.
+function isMainModule(arg) {
+  if (!arg) {
+    return false;
+  }
+  try {
+    return import.meta.url === pathToFileURL(fs.realpathSync(path.resolve(arg))).href;
+  } catch {
+    return false;
+  }
+}
+
+if (isMainModule(process.argv[1])) {
   main().then((code) => {
     process.exit(code);
   });

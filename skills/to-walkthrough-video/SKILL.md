@@ -9,8 +9,7 @@ description: >-
 # to-walkthrough-video
 
 Record a website walkthrough with Playwright. Every click draws a pointer,
-a bounce, and a blue echo ring. ffmpeg applies auto-zoom from the click
-log; without ffmpeg, WebM still keeps the pointer and echo.
+a bounce, and a blue echo ring; ffmpeg auto-zooms from the click log.
 
 Scripts live in `scripts/` next to this file.
 
@@ -33,6 +32,7 @@ Scripts live in `scripts/` next to this file.
 ```json
 {
   "url": "https://example.com",
+  "auth": { "expect": { "role": "button", "name": "Account" } },
   "steps": [
     { "action": "wait", "ms": 800 },
     { "action": "click", "role": "link", "name": "More information" },
@@ -42,6 +42,11 @@ Scripts live in `scripts/` next to this file.
 }
 ```
 
+Behind a sign-in: save state once with `npx playwright open
+--save-storage=auth.json <url>`, then record with `--storage-state
+auth.json`. `auth.expect` must be visible only when signed in. See
+`references/auth.md`.
+
 2. **Record.** From a directory that can `import('playwright')`:
 
 ```bash
@@ -50,8 +55,8 @@ node scripts/record.mjs --scenario scenario.json --out demo.webm
 
 Leave this step when the video, `demo.clicks.jsonl`, and `demo.zooms.json`
 exist and the zoom file has `"status": "ok"` with one region per click
-cluster. Without ffmpeg, WebM is the raw capture (pointer and echo, no
-zoom) and the zoom file still records the clusters.
+cluster. Without ffmpeg, WebM is the raw capture and the zoom
+file still lists the clusters.
 
 3. **Hand back.** Give the user the video path.
 
