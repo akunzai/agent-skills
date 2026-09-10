@@ -190,6 +190,128 @@ if (storageStateWarnings("${OUTSIDE_STATE}").length !== 0) {
 }
 EOF
 
+node --input-type=module <<EOF || fail "effects and captions"
+import {
+  DEFAULT_CAPTION_LOCALE,
+  EFFECT_DEFAULTS,
+  captionFor,
+  captionHtml,
+  captionPosition,
+  formatKeys,
+  resolveCaptionLocale,
+  resolveEffects,
+  validateScenario,
+} from "file://${RECORD}";
+
+const fail = (message) => {
+  console.error(message);
+  process.exit(1);
+};
+const same = (a, b, what) => {
+  if (JSON.stringify(a) !== JSON.stringify(b)) {
+    fail(what + ": got " + JSON.stringify(a) + ", wanted " + JSON.stringify(b));
+  }
+};
+
+// Every effect is on unless the scenario says otherwise, and an unlisted key
+// keeps its default rather than switching off.
+same(EFFECT_DEFAULTS, { zoom: true, cursor: true, captions: true }, "effect defaults");
+same(resolveEffects({}), EFFECT_DEFAULTS, "no effects field");
+same(resolveEffects({ effects: { zoom: false } }), { zoom: false, cursor: true, captions: true }, "partial effects");
+
+for (const bad of [{ effects: [] }, { effects: null }, { effects: "none" }]) {
+  let threw = false;
+  try { resolveEffects(bad); } catch { threw = true; }
+  if (!threw) {
+    fail("effects must be an object of booleans: " + JSON.stringify(bad));
+  }
+}
+if (!validateScenario({ effects: { bogus: true }, steps: [] })[0].includes("unknown effect")) {
+  fail("an unknown effect should be refused before recording");
+}
+if (!validateScenario({ effects: { zoom: "yes" }, steps: [] })[0].includes("true or false")) {
+  fail("a non-boolean effect should be refused");
+}
+
+// A press step carries no locator, so its keys are the only thing to check.
+if (!validateScenario({ steps: [{ action: "press" }] })[0].includes("without keys")) {
+  fail("a press step without keys should be refused before recording");
+}
+same(validateScenario({ steps: [{ action: "press", keys: "Enter" }] }), [], "a well-formed press step");
+
+// A viewer reads their own keyboard, not Playwright's key syntax.
+if (formatKeys("Meta+Shift+p") !== "\u2318 + \u21e7 + P") {
+  fail("keycaps: " + formatKeys("Meta+Shift+p"));
+}
+if (formatKeys("Control+k") !== "Ctrl + K") {
+  fail("keycaps: " + formatKeys("Control+k"));
+}
+
+// Generated wording follows the locale; anything unknown falls back to English.
+if (resolveCaptionLocale({ captionLocale: "zh-TW" }) !== "zh-tw") {
+  fail("zh-TW should resolve");
+}
+if (resolveCaptionLocale({ captionLocale: "fr" }) !== DEFAULT_CAPTION_LOCALE) {
+  fail("an unknown locale should fall back");
+}
+if (resolveCaptionLocale({}) !== DEFAULT_CAPTION_LOCALE) {
+  fail("no locale should fall back");
+}
+
+const click = { action: "click", role: "link", name: "More information" };
+if (captionFor(click, "en") !== "Click More information") {
+  fail("en click caption: " + captionFor(click, "en"));
+}
+if (captionFor(click, "zh-tw") !== "\u9ede\u64ca More information") {
+  fail("zh-tw click caption: " + captionFor(click, "zh-tw"));
+}
+if (captionFor({ action: "type", text: "SSH" }, "en") !== "Type SSH") {
+  fail("type caption");
+}
+if (captionFor({ action: "select", value: "English" }, "en") !== "Select English") {
+  fail("select caption");
+}
+if (captionFor({ action: "press", keys: "Control+k" }, "en") !== "Press Ctrl + K") {
+  fail("press caption: " + captionFor({ action: "press", keys: "Control+k" }, "en"));
+}
+if (captionFor({ action: "wait", ms: 100 }, "en") !== null) {
+  fail("a wait step is not captioned");
+}
+if (captionFor({ ...click, caption: "anything at all" }, "zh-tw") !== "anything at all") {
+  fail("a step caption overrides the generated one");
+}
+
+// Word order is not universal: Japanese puts the verb last.
+if (captionFor(click, "ja") !== "More information \u3092\u30af\u30ea\u30c3\u30af") {
+  fail("ja click caption: " + captionFor(click, "ja"));
+}
+if (captionFor({ action: "press", keys: "Control+k" }, "ja") !== "Ctrl + K \u3092\u62bc\u3059") {
+  fail("ja press caption: " + captionFor({ action: "press", keys: "Control+k" }, "ja"));
+}
+if (resolveCaptionLocale({ captionLocale: "JA" }) !== "ja") {
+  fail("a locale should resolve case-insensitively");
+}
+
+// The caption is page HTML, so what a scenario supplies has to be escaped.
+if (!captionHtml('<img src=x onerror="boom">').includes("&lt;img")) {
+  fail("caption html must escape markup");
+}
+
+// Auto-zoom crops around the click, so the caption has to travel with it.
+const vp = { width: 1280, height: 720 };
+same(captionPosition({ x: 350, y: 175 }, vp), { left: 350, top: 219 }, "caption under the target");
+const low = captionPosition({ x: 350, y: 700 }, vp);
+if (low.top >= 700) {
+  fail("a target near the bottom should put the caption above it: " + JSON.stringify(low));
+}
+if (captionPosition({ x: 10, y: 300 }, vp).left !== 140) {
+  fail("a target near the edge should keep the caption on screen");
+}
+if (captionPosition(null, vp).left !== 640) {
+  fail("a step with no anchor should centre the caption");
+}
+EOF
+
 # --- fixture site ------------------------------------------------------------
 
 node "$SERVE" --port 0 >"$TMP_DIR/serve.log" 2>&1 &

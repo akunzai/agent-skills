@@ -32,8 +32,8 @@ if (!doc || typeof doc !== "object" || Array.isArray(doc)) {
 if (typeof doc.url !== "string" || !doc.url.includes("example.com")) {
   fail("scenario.json needs url pointing at example.com");
 }
-if (!Array.isArray(doc.steps) || doc.steps.length < 4) {
-  fail("scenario.json needs at least 4 steps");
+if (!Array.isArray(doc.steps) || doc.steps.length < 5) {
+  fail("scenario.json needs at least 5 steps");
 }
 
 const actions = doc.steps.map((step) => step.action ?? (step.wait !== undefined ? "wait" : "click"));
@@ -48,6 +48,17 @@ if (!actions.includes("type")) {
 }
 if (!actions.includes("select")) {
   fail("missing select step");
+}
+
+// A keyboard shortcut acts on the page, so it is the one step with no locator.
+const pressed = doc.steps.find((step) => (step.action ?? "") === "press");
+if (!pressed) {
+  fail("missing press step for the Ctrl+K shortcut");
+} else if (!/control\+k/i.test(String(pressed.keys ?? ""))) {
+  fail(
+    "press keys must use Playwright syntax as the skill's example shows " +
+      `(Control+k), not the human spelling: got ${JSON.stringify(pressed.keys ?? null)}`,
+  );
 }
 
 const typed = doc.steps.find((step) => (step.action ?? "") === "type");
