@@ -11,10 +11,26 @@ import { parseSamples, suggestZooms } from "./suggest-zooms.mjs";
 export const DEFAULT_VIEWPORT = { width: 1280, height: 720 };
 const PRE_CLICK_MS = 520;
 export const POST_CLICK_MS = 2500;
+export const SIGN_IN_TIMEOUT_MS = 180_000;
+
+// How this recording gets its session. One name rather than a pair of flags
+// switched on at every site that cares.
+export function resolveSessionMode(options = {}) {
+  const saved = Boolean(options.storageState);
+  const interactive = Boolean(options.signIn);
+  if (saved && interactive) {
+    return "conflict";
+  }
+  if (saved) {
+    return "saved";
+  }
+  return interactive ? "interactive" : "none";
+}
+const AUTH_EXPECT_TIMEOUT_MS = 15_000;
 
 function printUsage(stream) {
   stream.write(`Usage: record.mjs --scenario FILE --out FILE [--width PX] [--height PX] [--pause-ms MS]
-                  [--storage-state FILE]
+                  [--storage-state FILE] [--sign-in]
 
 Drive a Playwright walkthrough with a pointer and click echo.
 WebM keeps those effects without ffmpeg. Auto-zoom (and MP4) needs ffmpeg.
@@ -46,6 +62,7 @@ export function parseArgs(argv) {
     height: null,
     pauseMs: null,
     storageState: null,
+    signIn: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -57,6 +74,8 @@ export function parseArgs(argv) {
     } else if (arg === "--storage-state") {
       args.storageState = argv[i + 1];
       i += 1;
+    } else if (arg === "--sign-in") {
+      args.signIn = true;
     } else if (arg === "--width" || arg === "--height" || arg === "--pause-ms") {
       const key = arg === "--pause-ms" ? "pauseMs" : arg.slice(2);
       args[key] = Number(argv[i + 1]);
@@ -80,14 +99,32 @@ function hasFfmpeg() {
   }
 }
 
-async function launchChromium(playwright) {
+export function describeLaunchFailure(error, headed) {
+  const message = String(error?.message ?? error);
+  if (headed && /Missing X server|cannot open display|\$DISPLAY/i.test(message)) {
+    return `--sign-in needs a screen to put the browser on, and this session has no display (${message})`;
+  }
+  return null;
+}
+
+async function launchChromium(playwright, options = {}) {
+  const headless = options.headless ?? true;
   try {
-    return await playwright.chromium.launch({ headless: true });
+    return await playwright.chromium.launch({ headless });
   } catch (error) {
+    const explained = describeLaunchFailure(error, !headless);
+    if (explained) {
+      throw new Error(explained, { cause: error });
+    }
     if (!String(error.message ?? error).includes("Executable doesn't exist")) {
       throw error;
     }
-    return playwright.chromium.launch({ headless: true, channel: "chrome" });
+    try {
+      return await playwright.chromium.launch({ headless, channel: "chrome" });
+    } catch (retryError) {
+      const retryExplained = describeLaunchFailure(retryError, !headless);
+      throw retryExplained ? new Error(retryExplained, { cause: retryError }) : retryError;
+    }
   }
 }
 
@@ -583,10 +620,12 @@ async function syncCursor(page, state) {
 
 export async function recordWalkthrough(options) {
   const scenario = options.scenario;
-  const authMode = Boolean(options.storageState);
+  const sessionMode = resolveSessionMode(options);
+  const signIn = sessionMode === "interactive";
+  const authMode = sessionMode === "saved";
   const problems = [
     ...(authMode ? storageStateProblems(options.storageState) : []),
-    ...validateScenario(scenario, { authMode }),
+    ...validateScenario(scenario, { sessionMode }),
   ];
   if (problems.length > 0) {
     throw new Error(`refusing to record:\n- ${problems.join("\n- ")}`);
@@ -606,13 +645,13 @@ export async function recordWalkthrough(options) {
   }
   const playwright = options.playwright ?? (await loadPlaywright());
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "to-walkthrough-video-"));
-  const browser = await launchChromium(playwright);
+  const browser = await launchChromium(playwright, { headless: !signIn });
   const context = await browser.newContext({
     viewport,
     deviceScaleFactor: 1,
     ...(authMode ? { storageState: path.resolve(options.storageState) } : {}),
   });
-  if (effects.cursor) {
+  if (effects.cursor && !signIn) {
     await context.addInitScript(installCursor);
   }
   const page = await context.newPage();
@@ -642,8 +681,23 @@ export async function recordWalkthrough(options) {
 
   try {
     await page.goto(scenario.url, { waitUntil: "domcontentloaded" });
-    await installOverlay(page, state);
-    await assertAuthenticated(page, scenario);
+    if (!signIn) {
+      await installOverlay(page, state);
+    }
+    await ensureSignedIn(page, scenario, { signIn });
+    if (signIn) {
+      if (!samePage(page.url(), scenario.url)) {
+        // Signing in usually lands somewhere of the system's choosing.
+        await page.goto(scenario.url, { waitUntil: "domcontentloaded" });
+        // That navigation can bounce straight back to the login screen, which
+        // is the one frame this mode exists to keep out of the file.
+        await ensureSignedIn(page, scenario);
+      }
+      if (effects.cursor) {
+        await context.addInitScript(installCursor);
+      }
+      await installOverlay(page, state);
+    }
     await page.locator("h1").first().waitFor({ state: "visible", timeout: 15_000 }).catch(() => {});
     await sleep(500);
     // Capture starts where the click timeline starts, so nothing has to be
@@ -723,9 +777,17 @@ export function validateScenario(scenario, options = {}) {
   } catch (error) {
     problems.push(error.message);
   }
-  if (options.authMode && !scenario.auth?.expect) {
+  if (options.sessionMode === "conflict") {
+    problems.push(
+      "--sign-in and --storage-state do the same job from opposite ends: one makes a session, the other loads one. Pick one.",
+    );
+  } else if (options.sessionMode === "saved" && !scenario.auth?.expect) {
     problems.push(
       "--storage-state needs scenario.auth.expect: a locator visible only once signed in",
+    );
+  } else if (options.sessionMode === "interactive" && !scenario.auth?.expect) {
+    problems.push(
+      "--sign-in needs scenario.auth.expect: a locator visible only once signed in",
     );
   }
   return problems;
@@ -764,14 +826,40 @@ export function storageStateWarnings(file) {
   return [`${abs} sits in a git work tree and is not ignored; consider adding it to .gitignore`];
 }
 
-export async function assertAuthenticated(page, scenario) {
+// auth.expect invisible means two different things. With a saved state it is a
+// dead session; with --sign-in it is simply nobody having signed in yet, which
+// is exactly what this is waiting for.
+export function samePage(a, b) {
+  try {
+    const left = new URL(a);
+    const right = new URL(b);
+    return left.origin === right.origin && left.pathname === right.pathname;
+  } catch {
+    return a === b;
+  }
+}
+
+export async function ensureSignedIn(page, scenario, options = {}) {
   const expect = scenario.auth?.expect;
   if (!expect) {
     return;
   }
+  const signIn = Boolean(options.signIn);
+  const timeout = signIn ? SIGN_IN_TIMEOUT_MS : AUTH_EXPECT_TIMEOUT_MS;
+  if (signIn) {
+    process.stderr.write(
+      `Sign in yourself in the browser window now, at ${page.url()}. ` +
+        `Recording starts once you are in, and waits up to ${Math.round(timeout / 60_000)} minutes.\n`,
+    );
+  }
   try {
-    await locatorFor(page, expect).first().waitFor({ state: "visible", timeout: 15_000 });
+    await locatorFor(page, expect).first().waitFor({ state: "visible", timeout });
   } catch {
+    if (signIn) {
+      throw new Error(
+        "nobody signed in before the wait ran out, so there is nothing to record",
+      );
+    }
     throw new Error(
       "auth.expect never became visible: the saved storage state has most likely expired. " +
         "Sign in again with: npx playwright open --save-storage=<file> <url>. " +
@@ -818,6 +906,7 @@ export async function main(argv = process.argv.slice(2), io = process) {
       height: args.height,
       pauseMs: args.pauseMs,
       storageState: args.storageState,
+      signIn: args.signIn,
     });
     io.stdout.write(
       `${JSON.stringify({ out: result.out, clicks: result.clicks, zooms: result.zooms, status: result.status }, null, 2)}\n`,

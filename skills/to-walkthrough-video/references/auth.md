@@ -1,9 +1,18 @@
 # Recording behind a sign-in
 
 `record.mjs` opens a clean browser, so a system that needs a session shows you
-its login page and nothing else. Sign in once by hand, save the browser's
-storage state, and record with that state loaded. The sign-in never reaches the
-video.
+its login page and nothing else. There are two ways past it, and the sign-in
+reaches the video in neither.
+
+**Sign in once, record many times.** Save the browser's storage state and load
+it at record time. Unattended afterwards, so this is the one for a walkthrough
+you re-record. It leaves a file on disk that can impersonate the account.
+
+**Sign in at the start of each recording.** `--sign-in` opens a real browser
+window, waits for you, and starts recording only once you are in. Nothing is
+saved anywhere, but somebody has to be at the keyboard every time. This is
+also the only way past a system that keeps its session in `sessionStorage`,
+which a storage state cannot carry at all.
 
 ## 1. Save the state
 
@@ -71,12 +80,40 @@ When `auth.expect` does not appear, recording stops before the video is kept
 and tells you to sign in again. A saved state expires on the server's schedule,
 not on any clock this skill can read.
 
+## Signing in by hand instead
+
+```bash
+node scripts/record.mjs --scenario scenario.json --out demo.webm --sign-in
+```
+
+A browser window opens on `scenario.url`, which the system will bounce to its
+own login screen. Sign in however it asks — password, OIDC, MFA. `record.mjs`
+watches `auth.expect` and starts capturing the moment it appears, so no frame
+of the sign-in is in the file. It waits three minutes, then gives up rather
+than record a login screen.
+
+`--sign-in` needs a screen to put the window on. Over SSH or in CI it says so
+rather than failing obscurely. It cannot be combined with `--storage-state`:
+one makes a session, the other loads one.
+
+To check it end to end against the fixture:
+
+```bash
+node examples/site/serve.mjs
+node scripts/record.mjs --scenario examples/scenario-auth.json --out demo.webm --sign-in
+```
+
+Sign in with anything, and confirm the first frame of `demo.webm` is already
+the dashboard.
+
 ## Limits
 
-- **sessionStorage is not covered.** Playwright's storage state carries
-  cookies, localStorage, IndexedDB and WebAuthn credentials. A system that
-  keeps its token in `sessionStorage` — MSAL's default among them — cannot be
-  recorded this way. Check DevTools › Application after signing in.
+- **sessionStorage is not covered by a saved state.** Playwright's storage
+  state carries cookies, localStorage, IndexedDB and WebAuthn credentials. A
+  system that keeps its token in `sessionStorage` — MSAL's default among them —
+  cannot be reloaded from a file at all. Use `--sign-in` for those: the browser
+  never closes, so the session never leaves. Check DevTools › Application after
+  signing in to find out which kind you have.
 - **The recording shows whatever the account can see.** There is no masking in
   video; `mask` exists only on Playwright's screenshot APIs. Record with a
   test account holding fixture data, not with a real one.

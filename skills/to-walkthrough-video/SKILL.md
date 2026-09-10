@@ -49,7 +49,8 @@ recording. See `references/effects.md`.
 
 Behind a sign-in: save state once with `npx playwright open
 --save-storage=auth.json <url>`, then record with `--storage-state
-auth.json`. `auth.expect` must be visible only when signed in. See
+auth.json`, or pass `--sign-in` to sign in by hand at the start of the
+recording. `auth.expect` must be visible only when signed in. See
 `references/auth.md`.
 
 2. **Record.** From a directory that can `import('playwright')`:

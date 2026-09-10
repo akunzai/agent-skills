@@ -55,6 +55,7 @@ node "$RECORD" --help >"$TMP_DIR/record-help"
 grep -q -- "--width" "$TMP_DIR/record-help" || fail "record --help missing --width"
 grep -q -- "--pause-ms" "$TMP_DIR/record-help" || fail "record --help missing --pause-ms"
 grep -q -- "--storage-state" "$TMP_DIR/record-help" || fail "record --help missing --storage-state"
+grep -q -- "--sign-in" "$TMP_DIR/record-help" || fail "record --help missing --sign-in"
 
 node --input-type=module <<EOF || fail "record helper exports"
 import { parseArgs, resolveViewport, resolvePauseMs } from "file://${RECORD}";
@@ -124,16 +125,28 @@ printf 'auth.json\n' >"$IGNORED_REPO/.gitignore"
 printf '{"cookies":[],"origins":[]}\n' >"$IGNORED_REPO/auth.json"
 
 node --input-type=module <<EOF || fail "record guard behaviour"
-import { parseArgs, storageStateProblems, validateScenario } from "file://${RECORD}";
+import {
+  describeLaunchFailure,
+  parseArgs,
+  resolveSessionMode,
+  samePage,
+  storageStateProblems,
+  validateScenario,
+} from "file://${RECORD}";
 
 const fail = (message) => {
   console.error(message);
   process.exit(1);
 };
 
-const args = parseArgs(["--scenario", "s.json", "--out", "o.webm", "--storage-state", "auth.json"]);
+const args = parseArgs([
+  "--scenario", "s.json", "--out", "o.webm", "--storage-state", "auth.json", "--sign-in",
+]);
 if (args.storageState !== "auth.json") {
   fail("parseArgs --storage-state");
+}
+if (args.signIn !== true) {
+  fail("parseArgs --sign-in");
 }
 
 // What a walkthrough types on camera is the author's call: a scenario that
@@ -149,13 +162,62 @@ if (validateScenario({ password: "x", steps: [] }, {}).length !== 0) {
 }
 
 // auth mode still needs the assertion that proves the session survived.
-const missingExpect = validateScenario({ steps: [] }, { authMode: true });
+const missingExpect = validateScenario({ steps: [] }, { sessionMode: "saved" });
 if (!missingExpect.some((p) => p.includes("auth.expect"))) {
   fail("auth mode should require auth.expect");
 }
 const wellFormed = { auth: { expect: { role: "button", name: "Account" } }, steps: [] };
-if (validateScenario(wellFormed, { authMode: true }).length !== 0) {
+if (validateScenario(wellFormed, { sessionMode: "saved" }).length !== 0) {
   fail("a well-formed auth scenario should pass");
+}
+
+// One name for how the session is obtained, derived from the flags once.
+for (const [given, wanted] of [
+  [{}, "none"],
+  [{ storageState: "auth.json" }, "saved"],
+  [{ signIn: true }, "interactive"],
+  [{ storageState: "auth.json", signIn: true }, "conflict"],
+]) {
+  const got = resolveSessionMode(given);
+  if (got !== wanted) {
+    fail("session mode for " + JSON.stringify(given) + ": got " + got + ", wanted " + wanted);
+  }
+}
+
+// A shared prefix is not the same page.
+if (!samePage("http://x/app", "http://x/app?q=1")) {
+  fail("a query string is still the same page");
+}
+if (samePage("http://x/application", "http://x/app")) {
+  fail("a longer path is a different page");
+}
+
+// Signing in by hand needs the same assertion a saved state does, and the two
+// modes cannot both be asked for.
+const signedIn = { auth: { expect: { role: "button", name: "Account" } }, steps: [] };
+if (!validateScenario({ steps: [] }, { sessionMode: "interactive" })[0].includes("--sign-in needs scenario.auth.expect")) {
+  fail("--sign-in should require auth.expect");
+}
+if (validateScenario(signedIn, { sessionMode: "interactive" }).length !== 0) {
+  fail("--sign-in with auth.expect should pass");
+}
+const bothModes = validateScenario(signedIn, { sessionMode: "conflict" });
+if (!bothModes.some((p) => p.includes("Pick one"))) {
+  fail("--sign-in with --storage-state should be refused: " + JSON.stringify(bothModes));
+}
+
+// A headed launch with nowhere to draw is worth naming as such.
+if (!describeLaunchFailure(new Error("Missing X server or \$DISPLAY"), true).includes("no display")) {
+  fail("a headed launch without a display should be explained");
+}
+if (describeLaunchFailure(new Error("Missing X server or \$DISPLAY"), false) !== null) {
+  fail("a headless launch failure is not a display problem");
+}
+if (describeLaunchFailure(new Error("Executable doesn't exist"), true) !== null) {
+  fail("a missing browser is not a display problem");
+}
+if (describeLaunchFailure(new Error("failed to display the page"), true) !== null) {
+  fail("the word display alone is not a display problem");
 }
 
 // A storage state that cannot be read is a refusal; where it lives is not.
