@@ -1,11 +1,16 @@
 # codexbar-quota-handoff
 
-Reminds Claude Code, Grok Build, Codex CLI, or GitHub Copilot CLI to hand off
+Reminds Claude Code, Grok Build, Codex CLI, or GitHub Copilot CLI to wrap up
 when [CodexBar](https://github.com/steipete/CodexBar) reports that agent's own
 quota is nearly exhausted.
 
-- Claude Code, Grok Build, and Copilot suggest `/handoff`; Codex suggests
-  `$handoff`.
+- Tells the agent to surface the quota window and wrap up.
+- If the session has unfinished work a later session cannot reconstruct, the
+  agent asks before writing a handoff document, then replies with the file
+  path.
+- With `to-memory` at `~/.agents/skills/to-memory`, the reminder names that
+  short-term directory; otherwise the file goes in the current working
+  directory, never a temp dir.
 - Each agent consumes only its own provider flag.
 - Claude Code, Codex, and Copilot register `Stop` and `PostToolUse` hooks that
   race safely, so each crossing is reported once. Grok uses a Stop-only global
@@ -62,9 +67,9 @@ Copilot reads the same `.claude-plugin/marketplace.json` and
 bundled `hooks/hooks.json` as-is — there is no Copilot-specific manifest.
 Start a new session after installing.
 
-Copilot has no built-in handoff command, but it exposes every loaded skill as
-a slash command, so `/handoff` works once this repository's `handoff` skill is
-installed (verify with `copilot skill list`).
+Copilot has no built-in wrap-up command. This plugin's Stop and PostToolUse
+hooks inject the procedure; an exit 2 surfaces stderr to the user and the
+session continues.
 
 </details>
 
@@ -102,8 +107,8 @@ helpers, CodexBar rules, and the Grok global hook files.
 CodexBar runs the installed `codexbar-quota-flag.sh` on `quota_low`, passing a
 provider and an absolute state directory. The agent hook runs
 `quota-reminder.sh`, detects its host from native environment variables,
-atomically claims the matching flag, emits the correct handoff reminder, and
-clears the claim.
+atomically claims the matching flag, emits the wrap-up procedure, and
+clears the claim. The reminder no longer suggests `/handoff` or `$handoff`.
 
 Claude Code, Codex, and Copilot load the bundled `hooks/hooks.json` from their
 installed plugin. Grok loads the global hook file and reminder script written by
