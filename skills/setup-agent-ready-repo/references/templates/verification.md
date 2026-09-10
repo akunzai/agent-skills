@@ -109,6 +109,10 @@ evidence that an integration is wired up.
 
 - <path or behaviour>: <reason it could not be verified locally>
 
+A gap you could have closed is not a gap. Run the check whose dependency
+you have already seen running, and report a check you skipped as untried,
+rather than recording it here as one this repo cannot run.
+
 <!-- Machine-checkable facts for scripts/check-drift.sh. Add one
      drift:file marker per mock scenario or fixture this file relies on. -->
 <!-- drift:file <.devcontainer/mock/mappings/tenant.json> -->

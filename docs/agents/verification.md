@@ -142,6 +142,10 @@ check it; `[ -n "${VAR:-}" ]` answers the only question a prerequisite asks.
 - `mise run render-roles`: writes `plugins/cheap-dev-workers` artifacts, so it
   is not part of the read-only gate. Run it deliberately when `roles/` changes.
 
+A gap you could have closed is not a gap. Run the check whose dependency
+you have already seen running, and report a check you skipped as untried,
+rather than recording it here as one this repo cannot run.
+
 <!-- drift:file mise.toml -->
 <!-- drift:file .waza.yaml -->
 <!-- drift:file .github/workflows/waza-eval.yml -->

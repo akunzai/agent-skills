@@ -41,4 +41,5 @@ verification	the entrypoint marker check-drift.sh reads	drift:entrypoint	verific
 verification	the forge marker check-drift.sh reads	drift:forge	verification.md, Starting the environment
 verification	the proof that the entrypoint came up	[*][*]proof	verification.md, Starting the environment
 verification	what could not be verified, and why	not verified|unverified|could not be verified	verification.md, Not verified
+verification	that a gap you could have closed is not a gap	could have closed|already seen running	verification.md, Not verified
 verification	the capture rules the request document points at	capture rules|capturing evidence	verification.md, Capturing evidence
