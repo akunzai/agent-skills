@@ -13,7 +13,9 @@
 # way Stop can (the tool has already run by the time it fires), but exit 2
 # still surfaces its stderr to the model the same way, which is all this
 # reminder ever needed — it was never meant to force a stop, just to relay a
-# short message once the model reads it.
+# short message once the model reads it. Grok is Stop-only: its PostToolUse
+# treats exit 2 as fail-open and would claim the flag before Stop can surface
+# the reminder.
 #
 # Which tool is running is inferred from environment variables each hook
 # runner sets natively — not the shared CLAUDE_PLUGIN_ROOT compatibility
@@ -25,40 +27,32 @@
 #     it). This must be checked *before* PLUGIN_ROOT: Copilot supports both
 #     the ${CLAUDE_PLUGIN_ROOT} and ${PLUGIN_ROOT} placeholders and exports a
 #     bare PLUGIN_ROOT to plugin hooks too, so the Codex test alone would
-#     misreport Copilot as Codex and suggest "$handoff".
+#     misreport Copilot as Codex and claim the Codex flag.
 #   - Codex CLI sets a bare PLUGIN_ROOT *in addition to* the CLAUDE_PLUGIN_ROOT
 #     alias, documented as "a Codex-specific extension that points to the
 #     installed plugin root" (OpenAI's official Codex hooks reference,
 #     learn.chatgpt.com/docs/hooks.md).
 #   - None of these is set under Claude Code itself, which is the fallback.
 # This keeps hooks/hooks.json identical across all four tools — no per-tool
-# arguments, and no risk of a tool's own shell reinterpreting a literal
-# handoff-command string like "$handoff".
+# arguments, and no risk of a tool's own shell reinterpreting a reminder
+# argument (a path, or a leftover command string like "$handoff").
 #
-# Copilot suggests /handoff like Claude Code and Grok: it has no built-in
-# handoff command, but it registers every loaded skill as a slash command, and
-# this repo's handoff skill is discoverable there (~/.agents/skills is one of
-# Copilot's personal skill sources; confirm with `copilot skill list`).
-#
-# When a flag is present, this exits 2 with the reminder on stderr so the
-# model relays it to the user, then deletes the flag so the same crossing
-# doesn't surface again on the next tool call or turn. It fires again only
-# after CodexBar detects a fresh threshold crossing for this provider and
-# writes a new flag.
+# When a flag is present, this exits 2 with a wrap-up procedure on stderr so
+# the model surfaces the quota, asks before writing a handoff document if the
+# session has unfinished work a later session cannot reconstruct, then
+# deletes the flag so the same crossing doesn't surface again on the next
+# tool call or turn. It fires again only after CodexBar detects a fresh
+# threshold crossing for this provider and writes a new flag.
 set -euo pipefail
 
 if [[ -n "${GROK_SESSION_ID:-}" ]]; then
   provider="grok"
-  handoff_cmd="/handoff"
 elif [[ -n "${COPILOT_CLI:-}" ]]; then
   provider="copilot"
-  handoff_cmd="/handoff"
 elif [[ -n "${PLUGIN_ROOT:-}" ]]; then
   provider="codex"
-  handoff_cmd="\$handoff"
 else
   provider="claude"
-  handoff_cmd="/handoff"
 fi
 
 state_home="${XDG_STATE_HOME:-$HOME/.local/state}"
@@ -112,11 +106,41 @@ if [[ "$reset_at" != "unknown" ]]; then
   fi
 fi
 
+# Destination for a handoff document, if the user later agrees to write one.
+# Probe only the Skills Manager master copy (~/.agents/skills/to-memory).
+# Do not --ensure: the user has not agreed yet, so create no directories.
+resolve_handoff_dest() {
+  local today skill_md proj_script resolved
+  today="$(date +%Y-%m-%d)"
+  skill_md="${HOME}/.agents/skills/to-memory/SKILL.md"
+  proj_script="${HOME}/.agents/skills/to-memory/scripts/proj-memory-path.sh"
+
+  if [[ -f "$skill_md" ]]; then
+    resolved=""
+    if [[ -x "$proj_script" ]] \
+      && env -u GIT_DIR -u GIT_WORK_TREE -u GIT_PREFIX \
+        git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      resolved="$("$proj_script" 2>/dev/null)" || resolved=""
+      if [[ -n "$resolved" && "$resolved" == /* ]]; then
+        printf '%s/%s-handoff-<topic>.md' "$resolved" "$today"
+        return
+      fi
+    fi
+    printf '%s/.agents/memories/%s-handoff-<topic>.md' "$HOME" "$today"
+    return
+  fi
+
+  printf '%s/%s-quota-handoff.md (never a temp dir)' "$(pwd)" "$today"
+}
+
+dest_spec="$(resolve_handoff_dest)"
+
 {
-  printf 'CodexBar detected your %s quota is at %s%% used (resets around %s).\n' \
+  printf 'CodexBar detected your %s quota is at %s%% used (resets around %s). Tell the user. Once per crossing.\n' \
     "$window" "$pct_display" "$reset_at"
-  printf 'Please tell the user this is a good time to run %s to wrap up, before the quota runs out. (This fires once per crossing.)\n' \
-    "$handoff_cmd"
+  printf 'Finish in-flight tools. Then, from this conversation only (no extra tools), before your next user-facing reply: if unfinished work a later session could not reconstruct from git/issues/PRs/docs, ask whether to write a handoff document (one-line summary; would go to %s); if none, do not ask or write. That reply is only the quota facts plus that question if any. Then stop.\n' \
+    "$dest_spec"
+  printf 'If they agree: create a new file at that path (replace <topic> if present; pick a non-colliding name; do not overwrite). Redact secrets; no transcript; reference artifacts; include goal, done, next, suggested skills if any, and this quota reset. Do not invoke to-memory. Reply with the path. If they decline, do not write.\n'
 } >&2
 
 exit 2

@@ -181,11 +181,13 @@ Separate from the skills above (not installable via `skills add` or `npx skills 
 
 - [`codexbar-quota-handoff`](plugins/codexbar-quota-handoff/README.md) — a
   Claude Code / Codex CLI / GitHub Copilot CLI plugin and Grok Build hook that
-  reminds you to wrap up when
+  reminds the agent to wrap up when
   [CodexBar](https://github.com/steipete/CodexBar) detects that tool's
-  own quota is nearly exhausted. Machine-specific (depends on your own
-  CodexBar installation and account authorization) rather than something a
-  visitor installs directly.
+  own quota is nearly exhausted, and to ask before writing a handoff
+  document if the session has unfinished work a later session cannot
+  reconstruct. Machine-specific (depends on your own CodexBar installation
+  and account authorization) rather than something a visitor installs
+  directly.
 - [`cheap-dev-workers`](plugins/cheap-dev-workers/README.md) — four narrow,
   cheap-model workers for repository evidence, verification, safe-log
   summaries, and caller-scoped commit or PR drafting on Claude Code, Codex,

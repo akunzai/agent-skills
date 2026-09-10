@@ -47,6 +47,8 @@ moving the file.
 
 ## Slash commands
 
-Copilot has no built-in `/handoff`. It does register every loaded, user-
-invocable skill as a slash command, so `/handoff` resolves through this
-repository's `handoff` skill. `copilot skill list` shows what is loaded.
+Copilot registers every loaded, user-invocable skill as a slash command
+(`copilot skill list` shows what is loaded). It has no built-in wrap-up
+command; `codexbar-quota-handoff` injects its wrap-up procedure through the
+Stop / PostToolUse hook instead (exit 2 surfaces stderr to the user and the
+session continues).
