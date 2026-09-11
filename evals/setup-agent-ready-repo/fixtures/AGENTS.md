@@ -8,4 +8,4 @@ Small demo app used only as an isolated Waza fixture.
 
 ## Pointers
 
-- Toolchain: @package.json
+- Toolchain: `package.json`

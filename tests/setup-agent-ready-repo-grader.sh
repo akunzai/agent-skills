@@ -51,9 +51,9 @@ cat > "$WS/AGENTS.md" <<'DOC'
 
 ## Pointers
 
-- Issue tracker: @docs/agents/issue-tracker.md
-- Pull requests: @docs/agents/pull-request.md
-- Verification: @docs/agents/verification.md
+- When filing or triaging an issue, read `docs/agents/issue-tracker.md`
+- When opening a pull or merge request, read `docs/agents/pull-request.md`
+- Before running or reporting verification, read `docs/agents/verification.md`
 DOC
 
 cat > "$WS/docs/agents/issue-tracker.md" <<'DOC'
@@ -150,6 +150,25 @@ if ! WAZA_WORKSPACE_DIR="$WS" bash "$GRADER" 2>"$TMP_DIR/pass.err"; then
 fi
 [ ! -s "$TMP_DIR/pass.err" ] || fail "compliant workspace produced output: $(cat "$TMP_DIR/pass.err")"
 
+# --- an @path pointer is a defect, even when the path is present ---
+WS_AT="$TMP_DIR/at-pointer"
+cp -R "$WS" "$WS_AT"
+cat > "$WS_AT/AGENTS.md" <<'DOC'
+# Fixture Storefront
+
+## Pointers
+
+- Issue tracker: @docs/agents/issue-tracker.md
+- Pull requests: @docs/agents/pull-request.md
+- Verification: @docs/agents/verification.md
+DOC
+
+if WAZA_WORKSPACE_DIR="$WS_AT" bash "$GRADER" 2>"$TMP_DIR/at.err"; then
+  fail "an AGENTS.md with @path pointers was accepted"
+fi
+grep -q "still has an @docs/agents/issue-tracker.md pointer" "$TMP_DIR/at.err" \
+  || fail "@path pointer was rejected without naming the pointer: $(cat "$TMP_DIR/at.err")"
+
 # --- a document translated out of English is named as such ---
 WS_ZH="$TMP_DIR/translated"
 cp -R "$WS" "$WS_ZH"
@@ -234,5 +253,56 @@ grep -q "docs/agents/pull-request.md is missing" "$TMP_DIR/gone.err" \
   || fail "missing document was not reported: $(cat "$TMP_DIR/gone.err")"
 [ "$(wc -l < "$TMP_DIR/gone.err")" -eq 1 ] \
   || fail "missing document cascaded into other assertions: $(cat "$TMP_DIR/gone.err")"
+
+# --- a markdown link is not the pinned shape ---
+WS_MD="$TMP_DIR/md-link"
+cp -R "$WS" "$WS_MD"
+cat > "$WS_MD/AGENTS.md" <<'DOC'
+# Fixture Storefront
+
+## Pointers
+
+- When filing or triaging an issue, read [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md)
+- When opening a pull or merge request, read [`docs/agents/pull-request.md`](docs/agents/pull-request.md)
+- Before running or reporting verification, read [`docs/agents/verification.md`](docs/agents/verification.md)
+DOC
+
+if WAZA_WORKSPACE_DIR="$WS_MD" bash "$GRADER" 2>"$TMP_DIR/md.err"; then
+  fail "an AGENTS.md with markdown-link pointers was accepted"
+fi
+grep -q "has a markdown link to docs/agents/issue-tracker.md" "$TMP_DIR/md.err" \
+  || fail "markdown-link pointer was rejected without naming it: $(cat "$TMP_DIR/md.err")"
+
+# --- a backtick path without read is not the pinned shape ---
+WS_NO_READ="$TMP_DIR/no-read"
+cp -R "$WS" "$WS_NO_READ"
+cat > "$WS_NO_READ/AGENTS.md" <<'DOC'
+# Fixture Storefront
+
+## Pointers
+
+- Issue tracker: `docs/agents/issue-tracker.md`
+- Pull requests: `docs/agents/pull-request.md`
+- Verification: `docs/agents/verification.md`
+DOC
+
+if WAZA_WORKSPACE_DIR="$WS_NO_READ" bash "$GRADER" 2>"$TMP_DIR/noread.err"; then
+  fail "an AGENTS.md with backtick paths but no read trigger was accepted"
+fi
+grep -q "has no read \`docs/agents/issue-tracker.md\` pointer" "$TMP_DIR/noread.err" \
+  || fail "missing read trigger was rejected without naming it: $(cat "$TMP_DIR/noread.err")"
+
+# --- a nested docs/agents/AGENTS.md is a defect ---
+WS_NESTED="$TMP_DIR/nested"
+cp -R "$WS" "$WS_NESTED"
+cat > "$WS_NESTED/docs/agents/AGENTS.md" <<'DOC'
+# Nested
+DOC
+
+if WAZA_WORKSPACE_DIR="$WS_NESTED" bash "$GRADER" 2>"$TMP_DIR/nested.err"; then
+  fail "a nested docs/agents/AGENTS.md was accepted"
+fi
+grep -q "wrote nested docs/agents/AGENTS.md" "$TMP_DIR/nested.err" \
+  || fail "nested AGENTS.md was rejected without naming it: $(cat "$TMP_DIR/nested.err")"
 
 echo "setup-agent-ready-repo-grader tests passed"

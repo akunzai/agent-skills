@@ -79,8 +79,8 @@ commits into a clear, verified branch story.
 Set up a repository so agents can file tickets, open pull or merge
 requests, and verify their own changes. Interviews once, then writes
 `docs/agents/issue-tracker.md`, a forge-specific pull/merge request
-document, `docs/agents/verification.md`, and the `AGENTS.md` pointers
-that load them. Wraps whatever already starts the project into one
+document, `docs/agents/verification.md`, and `AGENTS.md` lines that
+say when to read them. Wraps whatever already starts the project into one
 non-interactive command, runs it, and records what it could not verify
 rather than claiming a pass.
 

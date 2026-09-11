@@ -77,7 +77,7 @@ above the fold; only background goes into `<details>`.
 
 ## Verification
 
-<how to prove it works, per docs/agents/verification.md; say here when
+<how to prove it works, per `docs/agents/verification.md`; say here when
 this needs a deployed environment rather than a local run>
 
 <details>

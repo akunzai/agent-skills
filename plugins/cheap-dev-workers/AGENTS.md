@@ -15,7 +15,7 @@ bash scripts/setup.sh --plugin cheap-dev-workers
 ```
 
 Select GitHub Copilot CLI in the interactive installer. Scripts and CI may use
-`--runtime copilot --yes`. See @../../docs/agents/copilot-cli.md.
+`--runtime copilot --yes`. See `../../docs/agents/copilot-cli.md`.
 
 Codex CLI has no plugin-bundled agent mechanism, so its subagents must be
 copied into a personal or trusted-project agents directory:
@@ -169,7 +169,7 @@ exact commands and treats an unexpected tracked-source change as failure.
   what change.
 - On confirmation, offer the first tier that reaches them and only that one:
   enforce it (assert/type/test) with its size quoted, else a comment at that
-  site, else the nearest existing topic document with an `@path` pointer here
+  site, else the nearest existing topic document with a backtick-path pointer here
   and one sentence on why the tiers above cannot hold it.
 - When adding to a file, audit the rest of it in the same pass; drop entries
   once tests or current documentation make them redundant.

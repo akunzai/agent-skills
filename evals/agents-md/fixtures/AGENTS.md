@@ -38,6 +38,10 @@ Cross-reference project rules instead of duplicating them.
 The test script is `npm test`. The lint script is `npm run lint`.
 Those are the same commands listed under Commands and in `package.json`.
 
+## Pointers
+
+- Release checklist: @docs/release-checklist.md
+
 ## Rich References
 
 Prefer pointers to schemas and gold-standard tests over long prose.

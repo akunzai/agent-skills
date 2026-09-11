@@ -1,7 +1,7 @@
 {
   "name": "charley-skills",
   "description": "Charley's Agent Skills for memory, git hygiene, toolchain, testing, and media.",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "author": {
     "name": "Charley Wu"
   },

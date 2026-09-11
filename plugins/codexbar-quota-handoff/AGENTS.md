@@ -36,7 +36,7 @@ marketplace hooks are not registered by Grok Build 1.0.x).
 
 Copilot needs no fourth manifest: it reads `.claude-plugin/marketplace.json`
 and `.claude-plugin/plugin.json`, and registers the bundled `hooks/hooks.json`
-in its Claude-shaped nested form. See @../../docs/agents/copilot-cli.md for the
+in its Claude-shaped nested form. See `../../docs/agents/copilot-cli.md` for the
 host-detection order the reminder depends on.
 
 ## Prevent Recurrence
@@ -45,7 +45,7 @@ host-detection order the reminder depends on.
   what change.
 - On confirmation, offer the first tier that reaches them and only that one:
   enforce it (assert/type/test) with its size quoted, else a comment at that
-  site, else the nearest existing topic document with an `@path` pointer here
+  site, else the nearest existing topic document with a backtick-path pointer here
   and one sentence on why the tiers above cannot hold it.
 - When adding to a file, audit the rest of it in the same pass; drop entries
   once tests or current documentation make them redundant.

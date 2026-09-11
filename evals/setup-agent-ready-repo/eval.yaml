@@ -34,6 +34,7 @@ graders:
       must_not_exist:
         - docs/agents/merge-request.md
         - docs/agents/triage-labels.md
+        - docs/agents/AGENTS.md
         - .env
         - secrets.md
 
@@ -43,9 +44,9 @@ graders:
       expected_files:
         - path: AGENTS.md
           contains:
-            - "@docs/agents/issue-tracker.md"
-            - "@docs/agents/pull-request.md"
-            - "@docs/agents/verification.md"
+            - "read `docs/agents/issue-tracker.md`"
+            - "read `docs/agents/pull-request.md`"
+            - "read `docs/agents/verification.md`"
 
   - type: program
     name: documents

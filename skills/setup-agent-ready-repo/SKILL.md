@@ -36,33 +36,37 @@ differently gets a section, not a second file.
 | `docs/agents/issue-tracker.md` | Forge, CLI, issue body shape, labels |
 | `docs/agents/pull-request.md` or `merge-request.md` | PR/MR body shape, commits, tests, review readiness |
 | `docs/agents/verification.md` | Non-interactive entrypoint, evidence, gaps |
-| `AGENTS.md` | One `@` pointer line per document |
+| `AGENTS.md` | One read-trigger line per document |
 | a non-interactive entrypoint | One command an agent can run; a script only where none exists |
 
 The pointers go under `AGENTS.md`'s existing Pointers section, one line
-each, in the repo's own wording:
+each. Repo wording may vary; the shape may not: occasion, then `read`,
+then a backtick path. `@path` expands every turn on Copilot CLI and
+Claude Code and is inert on VS Code Copilot Chat and opencode. Markdown
+links in `AGENTS.md` can auto-include on VS Code. Neither belongs here.
 
 ```markdown
-- Issue tracker: @docs/agents/issue-tracker.md
-- Pull requests: @docs/agents/pull-request.md
-- Verification: @docs/agents/verification.md
+- When filing or triaging an issue, read `docs/agents/issue-tracker.md`
+- When opening a pull or merge request, read `docs/agents/pull-request.md`
+- Before running or reporting verification, read `docs/agents/verification.md`
 ```
 
-Keep each document to about 150 lines. They load on every turn through
-the `@` pointers, so the budget is the reason detail gets cut, not a
-reason to switch to lazy loading.
+On GitLab the request line names `docs/agents/merge-request.md` instead.
+Do not write a nested `AGENTS.md` under `docs/agents/` or at a package
+boundary for these documents. They are repo-wide; the root trigger
+lines are how they are found.
 
-Copy each file from its template rather than writing one.
-[install-templates.sh](scripts/install-templates.sh) `--forge
-<github|gitlab|none>` places
+Run [install-templates.sh](scripts/install-templates.sh) `--forge
+<github|gitlab|none>` rather than composing the files. It places
 [issue-tracker.md](references/templates/issue-tracker.md),
 [pull-request.md](references/templates/pull-request.md) and
 [verification.md](references/templates/verification.md) under
-`docs/agents/`, skipping any that already exist. Then edit the copies in
+`docs/agents/`, skipping any that already exist, and keeps the `drift:`
+markers `--check` and `check-drift.sh` read. Then edit the copies in
 place: replace every `<angle placeholder>`, delete what does not apply,
-and leave the English prose alone. Writing a document from a template
-regenerates it, and regeneration follows the conversation's language;
-copying bytes does not.
+leave every `drift:` HTML comment, and leave the English prose alone.
+Writing a document from a template regenerates it, and regeneration
+follows the conversation's language; copying bytes does not.
 
 `--check` scans the installed documents for stray CJK, for a placeholder
 nobody replaced, and for any guarantee in
@@ -225,6 +229,9 @@ rendered. Write those markers whenever you write the file.
 [install-templates.sh](scripts/install-templates.sh) `--check` answers the
 other half: which guarantees the current templates pin that these
 documents no longer carry. Run both on a re-run, before asking anything.
+
+If `AGENTS.md` still has `@docs/agents/<doc>.md` lines, propose the
+read-trigger shape above and wait. `--check` does not parse `AGENTS.md`.
 
 Report drift and stop. Fixing it needs the same confirmation as writing
 it did.

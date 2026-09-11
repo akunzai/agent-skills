@@ -8,7 +8,7 @@ sample blocks included.
 This repo's `.github/pull_request_template.md` is authoritative on structure.
 What follows only adds what it does not say. Its checklist line "Tests pass
 (`npm test` or equivalent)" resolves here to `mise run test` and `mise run lint`
-— see @docs/agents/verification.md.
+— see `docs/agents/verification.md`.
 
 ## Preparing
 
@@ -36,7 +36,7 @@ What follows only adds what it does not say. Its checklist line "Tests pass
    | Shell script or skill prose only | None; test output instead |
 
    Pair before and after. At most one diagram unless it is such a pair. No
-   personally identifiable information in any attachment — @docs/agents/verification.md
+   personally identifiable information in any attachment — `docs/agents/verification.md`
    holds the capture rules.
 
    Upload the file with the repeatable `--attach` flag —
@@ -65,7 +65,7 @@ What follows only adds what it does not say. Its checklist line "Tests pass
   `mise run lint-skills`; behaviour is a Waza suite under `evals/<skill>/`.
   Do not add grep-the-SKILL.md phrase locks. New coverage widens an existing
   suite's own task prompt rather than adding a second task — see
-  @docs/evals/waza.md for why.
+  `docs/evals/waza.md` for why.
 - **Exempt**: `README.md`, `docs/`, `CONTRIBUTING.md`, `.github/ISSUE_TEMPLATE/`,
   and dependency bumps with no behaviour change.
 - **Structurally untestable** code is declared in the description, naming what
@@ -81,7 +81,7 @@ that changes without a bump never reaches an installed user. Any change under
 `skills/` bumps the root `.claude-plugin/plugin.json`; any change under
 `plugins/<name>/` bumps that plugin's `.claude-plugin/plugin.json` and
 `.codex-plugin/plugin.json`, kept equal. `tests/plugin-version-bump.sh` enforces
-both, so the gate catches a miss. Semver rules are in @CONTRIBUTING.md.
+both, so the gate catches a miss. Semver rules are in `CONTRIBUTING.md`.
 
 A new or renamed skill also updates `README.md` and the `skills` array in
 `.claude-plugin/plugin.json`; `tests/skill-catalog-sync.sh` enforces that.
@@ -90,7 +90,7 @@ A new or renamed skill also updates `README.md` and the `skills` array in
 
 Nothing unverified enters review. Two orders satisfy that:
 
-- **Default**: run the gate locally per @docs/agents/verification.md, then open
+- **Default**: run the gate locally per `docs/agents/verification.md`, then open
   the request with the evidence.
 - **A Waza-covered skill**: also run that skill's suite locally
   (`mise run waza -- <skill>`) and quote the result. The PR workflow runs it
