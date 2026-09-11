@@ -61,6 +61,9 @@ graders:
           or 'alternative' in output.lower()
           or 'prefer' in output.lower()
           or 'offload' in output.lower()
+        - "'@docs/release-checklist' in output.lower()"
+        - >-
+          bool(re.search(r'(?<!@)`docs/release-checklist\.md`', output))
 
   # Scoped to the Prevent Recurrence section so the audit sections above
   # cannot satisfy these by accident.
@@ -99,6 +102,7 @@ graders:
             - "Always write comments for every function"
             - "Progressive Disclosure"
             - "Trust Model Judgment"
+            - "@docs/release-checklist.md"
 
   - type: diff
     name: fixture-files-unmutated

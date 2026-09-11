@@ -1,7 +1,7 @@
 # Verification
 
 How an agent exercises a change in this repo before it reaches review. Human
-setup narrative lives in @CONTRIBUTING.md; this file holds only what an agent
+setup narrative lives in `CONTRIBUTING.md`; this file holds only what an agent
 needs.
 
 ## Running the gate
@@ -57,7 +57,7 @@ mise run waza -- <skill>
 It spends Copilot premium requests and takes roughly half a minute per task, so
 it sits outside the gate above rather than inside it. Results land in
 `waza-results/<skill>.json`, which is gitignored. Coverage, the pinned model per
-suite, and the CI path mapping are in @docs/evals/waza.md.
+suite, and the CI path mapping are in `docs/evals/waza.md`.
 
 `waza run --cache` skips a task whose spec, tasks, and fixtures are unchanged.
 A cache hit is not evidence after a skill edit.
@@ -119,7 +119,7 @@ for the developer to run, not an agent.
 
 Not applicable. This repo has no listening service, so several agents can run
 the gate in the same clone at once. Tests that need isolation create their own
-`mktemp -d` HOME and clean it up on exit — see @tests/to-memory-storage.sh.
+`mktemp -d` HOME and clean it up on exit — see `tests/to-memory-storage.sh`.
 
 There is no deployed environment, and no credential in this repo. Copilot and
 `gh` read the developer's own login.
@@ -130,7 +130,7 @@ There is no deployed environment, and no credential in this repo. Copilot and
   output in a fenced block inside the description's `<details>` trailer.
 - Website walkthrough: the `to-walkthrough-video` skill.
 
-**This document is where the capture rules live**, and @docs/agents/pull-request.md
+**This document is where the capture rules live**, and `docs/agents/pull-request.md`
 points here rather than restating them. A capture taken on the developer's own
 machine carries their account's data, username, and home paths as readily as a
 shared environment does. Assert on the frame, a marker, or fixture data, and

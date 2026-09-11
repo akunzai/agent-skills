@@ -17,20 +17,20 @@ This project uses <package manager>.
 - <only non-standard or expensive-to-discover commands, e.g. a single-test invocation>
 
 ## Pointers
-- Domain schemas: @src/types/index.ts
-- Gold-standard test: @tests/example.spec.ts
-- <Domain> conventions: docs/<domain>.md
+- Domain schemas: `src/types/index.ts`
+- Gold-standard test: `tests/example.spec.ts`
+- <Domain> conventions: `docs/<domain>.md`
 
 ## Prevent Recurrence
 - **Candidate**: Name who hits this again, in which file, on what change. No such scenario, nothing to propose.
-- **Promote**: Offer the first tier that reaches them and only that one, pending confirmation — enforce it (assert/type/test) with its size quoted, else a comment at that site, else an agent-facing doc (`docs/agents/<topic>.md`, else `docs/agents/lessons-learned.md`) with one `@path` line under Pointers and one sentence on why the tiers above cannot hold it.
+- **Promote**: Offer the first tier that reaches them and only that one, pending confirmation — enforce it (assert/type/test) with its size quoted, else a comment at that site, else an agent-facing doc (`docs/agents/<topic>.md`, else `docs/agents/lessons-learned.md`) with one backtick-path line under Pointers and one sentence on why the tiers above cannot hold it.
 - **Prune**: When adding to a file, audit the rest of it in the same pass. Drop entries once stale (obsolete version, now enforced, duplicated, or a transcript) — not by a fixed count.
 ```
 
 Omit the package-manager line when it is the ecosystem default. Omit a
-lessons-learned `@path` until the first candidate is confirmed and promoted.
-Language-specific rules belong in `docs/<domain>.md`, reached by a light-touch
-pointer (`For TypeScript conventions, see docs/TYPESCRIPT.md`).
+lessons-learned pointer until the first candidate is confirmed and promoted.
+Language-specific rules belong in `docs/<domain>.md`, reached by a
+light-touch index pointer.
 
 Code style bullets belong here only when a nearby file or config proves them.
 
@@ -118,14 +118,32 @@ If `CLAUDE.md` already exists and is not the intended symlink, do not replace it
 blindly. Read it, summarize any unique instructions, propose a migration into
 `AGENTS.md`, and ask for explicit approval before moving or replacing the file.
 
-## 4. Pointers & lazy loading
+## 4. Pointers
+
+Two shapes, both with backtick paths. Do not write `@path` in `AGENTS.md`:
+Copilot CLI and Claude Code expand it every turn; VS Code Copilot Chat and
+opencode leave it as inert text. Do not use Markdown links in `AGENTS.md`:
+VS Code may auto-include them. The exception is `@AGENTS.md` at the top of
+a regular sibling `CLAUDE.md` — Claude Code's include, not an AGENTS.md
+pointer.
+
+Occasion, when the document has a distinct branch:
 
 ```markdown
-- Deployment SOP: @docs/deploy.md
-- Database migration: @docs/db-migration.md
+- When deploying, read `docs/deploy.md`
 ```
 
-`@path/to/file` is the on-demand load. A domain doc may itself point deeper.
+Index, when there is no independent branch:
+
+```markdown
+- Gold-standard test: `tests/example.spec.ts`
+```
+
+A domain doc may itself point deeper, still with backtick paths.
+
+On audit, an `@` followed by a repo-relative path in `AGENTS.md` is a
+finding. Propose the matching shape. Leave `@me`, npm scopes, and
+`owner/action@vN` alone.
 
 ## 5. Prevent Recurrence entry shape
 
@@ -140,5 +158,5 @@ and only after a confirmed candidate (see `SKILL.md` §4). Gates live in
 Then add one pointer from the root file:
 
 ```markdown
-- Lessons Learned: @docs/agents/lessons-learned.md
+- Lessons Learned: `docs/agents/lessons-learned.md`
 ```

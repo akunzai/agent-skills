@@ -67,7 +67,7 @@ fold; only background goes into `<details>`.
 
 ## Verification
 
-<how to prove it works, per docs/agents/verification.md; say here when a
+<how to prove it works, per `docs/agents/verification.md`; say here when a
 Waza suite under evals/<skill>/ is the only thing that can cover it>
 
 <details>
@@ -92,7 +92,7 @@ missing, that is a conversation with the maintainer, not a label to create.
 - **Applied when it applies**: `bug`, `enhancement`, `documentation`,
   `question`, `duplicate`, `invalid`, `help wanted`, `good first issue`.
   `dependencies` and `github_actions` are applied by Dependabot, not by hand.
-- **Triage roles**: owned by @docs/agents/triage-labels.md, not repeated here.
+- **Triage roles**: owned by `docs/agents/triage-labels.md`, not repeated here.
   Of the five it maps, only `ready-for-agent` and `wontfix` exist on this
   repo's tracker; the other three have no label yet, which is a conversation
   with the maintainer rather than a label to create.

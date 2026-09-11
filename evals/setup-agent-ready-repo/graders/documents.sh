@@ -121,10 +121,14 @@ while IFS=$'\t' read -r doc name pattern origin; do
   require "$f" "$pattern" "$f no longer carries $name (template: $origin)"
 done < "$GUARANTEES"
 
-# --- AGENTS.md points at all three, and nothing secret was written ---
+# --- AGENTS.md names when to read all three; @path and markdown links are defects ---
 for doc in issue-tracker pull-request verification; do
   grep -q "@docs/agents/$doc.md" AGENTS.md \
-    || fail "AGENTS.md has no @docs/agents/$doc.md pointer"
+    && fail "AGENTS.md still has an @docs/agents/$doc.md pointer"
+  grep -qE "\\]\\(docs/agents/${doc}\\.md\\)" AGENTS.md \
+    && fail "AGENTS.md has a markdown link to docs/agents/$doc.md"
+  grep -q "read \`docs/agents/$doc.md\`" AGENTS.md \
+    || fail "AGENTS.md has no read \`docs/agents/$doc.md\` pointer"
 done
 
 for leak in .env .env.local secrets.md; do
@@ -132,5 +136,9 @@ for leak in .env .env.local secrets.md; do
     fail "wrote $leak"
   fi
 done
+
+if [ -e docs/agents/AGENTS.md ]; then
+  fail "wrote nested docs/agents/AGENTS.md"
+fi
 
 [ "$failures" -eq 0 ] || exit 1

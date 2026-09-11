@@ -75,8 +75,17 @@ An `AGENTS.md` exists but is over-constrained with defensive micromanagement ("a
    - Asks which of any contradictory pair to keep, then deletes no-ops / vague / obvious lines.
    - Removes generic micromanagement (Trust Model Judgment).
    - Replaces prose specs and path maps with Rich References and capabilities.
-   - Offloads DB Migration SOP to `@docs/db-migration.md`.
-   - Migrates the inline `Lessons Learned` entries out per Prevent Recurrence: merges each into an existing topic doc where one covers the subject, otherwise creates `docs/agents/<topic>.md` (or `docs/agents/lessons-learned.md` as fallback), drops stale/duplicate entries, and replaces the section with `@path` reference line(s) under Pointers.
+   - Offloads the DB Migration SOP to a Pointers line:
+
+     ```markdown
+     - When migrating the database, read `docs/db-migration.md`
+     ```
+
+   - Migrates the inline `Lessons Learned` entries out per Prevent Recurrence: merges each into an existing topic doc where one covers the subject, otherwise creates `docs/agents/<topic>.md` (or `docs/agents/lessons-learned.md` as fallback), drops stale/duplicate entries, and replaces the section with an index pointer:
+
+     ```markdown
+     - Lessons Learned: `docs/agents/lessons-learned.md`
+     ```
 
 ---
 
@@ -135,7 +144,14 @@ A large root file mixes TypeScript style, deploy SOP, testing, and two contradic
 1. **Find contradictions** — surface both package-manager lines and ask which to keep.
 2. **Extract essentials** — one-sentence project description, non-default package manager, non-standard commands, every-task facts.
 3. **Group the rest** — TypeScript → `docs/TYPESCRIPT.md`, testing → `docs/TESTING.md`, deploy SOP → `docs/deploy.md`.
-4. **Rewrite the root** as a light-touch index with markdown links / `@path` pointers.
+4. **Rewrite the root** as a light-touch index. Occasion plus `read` for
+   the deploy SOP; `Label: path` for TypeScript and testing:
+
+     ```markdown
+     - When deploying, read `docs/deploy.md`
+     - TypeScript conventions: `docs/TYPESCRIPT.md`
+     - Testing: `docs/TESTING.md`
+     ```
 5. **Flag for deletion** — generic hygiene, vague lines, and any init-script dump.
 
 ---

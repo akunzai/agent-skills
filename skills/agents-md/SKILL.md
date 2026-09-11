@@ -33,7 +33,14 @@ Everything else lives behind a pointer: a domain doc, a nested `AGENTS.md`, or
 a skill. Hand-author from repo evidence; skip init-script dumps.
 
 **Progressive Disclosure**: keep `AGENTS.md` lean (< 100 lines). Offload SOPs
-and single-domain rules to `@path` or a skill.
+and single-domain rules to a pointer or a skill.
+
+**Pointers**: backtick paths, not `@path` and not markdown links. Occasion
+plus `read` when the doc has a distinct branch; a label when it does not.
+Shapes and why `@path` is a finding live in
+[references/templates.md](references/templates.md). Convert `@path` and
+markdown links in `AGENTS.md` to the matching shape. Keep `@AGENTS.md`
+at the top of a regular sibling `CLAUDE.md`; that is Claude Code's include.
 
 **Trust Model Judgment**: keep project-specific, non-derivable constraints.
 Generic style and hygiene already live in the model.
@@ -84,8 +91,11 @@ Choose the target `AGENTS.md` explicitly:
 Done when the target path is named.
 
 Then grade that file with [references/quality-criteria.md](references/quality-criteria.md):
-Micromanagement Audit, Bloat, contradictions, every-task placement, and stale
-caches. Emit a Quality Report before any edit.
+Micromanagement Audit, Bloat, contradictions, every-task placement, stale
+caches, `@path` file references, and markdown links in `AGENTS.md`. Propose
+the matching pointer shape from [references/templates.md](references/templates.md)
+§4 — occasion plus `read`, or `Label: path`. Emit a Quality Report
+before any edit.
 
 Done when the report is in the conversation and no edit has started.
 
@@ -114,7 +124,7 @@ Load [references/templates.md](references/templates.md) for this branch.
 - Build or slim the file as an index: one-sentence description, non-default
   package manager, non-standard commands, pointers.
 - Apply **Progressive Disclosure**: offload multi-step SOPs and single-domain
-  rules.
+  rules. Convert `@path` and markdown links to the matching pointer shape.
 - On a bloated existing file, group leftovers by domain, ask which of any
   contradictory pair to keep, and flag no-ops / vague / obvious lines for
   deletion.
@@ -154,7 +164,7 @@ quirk, the agent MUST:
      otherwise follow the repo's agent-facing docs convention —
      `docs/agents/<topic>.md` where none exists yet — without relocating
      existing files. Fall back to `lessons-learned.md` beside it. Add or update
-     a single `@path` line per file under Pointers, never a standalone
+     a single backtick-path line per file under Pointers, never a standalone
      "Lessons Learned" heading.
 3. **Prune**: Whenever Promote reaches the doc tier, read that whole file
    before writing to it — you are already in it with the gates in hand, so
