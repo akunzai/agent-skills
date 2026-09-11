@@ -20,7 +20,8 @@ inputs:
     - Docker is not available here, so the stack cannot actually be
       started. Do not run docker, npm install, or any network command.
 
-    Work through phase 1 and phase 2. Show me what you propose to write
+    Work through phase 1 and phase 2. Place the documents with the
+    skill's install-templates.sh, then edit. Show me what you propose
     and wait for my confirmation before writing anything.
   follow_up_prompts:
     - |
