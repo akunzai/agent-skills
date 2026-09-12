@@ -457,6 +457,31 @@ node "$SUGGEST" --clicks "$TMP_DIR/split.jsonl" --duration-ms 30000 --out "$TMP_
 COUNT="$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).suggestions.length)" "$TMP_DIR/split.zooms.json")"
 [ "$COUNT" = "2" ] || fail "expected 2 split regions, got $COUNT"
 
+# clicks within the merge gap but far apart on screen (e.g. a corner click
+# right after a center click) split too, so the zoom keeps following the
+# cursor instead of freezing on the earlier click
+cat >"$TMP_DIR/spatial.jsonl" <<'EOF'
+{"t": 1000, "action": "click", "cx": 0.1, "cy": 0.1}
+{"t": 2000, "action": "click", "cx": 0.9, "cy": 0.9}
+EOF
+node "$SUGGEST" --clicks "$TMP_DIR/spatial.jsonl" --duration-ms 30000 --out "$TMP_DIR/spatial.zooms.json"
+COUNT="$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).suggestions.length)" "$TMP_DIR/spatial.zooms.json")"
+[ "$COUNT" = "2" ] || fail "expected 2 regions for a corner-to-corner jump, got $COUNT"
+[ "$(jq_field "$TMP_DIR/spatial.zooms.json" suggestions.1.focus.cx)" = "0.6666666666666667" ] \
+  || fail "second region should track the later click, not the first"
+
+# clicks close in both time and space still merge, but the shared focus
+# tracks the most recent click rather than sticking to the first
+cat >"$TMP_DIR/recency.jsonl" <<'EOF'
+{"t": 1000, "action": "click", "cx": 0.5, "cy": 0.5}
+{"t": 2000, "action": "click", "cx": 0.55, "cy": 0.5}
+EOF
+node "$SUGGEST" --clicks "$TMP_DIR/recency.jsonl" --duration-ms 30000 --out "$TMP_DIR/recency.zooms.json"
+COUNT="$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).suggestions.length)" "$TMP_DIR/recency.zooms.json")"
+[ "$COUNT" = "1" ] || fail "expected 1 merged region for a nearby jump, got $COUNT"
+[ "$(jq_field "$TMP_DIR/recency.zooms.json" suggestions.0.focus.cx)" = "0.55" ] \
+  || fail "merged focus should track the latest click"
+
 # chained clicks 2000ms apart become one region, start clamped to 0
 cat >"$TMP_DIR/chain.jsonl" <<'EOF'
 {"t": 0, "action": "click", "cx": 0.2, "cy": 0.2}

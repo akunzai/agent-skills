@@ -74,5 +74,9 @@ Viewport is 1280×720 CSS pixels (`deviceScaleFactor` 1). Override with
 `scenario.viewport` or `--width`/`--height` (even numbers; odd values
 round up). After each click, pause 2500ms so clusters split; override
 with `scenario.pauseMs`, `--pause-ms`, or per-step `pause`. Clicks
-≤2500ms apart share one zoom; each region is padded ±500ms and scaled
-1.5×. Flags: `record.mjs --help`.
+≤2500ms apart share one zoom only if they also land within 0.35 of the
+normalized viewport (a click far enough away, e.g. a corner toolbar
+button after a center click, starts its own zoom even if the pause was
+shorter — otherwise the camera would freeze on the earlier click and
+never pan to follow the cursor there). Each region is padded ±500ms
+and scaled 1.5×. Flags: `record.mjs --help`.
