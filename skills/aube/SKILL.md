@@ -40,14 +40,17 @@ captures the *how we use it here* decisions, not the official reference.
 
 | Command | Use |
 | --- | --- |
-| `aubr <script>` (= `aube run`) | Daily driver: `aubr build`, `aubr test`, `aubr dev`. Echoes `$ <cmd>` to stderr (`--silent` to mute). |
+| `aube run <script>` (alias `aubr`) | Daily driver: `aube run build`, `aube test`, `aube run dev`. Echoes `$ <cmd>` to stderr (`--silent` to mute). |
 | `aube test` | Auto-installs on stale state, then runs `test` script. |
 | `aube ci` | Frozen-lockfile install for CI; runs no scripts by default. |
 | `aube install` | Local setup / Docker layers. |
 | `aube add <pkg>` | Add a dependency (malware-checked by default). |
-| `aubx <tool>` (= `aube dlx`) | Run a one-off tool without installing. |
+| `aube dlx <pkg>` (alias `aubx`) | Run a one-off tool without installing. |
 | `aube exec [--] <cmd>` | Run binary from deps. Put `--` before binary so flags pass through (see Gotchas). |
 | `aube approve-builds` | Interactive review/approval of lifecycle build scripts. |
+
+Prefer `aube run`/`aube dlx`/`aube exec` over `aubr`/`aubx` in scripts and CI
+(see Gotchas).
 
 ## CI (GitHub Actions)
 
@@ -81,7 +84,7 @@ separate (see https://aube.sh/package-manager/ci.html#cache-choices) — via
     path: ${{ steps.aube-paths.outputs.cache }}
     key: ${{ runner.os }}-aube-cache-${{ hashFiles('**/pnpm-lock.yaml') }}
 - run: aube ci
-- run: aubr test
+- run: aube test
 ```
 
 ## Lifecycle scripts
@@ -99,8 +102,12 @@ permissions (`jailBuildPermissions`).
   directly: `aube exec wrangler deploy` with `CLOUDFLARE_API_TOKEN` in env.
 - **`aube exec` swallows global flags** — `aube exec tsc --version` prints aube's
   version. Put `--` before binary: `aube exec -- tsc --version`.
-- **`aubr` echoes commands to stderr** — prints expanded command prefixed with `$`
+- **`aube run` echoes commands to stderr** — prints expanded command prefixed with `$`
   to stderr (matching npm/pnpm); pass `--silent` / `-s` if scripts parse stderr.
+- **`aubr`/`aubx` missing from `PATH` since aube 2.2.13+** — the mise packslip
+  manifest lists only `"bin": ["aube"]`, so `.mise-bins/` (mise's `PATH` dir)
+  has no `aubr`/`aubx` symlinks; both exit 127. Use `aube run`/`aube dlx`, or
+  symlink them yourself in mise `postinstall`.
 - **Global installs use aube data root in 2.x** — `aube add -g` installs to
   `$XDG_DATA_HOME/aube/bin` (`~/.local/share/aube/bin`), ignoring `PNPM_HOME`.
   Add this directory to `$PATH`.

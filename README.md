@@ -147,8 +147,8 @@ host then CI then containers.
 #### [`aube`](skills/aube/SKILL.md)
 
 Use [aube](https://aube.sh/) as the Node.js package manager, installed and
-pinned through mise. Covers `aubr`/`aube ci` workflows, lockfile policy, the
-lifecycle-script jail, and migrating from pnpm/npm/bun.
+pinned through mise. Covers `aube run`/`aube ci` workflows, lockfile policy,
+the lifecycle-script jail, and migrating from pnpm/npm/bun.
 
 ### Testing
 
