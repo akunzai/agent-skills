@@ -15,7 +15,7 @@ repo, and spends the **instruction budget** on every-task facts plus pointers.
 |---|---|---|
 | **Instruction budget** | High | Does every root line pass the every-task test or exist as a pointer? Is the one-sentence project description present? |
 | **Progressive Disclosure** | High | Is `AGENTS.md` lean (< 100 lines)? Are domain rules and SOPs behind a pointer or a skill? |
-| **Pointers** | High | Are `@path` and markdown links in `AGENTS.md` converted to the matching shape — occasion plus `read`, or `Label: path` ([templates.md](templates.md) §4)? |
+| **Pointers** | High | Are `@path` and markdown links in `AGENTS.md` converted to the matching shape — occasion plus `read`, or `Label: path` ([templates.md](templates.md) §4)? Are `@path` file references in `docs/agents/*.md` converted to backtick paths? |
 | **Commands & package manager** | High | Is a non-default package manager named? Are only non-standard or expensive-to-discover commands cached? |
 | **Rich References & SSOT** | High | Does it point to schemas and gold-standard tests instead of prose specs? Does it treat `package.json` / configs / the tree as the live source? |
 | **Monorepo boundaries** | High | When nested files exist, does the root own shared policy, docs, and Prevent Recurrence while each autonomous child starts with its purpose and carries only local commands, decisions, and completion? Can independently cloned packages operate from their own root file? |
@@ -57,8 +57,8 @@ Eliminate these on sight:
 *   **Ceremonial nesting**: empty "follow the root" files, copied root rules, or nested files created only because `src/` or `tests/` exists.
 *   **Monolithic SOP Bloat**: multi-step deploy or migration scripts in the root file.
 *   **Inline Lessons Learned**: gotchas written in `AGENTS.md` instead of a topic file referenced via a backtick-path pointer.
-*   **`@` file references in AGENTS.md**: `@docs/foo.md` — convert to the matching pointer shape ([templates.md](templates.md) §4). Do not flag `@me`, npm scopes, or `owner/action@vN`.
-*   **Markdown links in AGENTS.md**: convert to the matching pointer shape ([templates.md](templates.md) §4).
+*   **`@` file references**: `@docs/foo.md` in `AGENTS.md` or `docs/agents/*.md` — convert to the matching pointer shape ([templates.md](templates.md) §4). Do not flag `@me`, npm scopes, or `owner/action@vN`.
+*   **Markdown links in AGENTS.md**: convert to the matching pointer shape ([templates.md](templates.md) §4). Markdown links in a domain doc stay.
 *   **Knowledge in two places**: the same rule in a code comment and a doc entry — one of them will drift. Keep the tier the reader reaches first and cross-reference from the others.
 *   **Recorded instead of prevented**: proposing a doc entry when an assert, type, or test in reach would have made the mistake impossible, or offering every tier at once instead of the first one that reaches the next victim.
 *   **Drifting metrics**: `"25 unresolved issues"`, `"85% coverage"`.

@@ -69,6 +69,7 @@ An `AGENTS.md` exists but is over-constrained with defensive micromanagement ("a
    > - **Legacy Inline Lessons Learned**: An inline `## Lessons Learned` section (old writeback format) holds 8 entries — several stale and missing context tags — that should be promoted to dedicated Prevent Recurrence reference files instead.
    > - **SOP Bloat**: Includes a 12-step DB migration script directly in root `AGENTS.md`.
    > - **Instruction budget**: Language-specific rules and a file-by-file map fail the every-task test.
+   > - **`@` file references in `docs/agents/architecture.md`**: `@src/widget.ts` — convert to `` `src/widget.ts` ``. Markdown links in that file stay.
 
 3. **Apply Improvements (Progressive Disclosure & Context Offloading)**
    The agent rewrites `AGENTS.md` to function as an index (< 100 lines):

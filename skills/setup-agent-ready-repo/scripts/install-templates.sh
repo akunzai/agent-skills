@@ -3,8 +3,9 @@ set -euo pipefail
 
 # Copies this skill's document templates into a target repository, and checks
 # installed documents for what an instruction cannot prevent: prose that is not
-# English, an unresolved <angle placeholder>, and a guarantee the current
-# templates pin that the document no longer carries.
+# English, an unresolved <angle placeholder>, a guarantee the current
+# templates pin that the document no longer carries, and an @path file
+# reference in any docs/agents/*.md.
 #
 # Copying is the point. A model asked to write a document from a template
 # regenerates it, and regeneration follows the conversation's language, which
@@ -21,7 +22,8 @@ usage: install-templates.sh --forge <github|gitlab|none> [--force] [DIR]
             none writes verification.md alone (no remote)
   --force   overwrite a destination that already exists
   --check   scan installed documents for stray CJK, unresolved placeholders,
-            and guarantees the current templates pin but the document lost;
+            guarantees the current templates pin but the document lost, and
+            @path file references in any docs/agents/*.md;
             exits non-zero when it finds any
   DIR       repository root (default: current directory)
 USAGE
@@ -93,6 +95,53 @@ check_guarantees() {
   return "$found"
 }
 
+# An @ file reference is '@' plus a repo-relative path. Copilot CLI and
+# Claude Code expand those when the document is read. @me, @user, npm
+# scopes (@types/node), emails (user@host), and owner/action@vN are not
+# paths: emails and action pins have an alnum before '@', and a scope
+# has a slash but no file extension and no matching path in the repo.
+is_at_file_ref() {
+  local path=$1 last rel
+  path="${path%.}"
+  path="${path%,}"
+  [ -n "$path" ] || return 1
+  last="${path##*/}"
+  case "$path" in
+    */*)
+      case "$last" in
+        *.*) return 0 ;;
+      esac
+      rel="${path#./}"
+      [ -e "$DIR/$rel" ]
+      ;;
+    *.*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+check_at_path_refs() {
+  local file=$1 rel=${1#"$DIR"/} found=0 lineno=0 line raw path
+  while IFS= read -r line || [ -n "$line" ]; do
+    lineno=$((lineno + 1))
+    [ -n "$line" ] || continue
+    while IFS= read -r raw; do
+      [ -n "$raw" ] || continue
+      path="${raw#*@}"
+      path="${path%.}"
+      path="${path%,}"
+      if is_at_file_ref "$path"; then
+        printf 'ATPATH      %s:%s @%s\n' "$rel" "$lineno" "$path"
+        found=1
+      fi
+    done < <(printf ' %s\n' "$line" | grep -oE '[^A-Za-z0-9]@[A-Za-z0-9._/-]+' || true)
+  done < "$file"
+  return "$found"
+}
+
 check_docs() {
   local found=0 f stray leftover kind
   for f in "$DEST/issue-tracker.md" "$DEST/pull-request.md" \
@@ -117,9 +166,15 @@ check_docs() {
     esac
     check_guarantees "$f" "$kind" || found=1
   done
+  if [ -d "$DEST" ]; then
+    for f in "$DEST"/*.md; do
+      [ -f "$f" ] || continue
+      check_at_path_refs "$f" || found=1
+    done
+  fi
   if [ "$found" -eq 0 ]; then
-    echo "documents are English, carry no unresolved placeholder, and are level"
-    echo "with every guarantee the current templates pin"
+    echo "documents are English, carry no unresolved placeholder, no @path file"
+    echo "reference, and are level with every guarantee the current templates pin"
   fi
   return "$found"
 }
