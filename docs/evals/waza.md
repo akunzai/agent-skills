@@ -2,9 +2,11 @@
 
 Suites under `evals/<skill>/` measure those skills on **GitHub Copilot
 only**, using the pinned catalog id in each `eval.yaml` `config.model`.
-The three worker-routing suites use `gemini-3.8-flash`; the remaining suites
-use their own pinned model. Skills remain usable in other assistants; those
-runtimes are not the effectiveness instrument.
+The three worker-routing suites use `auto`, letting Copilot pick the model
+per task instead of a fixed one; the remaining suites use their own
+pinned model. Revert a worker-routing suite to a pinned id if `auto`'s
+picks prove too unstable for its graders. Skills remain usable in other
+assistants; those runtimes are not the effectiveness instrument.
 
 Covered: `agents-md`, `mise`, `aube`, `tidy-commits`, `to-memory`,
 `backfill-unit-tests`, `pr-workflow`, `write-e2e-tests`, `github-epic`,
