@@ -23,6 +23,8 @@
         <option>繁體中文</option>
       </select>
       <p id="hint" hidden>Command palette opened.</p>
+      <p><button type="button" id="details-toggle">Details</button></p>
+      <p id="details" hidden>Double-clicking reveals these details.</p>
       <section id="more">
         <h2>More information</h2>
         <p>Anchored so the click never leaves the page and the later locators stay valid.</p>
@@ -36,6 +38,11 @@
           document.getElementById("hint").hidden = false;
           document.getElementById("q").focus();
         }
+      });
+      // A double-click target, so a `dblclick` step has something to show.
+      document.getElementById("details-toggle").addEventListener("dblclick", () => {
+        const details = document.getElementById("details");
+        details.hidden = !details.hidden;
       });
     </script>
   </body>

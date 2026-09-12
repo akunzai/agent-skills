@@ -199,41 +199,37 @@ function installCursor() {
         transform-origin: 4px 3px;
         filter: drop-shadow(0 2px 3px rgba(0,0,0,.38));
       }
-      .cursor svg { display: block; }
-      .cursor.is-down { animation: tvr-bounce 350ms cubic-bezier(0.22, 1, 0.36, 1); }
+      .cursor svg { display: block; position: absolute; left: 0; top: 0; }
+      .shape { opacity: 0; transition: opacity 130ms ease; }
+      .shape-arrow { opacity: 1; }
+      .cursor[data-icon="hand"] .shape-arrow { opacity: 0; }
+      .cursor[data-icon="hand"] .shape-hand { opacity: 1; }
+      .cursor[data-icon="text"] .shape-arrow { opacity: 0; }
+      .cursor[data-icon="text"] .shape-text { opacity: 1; }
       .effects { position: absolute; inset: 0; }
-      .echo {
-        position: absolute; width: 14px; height: 14px; border-radius: 999px;
-        border: 2px solid #2563EB; pointer-events: none;
-        animation: tvr-echo 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      .ripple {
+        position: absolute; width: 80px; height: 80px; margin: -40px 0 0 -40px;
+        border-radius: 999px; border: 7px solid #2563EB; pointer-events: none;
+        animation: tvr-ripple 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
-      .echo.outer {
-        border-width: 1.5px; animation-delay: 50ms;
-      }
-      .core {
-        position: absolute; width: 7px; height: 7px; border-radius: 999px;
-        background: rgba(37, 99, 235, 0.22); pointer-events: none;
-        animation: tvr-core 600ms ease-out forwards;
-      }
-      @keyframes tvr-bounce {
-        0% { transform: scale(1); }
-        32% { transform: scale(0.84); }
-        100% { transform: scale(1); }
-      }
-      @keyframes tvr-echo {
-        0% { opacity: 0.78; transform: translate(-50%, -50%) scale(0.35); }
-        100% { opacity: 0; transform: translate(-50%, -50%) scale(4.4); }
-      }
-      @keyframes tvr-core {
-        0% { opacity: 0.35; transform: translate(-50%, -50%) scale(1); }
-        100% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+      @keyframes tvr-ripple {
+        0% { opacity: 0.85; transform: scale(1); }
+        100% { opacity: 0; transform: scale(1.75); }
       }
     </style>
     <div class="effects"></div>
     <div class="cursor">
-      <svg width="28" height="32" viewBox="0 0 28 32" aria-hidden="true">
+      <svg class="shape shape-arrow" width="28" height="32" viewBox="0 0 28 32" aria-hidden="true">
         <path fill="#111" stroke="#fff" stroke-width="1.55" stroke-linejoin="round"
           d="M3.8 2.6c-.18-.9.82-1.55 1.62-1.08L25.4 13.7c.82.48.62 1.68-.32 1.96l-10.1 3.05c-.24.07-.44.23-.54.46l-4.7 10.4c-.42.92-1.78.68-1.98-.34L3.8 2.6z"/>
+      </svg>
+      <svg class="shape shape-hand" width="26" height="28" viewBox="0 0 26 28" aria-hidden="true">
+        <path fill="#111" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"
+          d="M10 3.5a1.9 1.9 0 0 1 3.8 0v8.4l1.9.4V9.8a1.8 1.8 0 0 1 3.6 0v3.1l1.7.5a1.7 1.7 0 0 1 3.4.4v6.7c0 3.9-2.9 7-6.9 7h-3c-2.1 0-4-1-5.2-2.7l-4-5.6a1.9 1.9 0 0 1 2.9-2.4l1.8 1.7V3.5Z"/>
+      </svg>
+      <svg class="shape shape-text" width="16" height="28" viewBox="0 0 16 28" aria-hidden="true">
+        <path fill="#111" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"
+          d="M4 2h8v3.2H9.6v17.6H12V26H4v-3.2h2.4V5.2H4V2Z"/>
       </svg>
     </div>
   `;
@@ -271,22 +267,22 @@ function installCursor() {
       cursorEl.style.left = `${x}px`;
       cursorEl.style.top = `${y}px`;
     },
+    setIcon(icon) {
+      mount();
+      if (icon === "hand" || icon === "text") {
+        cursorEl.dataset.icon = icon;
+      } else {
+        delete cursorEl.dataset.icon;
+      }
+    },
     pulse(x, y) {
       mount();
-      cursorEl.classList.remove("is-down");
-      void cursorEl.offsetWidth;
-      cursorEl.classList.add("is-down");
-      const spawn = (className) => {
-        const el = document.createElement("div");
-        el.className = className;
-        el.style.left = `${x}px`;
-        el.style.top = `${y}px`;
-        effectsEl.appendChild(el);
-        el.addEventListener("animationend", () => el.remove());
-      };
-      spawn("core");
-      spawn("echo");
-      spawn("echo outer");
+      const el = document.createElement("div");
+      el.className = "ripple";
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+      effectsEl.appendChild(el);
+      el.addEventListener("animationend", () => el.remove());
     },
   };
 }
@@ -450,6 +446,19 @@ export function resolveAction(step) {
   return step.action ?? (step.wait !== undefined ? "wait" : "click");
 }
 
+// A step's own action already says what kind of target it acts on, so the
+// icon is read off that rather than inspected live from the page.
+export function resolvePointerIcon(step) {
+  const action = resolveAction(step);
+  if (action === "click" || action === "dblclick" || action === "double-click" || action === "select") {
+    return "hand";
+  }
+  if (action === "type") {
+    return "text";
+  }
+  return null;
+}
+
 function locatorFor(page, step) {
   if (step.selector) {
     return page.locator(step.selector);
@@ -500,6 +509,32 @@ function sleep(ms) {
   });
 }
 
+async function setPointerIcon(page, state, icon) {
+  if (!state.effects?.cursor) {
+    return;
+  }
+  await page.evaluate(
+    (ic) => {
+      window.__tvrCursor?.setIcon(ic);
+    },
+    icon,
+  ).catch(() => {});
+}
+
+async function firePulses(page, x, y, times) {
+  for (let i = 0; i < times; i += 1) {
+    if (i > 0) {
+      await sleep(150);
+    }
+    await page.evaluate(
+      ([cx, cy]) => {
+        window.__tvrCursor?.pulse(cx, cy);
+      },
+      [x, y],
+    ).catch(() => {});
+  }
+}
+
 export function resolvePauseMs(step, state) {
   if (Number.isFinite(step.pause) && step.pause >= 0) {
     return step.pause;
@@ -546,6 +581,7 @@ export async function runScenario(page, scenario, log, state) {
       await animateMove(page, state, x, y);
       await installOverlay(page, state);
       await syncCursor(page, state);
+      await setPointerIcon(page, state, resolvePointerIcon(step));
     } else {
       await page.mouse.move(x, y);
       state.x = x;
@@ -554,7 +590,8 @@ export async function runScenario(page, scenario, log, state) {
     await sleep(PRE_CLICK_MS);
     const viewport = page.viewportSize() ?? DEFAULT_VIEWPORT;
     const button = step.button ?? "left";
-    const interaction = action === "dblclick" || action === "double-click" ? "double-click" : "click";
+    const isDouble = action === "dblclick" || action === "double-click";
+    const interaction = isDouble ? "double-click" : "click";
     log({
       t: Date.now() - state.startedAt,
       action: interaction,
@@ -562,13 +599,8 @@ export async function runScenario(page, scenario, log, state) {
       cx: x / viewport.width,
       cy: y / viewport.height,
     });
-    if (effects.cursor) {
-      await page.evaluate(
-        ([cx, cy]) => {
-          window.__tvrCursor?.pulse(cx, cy);
-        },
-        [x, y],
-      ).catch(() => {});
+    if (effects.cursor && (action === "click" || isDouble)) {
+      await firePulses(page, x, y, isDouble ? 2 : 1);
     }
     const caption = await showCaption(page, state, step, { x, y });
     if (action === "dblclick" || action === "double-click") {
@@ -594,6 +626,7 @@ export async function runScenario(page, scenario, log, state) {
     await hideCaption(caption);
     await installOverlay(page, state);
     await syncCursor(page, state);
+    await setPointerIcon(page, state, null);
   }
 }
 
