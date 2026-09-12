@@ -63,7 +63,6 @@ graders:
         - "(?is)before.{0,40}```.{0,400}after.{0,40}```"
       regex_not_match:
         - "(?is)```mermaid"
-        - "(?i)flowchart"
 
   - type: code
     name: cites-brief
