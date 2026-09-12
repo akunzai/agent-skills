@@ -69,9 +69,10 @@ Writing a document from a template regenerates it, and regeneration
 follows the conversation's language; copying bytes does not.
 
 `--check` scans the installed documents for stray CJK, for a placeholder
-nobody replaced, and for any guarantee in
+nobody replaced, for any guarantee in
 [guarantees.tsv](references/guarantees.tsv) the document no longer
-carries. Run it before asking for confirmation, and fix what it names.
+carries, and for `@path` file references in any `docs/agents/*.md`. Run
+it before asking for confirmation, and fix what it names.
 
 A repo set up by an earlier version reaches the current one through that
 last check. It reports the guarantee and where in the template to read
@@ -228,10 +229,14 @@ rendered. Write those markers whenever you write the file.
 
 [install-templates.sh](scripts/install-templates.sh) `--check` answers the
 other half: which guarantees the current templates pin that these
-documents no longer carry. Run both on a re-run, before asking anything.
+documents no longer carry, and whether any `docs/agents/*.md` still has
+an `@path` file reference. Run both on a re-run, before asking anything.
 
-If `AGENTS.md` still has `@docs/agents/<doc>.md` lines, propose the
-read-trigger shape above and wait. `--check` does not parse `AGENTS.md`.
+If `AGENTS.md` still has `@docs/agents/<doc>.md` lines, or any
+`docs/agents/*.md` still has an `@` file reference, propose backtick
+paths (the read-trigger shape in `AGENTS.md`) and wait. `--check` flags
+`@path` in `docs/agents/*.md`; it does not parse `AGENTS.md`.
+`check-drift.sh` still compares only the four recorded facts.
 
 Report drift and stop. Fixing it needs the same confirmation as writing
 it did.

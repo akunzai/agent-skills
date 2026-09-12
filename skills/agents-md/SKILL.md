@@ -39,8 +39,10 @@ and single-domain rules to a pointer or a skill.
 plus `read` when the doc has a distinct branch; a label when it does not.
 Shapes and why `@path` is a finding live in
 [references/templates.md](references/templates.md). Convert `@path` and
-markdown links in `AGENTS.md` to the matching shape. Keep `@AGENTS.md`
-at the top of a regular sibling `CLAUDE.md`; that is Claude Code's include.
+markdown links in `AGENTS.md` to the matching shape. Convert `@path` in
+`docs/agents/*.md` to a backtick path; markdown links there stay. Keep
+`@AGENTS.md` at the top of a regular sibling `CLAUDE.md`; that is Claude
+Code's include.
 
 **Trust Model Judgment**: keep project-specific, non-derivable constraints.
 Generic style and hygiene already live in the model.
@@ -92,10 +94,12 @@ Done when the target path is named.
 
 Then grade that file with [references/quality-criteria.md](references/quality-criteria.md):
 Micromanagement Audit, Bloat, contradictions, every-task placement, stale
-caches, `@path` file references, and markdown links in `AGENTS.md`. Propose
-the matching pointer shape from [references/templates.md](references/templates.md)
-§4 — occasion plus `read`, or `Label: path`. Emit a Quality Report
-before any edit.
+caches, `@path` file references, and markdown links in `AGENTS.md`. Scan
+`docs/agents/*.md` for the same `@path` file references; markdown links
+there stay. Propose the matching pointer shape from
+[references/templates.md](references/templates.md) §4 — occasion plus
+`read`, or `Label: path`, and a backtick path in a domain doc. Emit a
+Quality Report before any edit.
 
 Done when the report is in the conversation and no edit has started.
 
@@ -124,7 +128,8 @@ Load [references/templates.md](references/templates.md) for this branch.
 - Build or slim the file as an index: one-sentence description, non-default
   package manager, non-standard commands, pointers.
 - Apply **Progressive Disclosure**: offload multi-step SOPs and single-domain
-  rules. Convert `@path` and markdown links to the matching pointer shape.
+  rules. Convert `@path` and markdown links in `AGENTS.md` to the matching
+  pointer shape. Convert `@path` in `docs/agents/*.md` to backtick paths.
 - On a bloated existing file, group leftovers by domain, ask which of any
   contradictory pair to keep, and flag no-ops / vague / obvious lines for
   deletion.

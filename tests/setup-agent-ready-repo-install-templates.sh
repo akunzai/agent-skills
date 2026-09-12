@@ -174,6 +174,71 @@ case "$OUT" in
   *) fail "--check did not cite the template a merge-request.md came from: $OUT" ;;
 esac
 
+# --- check flags @path in any docs/agents/*.md, not only the template docs ---
+# gistui-style domain docs (architecture.md, conventions.md) are outside the
+# four installed names, so CJK/placeholder/guarantee checks never see them.
+AT_DIR="$TMP_DIR/atpath"
+mkdir -p "$AT_DIR/docs/agents"
+cat > "$AT_DIR/docs/agents/architecture.md" <<'DOC'
+The renderer lives in @src/widget.ts.
+Release config is (see `@.github/release.yml`).
+Assign follow-up to @me.
+The npm package is @types/node.
+Email user@example.com.
+uses: actions/checkout@v4
+A markdown link is fine: [widget](src/widget.ts).
+DOC
+STATUS=0
+OUT="$("$SCRIPT" --check "$AT_DIR" 2>&1)" || STATUS=$?
+[ "$STATUS" -ne 0 ] || fail "--check passed a domain doc that still has @path: $OUT"
+case "$OUT" in
+  *"ATPATH"*"architecture.md"*@src/widget.ts*) ;;
+  *) fail "--check did not name @src/widget.ts: $OUT" ;;
+esac
+case "$OUT" in
+  *"ATPATH"*@.github/release.yml*) ;;
+  *) fail "--check did not name @.github/release.yml inside backticks: $OUT" ;;
+esac
+for keep in '@me' '@types/node' 'user@example.com' 'checkout@v4' 'src/widget.ts)'; do
+  case "$OUT" in
+    *" $keep"*|*"@$keep"*) fail "--check flagged a non-path $keep: $OUT" ;;
+  esac
+done
+# markdown links are not @path
+case "$OUT" in
+  *'](src/widget.ts)'*) fail "--check flagged a markdown link as @path: $OUT" ;;
+esac
+
+# @me, npm scopes, emails, and action@vN in a domain doc are clean
+SAFE_AT="$TMP_DIR/atpath-safe"
+mkdir -p "$SAFE_AT/docs/agents"
+cat > "$SAFE_AT/docs/agents/conventions.md" <<'DOC'
+Claim the issue with --add-assignee @me.
+Install @types/node.
+Contact user@example.com.
+uses: actions/checkout@v4
+copilot plugin install foo@akunzai-agent-skills
+See `src/widget.ts`.
+DOC
+OUT="$("$SCRIPT" --check "$SAFE_AT" 2>&1)" \
+  || fail "--check rejected a domain doc with no @path: $OUT"
+case "$OUT" in
+  *"ATPATH"*) fail "--check reported ATPATH on a clean domain doc: $OUT" ;;
+esac
+
+# a path without an extension is still @path when that path exists in the repo
+EXIST_AT="$TMP_DIR/atpath-exists"
+mkdir -p "$EXIST_AT/docs/agents" "$EXIST_AT/scripts"
+touch "$EXIST_AT/scripts/dev-up.sh"
+printf 'Start with @scripts/dev-up.sh\n' > "$EXIST_AT/docs/agents/architecture.md"
+STATUS=0
+OUT="$("$SCRIPT" --check "$EXIST_AT" 2>&1)" || STATUS=$?
+[ "$STATUS" -ne 0 ] || fail "--check passed @scripts/dev-up.sh: $OUT"
+case "$OUT" in
+  *"ATPATH"*@scripts/dev-up.sh*) ;;
+  *) fail "--check did not name an extensionless path that exists: $OUT" ;;
+esac
+
 # --- argument handling ---
 if "$SCRIPT" --forge bogus "$TMP_DIR" >/dev/null 2>&1; then
   fail "an unknown forge should fail"

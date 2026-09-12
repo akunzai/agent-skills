@@ -32,9 +32,10 @@ inputs:
 
     Ground every finding in the workspace files. Name the rules you
     actually read. Also flag any `@` file references in AGENTS.md (paths
-    like `@docs/...`). For each one, propose the portable pointer shape
-    (a backtick path; add `read` only when there is a distinct occasion).
-    Do not flag `@me` or package scopes.
+    like `@docs/...`) and in `docs/agents/*.md` (paths like `@src/...`).
+    For each one, propose the portable pointer shape (a backtick path;
+    add `read` only when there is a distinct occasion). Markdown links
+    in a domain doc are fine. Do not flag `@me` or package scopes.
 
     Then add a fourth section, `Prevent Recurrence`. The Commands
     section hand-copies `npm test` and `npm run lint` out of
@@ -45,6 +46,7 @@ inputs:
   files:
     - path: AGENTS.md
     - path: package.json
+    - path: docs/agents/architecture.md
 
 expected:
   outcomes:

@@ -64,6 +64,9 @@ graders:
         - "'@docs/release-checklist' in output.lower()"
         - >-
           bool(re.search(r'(?<!@)`docs/release-checklist\.md`', output))
+        - "'@src/widget' in output.lower()"
+        - >-
+          bool(re.search(r'(?<!@)`src/widget\.ts`', output))
 
   # Scoped to the Prevent Recurrence section so the audit sections above
   # cannot satisfy these by accident.
@@ -88,6 +91,7 @@ graders:
       must_exist:
         - AGENTS.md
         - package.json
+        - docs/agents/architecture.md
       must_not_exist:
         - CLAUDE.md
         - .env
@@ -103,6 +107,9 @@ graders:
             - "Progressive Disclosure"
             - "Trust Model Judgment"
             - "@docs/release-checklist.md"
+        - path: docs/agents/architecture.md
+          must_match:
+            - "@src/widget.ts"
 
   - type: diff
     name: fixture-files-unmutated
@@ -112,6 +119,8 @@ graders:
           snapshot: evals/agents-md/fixtures/AGENTS.md
         - path: package.json
           snapshot: evals/agents-md/fixtures/package.json
+        - path: docs/agents/architecture.md
+          snapshot: evals/agents-md/fixtures/docs/agents/architecture.md
 
 tasks:
   - "tasks/*.yaml"

@@ -120,12 +120,13 @@ blindly. Read it, summarize any unique instructions, propose a migration into
 
 ## 4. Pointers
 
-Two shapes, both with backtick paths. Do not write `@path` in `AGENTS.md`:
-Copilot CLI and Claude Code expand it every turn; VS Code Copilot Chat and
-opencode leave it as inert text. Do not use Markdown links in `AGENTS.md`:
-VS Code may auto-include them. The exception is `@AGENTS.md` at the top of
-a regular sibling `CLAUDE.md` — Claude Code's include, not an AGENTS.md
-pointer.
+Two shapes, both with backtick paths. Do not write `@path` in `AGENTS.md`
+or in `docs/agents/*.md`: Copilot CLI and Claude Code expand it — every
+turn from `AGENTS.md`, and when a domain doc is read. VS Code Copilot Chat
+and opencode leave it as inert text. Do not use Markdown links in
+`AGENTS.md`: VS Code may auto-include them. Markdown links in a domain
+doc are fine. The exception is `@AGENTS.md` at the top of a regular
+sibling `CLAUDE.md` — Claude Code's include, not an AGENTS.md pointer.
 
 Occasion, when the document has a distinct branch:
 
@@ -141,9 +142,10 @@ Index, when there is no independent branch:
 
 A domain doc may itself point deeper, still with backtick paths.
 
-On audit, an `@` followed by a repo-relative path in `AGENTS.md` is a
-finding. Propose the matching shape. Leave `@me`, npm scopes, and
-`owner/action@vN` alone.
+On audit, an `@` followed by a repo-relative path in `AGENTS.md` or
+`docs/agents/*.md` is a finding. Propose the matching shape in
+`AGENTS.md`; in a domain doc, a backtick path. Leave `@me`, npm scopes,
+and `owner/action@vN` alone.
 
 ## 5. Prevent Recurrence entry shape
 
