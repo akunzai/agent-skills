@@ -48,7 +48,33 @@ echo 'auth.json' >> .gitignore
 
 `record.mjs` warns when the file sits in a git work tree and is not ignored.
 
-## 2. Point the scenario at a signed-in landing page
+## 2. Explore through the same state
+
+Writing `scenario.json` (SKILL.md step 1) needs locators from the signed-in
+pages, not the login screen. Reuse the `auth.json` from step 1 with
+`playwright-cli` instead of signing in again:
+
+```bash
+playwright-cli open                        # blank browser, no URL yet
+playwright-cli state-load auth.json
+playwright-cli goto https://app.example.com/dashboard
+playwright-cli snapshot
+```
+
+Order matters: `state-load` attaches to the browser `open` already started,
+so `open` must come first and without a URL — `open <url>` on its own starts
+a fresh, signed-out browser and any state loaded before it is discarded with
+it. Only `goto` after the load lands on a page carrying the session.
+
+If `playwright-cli` also does step 1's sign-in — a human at the keyboard,
+`open` then wait — two defaults bite: `open` starts headless, so the person
+waiting sees nothing until it's reopened with `--headed`; and nothing is
+saved unless `playwright-cli state-save auth.json` runs before moving on.
+Skip that save and this step still works — the browser stays signed in — but
+the record step below has no file to load and falls back to a second
+sign-in. One login should cover sign-in, explore, and record.
+
+## 3. Point the scenario at a signed-in landing page
 
 `scenario.url` is the first screen you want on camera, not the login page. Add
 an `auth.expect` locator that is visible only once signed in — an account menu,
@@ -66,7 +92,7 @@ a greeting, a sign-out button. It takes the same shape as a step: `role` plus
 The locator is required in this mode. Without it a dead session records a
 walkthrough of the login page and nobody notices until playback.
 
-## 3. Record
+## 4. Record
 
 ```bash
 node scripts/record.mjs --scenario scenario.json --out demo.webm \
