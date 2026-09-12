@@ -8,6 +8,7 @@ export const PAD_MS = 500;
 export const DOUBLE_CLICK_MS = 350;
 export const DOUBLE_CLICK_DIST = 0.04;
 export const ZOOM_SCALE = 1.5;
+export const MERGE_DIST = 0.35;
 
 const CLICK_TYPES = new Set(["click", "double-click", "right-click", "middle-click"]);
 
@@ -123,7 +124,7 @@ function clampFocus(focus, scale) {
   };
 }
 
-function buildClusters(clicks, mergeGapMs) {
+function buildClusters(clicks, mergeGapMs, mergeDist) {
   if (clicks.length === 0) {
     return [];
   }
@@ -132,14 +133,18 @@ function buildClusters(clicks, mergeGapMs) {
   const clusters = [];
   let firstMs = sorted[0].timeMs;
   let lastMs = sorted[0].timeMs;
+  let lastFocus = sorted[0].focus;
   let bestStrength = sorted[0].strength;
   let bestFocus = sorted[0].focus;
 
   for (let i = 1; i < sorted.length; i += 1) {
     const click = sorted[i];
-    if (click.timeMs - lastMs <= mergeGapMs) {
+    const withinTime = click.timeMs - lastMs <= mergeGapMs;
+    const withinSpace = Math.hypot(click.focus.cx - lastFocus.cx, click.focus.cy - lastFocus.cy) <= mergeDist;
+    if (withinTime && withinSpace) {
       lastMs = Math.max(lastMs, click.timeMs);
-      if (click.strength > bestStrength) {
+      // Recency wins ties so the zoom keeps following the cursor within a merged cluster.
+      if (click.strength >= bestStrength) {
         bestStrength = click.strength;
         bestFocus = click.focus;
       }
@@ -150,6 +155,7 @@ function buildClusters(clicks, mergeGapMs) {
       bestStrength = click.strength;
       bestFocus = click.focus;
     }
+    lastFocus = click.focus;
   }
   clusters.push({ firstMs, lastMs, focus: bestFocus });
   return clusters;
@@ -157,6 +163,7 @@ function buildClusters(clicks, mergeGapMs) {
 
 export function suggestZooms(rawSamples, totalMs, options = {}) {
   const mergeGapMs = options.mergeGapMs ?? MERGE_GAP_MS;
+  const mergeDist = options.mergeDist ?? MERGE_DIST;
   const padMs = options.padMs ?? PAD_MS;
   const scale = options.scale ?? ZOOM_SCALE;
 
@@ -178,6 +185,7 @@ export function suggestZooms(rawSamples, totalMs, options = {}) {
       focus: { cx: click.cx, cy: click.cy },
     })),
     mergeGapMs,
+    mergeDist,
   );
 
   const suggestions = [];
