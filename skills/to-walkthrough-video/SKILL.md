@@ -21,12 +21,20 @@ Scripts live in `scripts/` next to this file.
 
 ## Workflow
 
-1. **Scenario.** A spoken brief is enough. Explore the live page and write
-   `scenario.json` with the start URL and every click, in order. Each click
-   needs a locator (`role`+`name`, `selector`, `text`, or `label`). Discover
-   locators with `playwright-cli snapshot` when that command is on PATH;
-   otherwise a Playwright script. Reuse a webwright run only when one
-   already exists for this flow. Leave this step when the file is on disk.
+1. **Scenario.** A spoken brief is enough. Behind a sign-in: save state once
+   with `npx playwright open --save-storage=auth.json <url>`, then explore
+   and record through that state — the anonymous page is only ever a login
+   screen. `auth.expect` must be visible only when signed in, and record
+   with `--storage-state auth.json`, or pass `--sign-in` to sign in by hand
+   at the start of the recording instead. See `references/auth.md`. Explore
+   the live page and write `scenario.json` with the start URL and every
+   click, in order. Each click needs a locator (`role`+`name`, `selector`,
+   `text`, or `label`). Discover locators with `playwright-cli snapshot`
+   when that command is on PATH; otherwise a Playwright script. Reuse a
+   webwright run only when one already exists for this flow — webwright
+   launches a fresh, stateless browser each time and cannot carry a
+   signed-in session past a login wall. Leave this step when the file is on
+   disk.
 
 ```json
 {
@@ -46,12 +54,6 @@ Scripts live in `scripts/` next to this file.
 Pointer, captions and auto-zoom are on; `effects` turns any off. Set
 `captionLocale` to the language of the conversation asking for the
 recording. See `references/effects.md`.
-
-Behind a sign-in: save state once with `npx playwright open
---save-storage=auth.json <url>`, then record with `--storage-state
-auth.json`, or pass `--sign-in` to sign in by hand at the start of the
-recording. `auth.expect` must be visible only when signed in. See
-`references/auth.md`.
 
 2. **Record.** From a directory that can `import('playwright')`:
 
