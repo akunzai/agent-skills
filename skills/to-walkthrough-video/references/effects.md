@@ -13,7 +13,7 @@ silently ignored.
 
 | Effect | On | Off |
 | --- | --- | --- |
-| `cursor` | An arrow travels to each target, bounces on click, and leaves a blue echo ring | No arrow, and the mouse moves straight to its target instead of sweeping hover states along a path nobody can see |
+| `cursor` | An arrow travels to each target, swaps to a hand or text-input icon while resting on it, and a click or double-click leaves a fading blue ring | No arrow, and the mouse moves straight to its target instead of sweeping hover states along a path nobody can see |
 | `captions` | A caption names each interaction while it happens | Nothing is drawn |
 | `zoom` | ffmpeg zooms into each click cluster | No zoom is applied. A `.webm` output is the raw capture; any other container is still re-encoded by ffmpeg. `.clicks.jsonl` and `.zooms.json` are written either way |
 
@@ -23,6 +23,19 @@ and decide later:
 ```bash
 node scripts/render-auto-zoom.mjs --video demo.webm --clicks demo.clicks.jsonl --out zoomed.mp4
 ```
+
+## Pointer
+
+The icon is read off the step's own `action`, not sniffed live from the page:
+`click`, `dblclick` and `select` show a hand; `type` shows a text-input
+caret; `press` and everything else leave the arrow alone. The swap only
+happens once the pointer is resting on that step's target, and it reverts
+to the arrow as soon as the pointer starts moving to the next one.
+
+A `click` leaves one fading ring at the click point; a `dblclick` leaves
+two, about 150ms apart, so a double-click reads as one on screen. `type`
+and `select` still perform a real click to focus the target, but that
+click leaves no ring — only `click` and `dblclick` do.
 
 ## Captions
 

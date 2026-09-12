@@ -262,6 +262,7 @@ import {
   formatKeys,
   resolveCaptionLocale,
   resolveEffects,
+  resolvePointerIcon,
   validateScenario,
 } from "file://${RECORD}";
 
@@ -293,6 +294,26 @@ if (!validateScenario({ effects: { bogus: true }, steps: [] })[0].includes("unkn
 }
 if (!validateScenario({ effects: { zoom: "yes" }, steps: [] })[0].includes("true or false")) {
   fail("a non-boolean effect should be refused");
+}
+
+// The pointer icon is read off the step's own action, not the live page.
+if (resolvePointerIcon({ action: "click" }) !== "hand") {
+  fail("click should show the hand icon");
+}
+if (resolvePointerIcon({ action: "dblclick" }) !== "hand") {
+  fail("dblclick should show the hand icon");
+}
+if (resolvePointerIcon({ action: "select" }) !== "hand") {
+  fail("select should show the hand icon");
+}
+if (resolvePointerIcon({ action: "type" }) !== "text") {
+  fail("type should show the text icon");
+}
+if (resolvePointerIcon({ action: "press", keys: "Control+k" }) !== null) {
+  fail("press should leave the arrow alone");
+}
+if (resolvePointerIcon({ action: "wait", ms: 100 }) !== null) {
+  fail("wait should leave the arrow alone");
 }
 
 // A press step carries no locator, so its keys are the only thing to check.

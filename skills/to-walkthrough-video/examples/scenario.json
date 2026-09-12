@@ -6,6 +6,7 @@
     { "action": "wait", "ms": 800 },
     { "action": "click", "role": "link", "name": "More information" },
     { "action": "type", "role": "searchbox", "name": "Search", "text": "walkthrough", "pause": 1800 },
-    { "action": "select", "role": "combobox", "name": "Language", "value": "日本語" }
+    { "action": "select", "role": "combobox", "name": "Language", "value": "日本語" },
+    { "action": "dblclick", "role": "button", "name": "Details" }
   ]
 }
