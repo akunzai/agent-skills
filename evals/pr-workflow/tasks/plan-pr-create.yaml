@@ -14,6 +14,9 @@ inputs:
     Plan opening a pull request for this workspace using the
     pr-workflow skill. Hosting and issue facts are in BRIEF.txt.
     The working tree is clean and local checks already passed.
+    This repo has docs/agents/pull-request.md; read it before writing the
+    body. This PR changes the CLI output of `skills doctor` and also touches
+    an internal dispatch flow.
 
     Show the PR title, body, and the exact `gh pr create` command.
     Link #42 so merge auto-closes it. Mention epic #10 only as
@@ -39,6 +42,7 @@ inputs:
     Do not invent a PR that has already been opened.
   files:
     - path: BRIEF.txt
+    - path: docs/agents/pull-request.md
 
 expected:
   outcomes:

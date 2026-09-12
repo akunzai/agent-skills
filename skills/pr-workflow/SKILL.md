@@ -68,6 +68,12 @@ gate first; otherwise keep them in primary.
 Use the worker-routing fallback above when the named summarizer is unavailable
 or unsupported.
 
+Before writing the request body, read the repo's `docs/agents/pull-request.md`
+(or equivalent: `docs/agents/merge-request.md`, native `.github` / GitLab
+templates) and follow its description shape and visual table, keying the
+visual to the user-visible change — a CLI or UI output change wins over an
+internal flowchart even when one exists.
+
 ### Create PR
 ```bash
 gh pr create --title "<type>(<scope>): <summary>" --body "<description>"
