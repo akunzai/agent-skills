@@ -75,6 +75,13 @@ compares rather than infers.
   Scope the recording to the flow, not to a whole test run, and stay
   under the forge's attachment cap.
 
+## Issue linking in requests
+
+When a forge template includes a Related Issue section:
+- Link the issue with `Closes #N`, `Fixes #N`, or `Resolves #N` only when merge should auto-close it.
+- Use `Part of #N` or `See #N` for epic tracking or multi-PR tasks.
+- If there is no tracked issue for the request, drop the Related Issue section or mark it as none — never leave an unlinked `Closes #` or empty issue marker.
+
 ## Commit messages
 
 English, imperative, subject under 72 characters, regardless of the

@@ -87,8 +87,8 @@ commands, `verification.md` becomes their single source and the
 `AGENTS.md` entry shrinks to the pointer. Same rule when the repo already has
 `.github/PULL_REQUEST_TEMPLATE.md` or `.gitlab/merge_request_templates/`:
 the native template stays authoritative on structure and the document
-says so. Generating a native template is opt-in and produces a skeleton
-only.
+says so. Generating a native template is opt-in, produces a skeleton
+only, and marks any Related Issue section as dropped when no issue is tracked.
 
 ## Forge ladder
 

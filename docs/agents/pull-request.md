@@ -17,7 +17,9 @@ What follows only adds what it does not say. Its checklist line "Tests pass
   the scope, matching this repo's merged history: `feat(to-walkthrough-video): …`,
   `fix(setup-agent-ready-repo): …`, `docs(agents-md): …`, `ci(waza): …`,
   `refactor(plugins): …`. A change spanning the repo drops the scope (`docs: …`).
-- Link the issue in the template's Related Issue section (`Closes #<n>`).
+- Link the issue in the template's Related Issue section (`Closes #<n>`). If
+  there is no tracked issue, drop the section — never leave an unlinked
+  `Closes #` or empty issue marker.
 - **Do not open a request, draft included, without the developer asking.**
 
 ## Description shape

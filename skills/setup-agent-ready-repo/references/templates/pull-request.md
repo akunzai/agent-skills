@@ -27,6 +27,9 @@ is authoritative on structure. What follows only adds what it does not say. -->
   because one request may carry more than one kind of change. | Prefix the
   title with a Conventional Commit type, matching this repo's merged
   history.> Delete the alternative that does not apply.
+- Link the issue in the template's Related Issue section (`Closes #<n>`). If
+  there is no tracked issue, drop the section — never leave an unlinked
+  `Closes #` or empty issue marker.
 - **Do not open a request, draft included, without the developer asking.**
 
 ## Description shape

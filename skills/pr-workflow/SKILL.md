@@ -54,6 +54,7 @@ dispatch and report the ambiguity; do not retry or duplicate that workload.
 
 - **Auto-close**: Reserve `Closes #N`, `Fixes #N`, or `Resolves #N` solely for PRs that auto-close the issue on merge.
 - **Part-of**: Use `Part of #N` or `See #N` for epic tracking and multi-PR tasks. GitHub matches those tokens even inside negation — never write `Closes #N` (or Fix/Resolve) next to an issue you must not close.
+- **No Tracked Issue**: When a PR has no tracked issue, drop the Related Issue section entirely — never leave an unlinked `Closes #` or empty issue marker in the PR body.
 
 ## PR Lifecycle (GitHub Primary)
 
