@@ -76,7 +76,7 @@ fi
 node --input-type=module <<EOF || fail "record helper exports"
 import fs from "node:fs";
 import path from "node:path";
-import { bringOverlayToFront, findTopLayerHost, parseArgs, resolveViewport, resolvePauseMs, checkPrereqs, getGlobalNodeDirs, loadPlaywright } from "file://${RECORD}";
+import { bringOverlayToFront, findTopLayerHost, parseArgs, resolveViewport, resolvePauseMs, checkPrereqs, getGlobalNodeDirs, loadPlaywright, getFfmpegInstallAdvice } from "file://${RECORD}";
 
 const fail = (message) => {
   console.error(message);
@@ -144,6 +144,22 @@ const mockPrereqsNoFfmpeg = await checkPrereqs({
 });
 if (!mockPrereqsNoFfmpeg.ok || mockPrereqsNoFfmpeg.ffmpeg) {
   fail("checkPrereqs should still pass without ffmpeg (raw webm supported)");
+}
+if (!mockPrereqsNoFfmpeg.messages.some((m) => m.includes("mise use -g ffmpeg") && m.includes("ask user authorization"))) {
+  fail("checkPrereqs with missing ffmpeg should include installation advice asking user authorization");
+}
+
+const macMiseAdvice = getFfmpegInstallAdvice({ hasMise: () => true, platform: "darwin" });
+if (!macMiseAdvice.includes("mise use -g ffmpeg") || !macMiseAdvice.includes("brew install ffmpeg")) {
+  fail("getFfmpegInstallAdvice with mise on mac should mention mise and brew");
+}
+const linuxNoMiseAdvice = getFfmpegInstallAdvice({ hasMise: () => false, platform: "linux" });
+if (!linuxNoMiseAdvice.includes("mise.run") || !linuxNoMiseAdvice.includes("sudo apt install ffmpeg")) {
+  fail("getFfmpegInstallAdvice without mise on linux should mention mise.run and apt");
+}
+const winAdvice = getFfmpegInstallAdvice({ hasMise: () => false, platform: "win32" });
+if (!winAdvice.includes("winget install Gyan.FFmpeg")) {
+  fail("getFfmpegInstallAdvice without mise on win32 should mention winget");
 }
 
 const mockPrereqsMissingPw = await checkPrereqs({

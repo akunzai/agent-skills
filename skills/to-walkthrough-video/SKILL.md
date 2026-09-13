@@ -20,12 +20,9 @@ Scripts live in `scripts/` next to this file.
 
 Check first with `node scripts/record.mjs --check-prereqs`. If satisfied (exit 0), skip installation.
 
-When missing, ask the user for confirmation before installing. Recommend global installation to avoid polluting the workspace:
-
-```bash
-npm i -g playwright && npx playwright install chromium  # global (avoids repo pollution)
-# or: npm i -D playwright && npx playwright install chromium
-```
+When missing, ask the user for confirmation before installing:
+- Playwright: recommend `npm i -g playwright && npx playwright install chromium` (global avoids repo pollution; or `-D`).
+- `ffmpeg` (for `.mp4` or auto-zoom): recommend `mise use -g ffmpeg` (or platform manager `brew`/`apt`/`winget`, or installing `mise`). Or ask if the user prefers degrading to raw `.webm` without auto-zoom.
 
 ## Workflow
 
