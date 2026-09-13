@@ -56,8 +56,9 @@ is authoritative on structure. What follows only adds what it does not say. -->
    references as `![alt](./after.png)` is rewritten to point at the
    uploaded asset. Only when capture is genuinely impossible, leave a
    named placeholder comment.
-3. A collapsed technical trailer holding affected paths, implementation
-   notes, verification commands, and log excerpts.
+3. A collapsed technical trailer holding implementation notes, verification,
+   and lessons learned. Skip affected paths — the forge's own diff view
+   already shows those.
 
 <!-- Keep the line below even when the visual guidance above is cut
 short. It is the one rule whose absence costs someone else. -->

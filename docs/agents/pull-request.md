@@ -47,8 +47,9 @@ What follows only adds what it does not say. Its checklist line "Tests pass
    body already references as `![alt](./after.png)` is rewritten to point at
    the uploaded asset. Only when capture is genuinely impossible, leave a named
    placeholder comment such as `<!-- recording pending: hook firing on Stop -->`.
-3. A collapsed technical trailer holding affected paths, implementation notes,
-   the verification commands you ran, and log excerpts.
+3. A collapsed technical trailer holding implementation notes, verification,
+   and lessons learned. Skip affected paths — the forge's own diff view
+   already shows those.
 
 ## Commits
 
