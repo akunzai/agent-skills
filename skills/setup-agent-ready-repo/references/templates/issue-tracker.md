@@ -1,4 +1,5 @@
-<!-- Template. Replace every <angle placeholder>; delete lines that do not apply. -->
+<!-- Template. Replace every <angle placeholder> and every inline
+     `placeholder` span; delete lines that do not apply. -->
 <!-- Write the file in English, whatever <language> turns out to be: a
      document about issues is not an issue. <language> is the English name
      of a language, substituted into a sentence, never an instruction to
@@ -10,7 +11,7 @@
 **This file is English throughout**, sample blocks included, so it reads
 one way to every model, whatever language the repo chose for its issues.
 
-Issues live as <forge> issues. Use the `<gh | glab>` CLI for all
+Issues live as `placeholder:forge` issues. Use the `<gh | glab>` CLI for all
 operations; it infers the repo when run inside a clone.
 
 Write issue titles and descriptions in **<language>**.
@@ -108,12 +109,12 @@ already owns part of this vocabulary — `triage-labels.md` owns the triage
 roles — point at it and list only what it does not cover. A label named in
 both places has two owners and one of them goes stale on the next rename.
 
-- **Required on every issue**: <labels, or "none">
-- **Applied when it applies**: <labels and what each one means>
+- **Required on every issue**: `placeholder:labels, or "none"`
+- **Applied when it applies**: `placeholder:labels and what each one means`
 
 ## When a skill says "publish to the issue tracker"
 
-Create a <forge> issue.
+Create a `placeholder:forge` issue.
 
 ## When a skill says "fetch the relevant ticket"
 

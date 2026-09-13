@@ -63,8 +63,9 @@ Run [install-templates.sh](scripts/install-templates.sh) `--forge
 [verification.md](references/templates/verification.md) under
 `docs/agents/`, skipping any that already exist, and keeps the `drift:`
 markers `--check` and `check-drift.sh` read. Then edit the copies in
-place: replace every `<angle placeholder>`, delete what does not apply,
-leave every `drift:` HTML comment, and leave the English prose alone.
+place: replace `<angle placeholder>` and `placeholder` marks, delete
+what does not apply, leave every `drift:` HTML comment, and leave the
+English prose alone.
 Writing a document from a template regenerates it, and regeneration
 follows the conversation's language; copying bytes does not.
 
@@ -131,8 +132,7 @@ sentence the file states. Translating the document is the failure to
 avoid here, and it looks like obedience while you do it.
 
 The exception is a **literal**: a string reproduced character for
-character, such as a label that lands in a published release note, or a
-citation of an existing section title that a reader has to match. Show a
+character, such as a label or a citation a reader has to match. Show a
 literal inside backticks — a value quoted from outside the document,
 never a wrapper for translated prose — and write everything the agent
 reads rather than copies in English. `--check` skips a backtick span and

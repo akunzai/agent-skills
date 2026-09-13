@@ -1,5 +1,6 @@
 <!-- Template. Name the file pull-request.md on GitHub, merge-request.md on GitLab. -->
-<!-- Replace every <angle placeholder>; delete lines that do not apply. -->
+<!-- Replace every <angle placeholder> and every inline `placeholder` span;
+     delete lines that do not apply. -->
 <!-- Write the file in English, whatever <language> turns out to be: a
      document about requests is not a request. <language> is the English
      name of a language, substituted into a sentence, never an instruction
@@ -66,9 +67,9 @@ means here.
 
 ## Tests land with the behaviour
 
-- **Product logic**: `<paths>`. A change here lands with its tests in the
+- **Product logic**: `placeholder:paths`. A change here lands with its tests in the
   same request.
-- **Exempt**: `<paths>` — documentation, CI configuration, scripts, and
+- **Exempt**: `placeholder:paths` — documentation, CI configuration, scripts, and
   dependency bumps with no behaviour change.
 - **Structurally untestable** code — configuration classes, all-static
   factories — is declared in the description, naming what covers it instead.

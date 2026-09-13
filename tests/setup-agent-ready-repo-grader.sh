@@ -265,6 +265,33 @@ if ! WAZA_WORKSPACE_DIR="$WS_SAMPLE" bash "$GRADER" 2>"$TMP_DIR/sample.err"; the
   fail "an angle placeholder inside a sample command was rejected: $(cat "$TMP_DIR/sample.err")"
 fi
 
+# --- an inline `placeholder:name` span is an unresolved placeholder too ---
+WS_PH="$TMP_DIR/placeholder-marker"
+cp -R "$WS" "$WS_PH"
+# shellcheck disable=SC2016  # backticks are literal, not command substitution
+cat >> "$WS_PH/docs/agents/issue-tracker.md" <<'DOC'
+
+Issues live as `placeholder:forge` issues.
+DOC
+if WAZA_WORKSPACE_DIR="$WS_PH" bash "$GRADER" 2>"$TMP_DIR/ph.err"; then
+  fail "an unresolved \`placeholder:name\` span was accepted"
+fi
+grep -q "unresolved template placeholder" "$TMP_DIR/ph.err" \
+  || fail "placeholder span leak not reported: $(cat "$TMP_DIR/ph.err")"
+
+# --- the template's own author-facing mention of the convention is not a
+# leaked placeholder itself ---
+WS_PH_COMMENT="$TMP_DIR/placeholder-comment"
+cp -R "$WS" "$WS_PH_COMMENT"
+# shellcheck disable=SC2016  # backticks are literal, not command substitution
+{
+  printf '<!-- Replace every inline `placeholder` span. -->\n'
+  cat "$WS/docs/agents/issue-tracker.md"
+} > "$WS_PH_COMMENT/docs/agents/issue-tracker.md"
+if ! WAZA_WORKSPACE_DIR="$WS_PH_COMMENT" bash "$GRADER" 2>"$TMP_DIR/ph-comment.err"; then
+  fail "the template's own author instructions were flagged as an unresolved placeholder: $(cat "$TMP_DIR/ph-comment.err")"
+fi
+
 # --- a missing document is reported alone, without cascading ---
 WS_GONE="$TMP_DIR/missing"
 cp -R "$WS" "$WS_GONE"
