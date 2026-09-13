@@ -41,7 +41,8 @@ that shape when the issue already names its target skill.
 <details>
 <summary>Technical details</summary>
 
-suspected cause, related code paths, repro commands, log excerpts
+<everything an implementer needs — for example, suspected cause, related
+code paths, repro commands, log excerpts>
 
 </details>
 ```
@@ -73,7 +74,8 @@ Waza suite under evals/<skill>/ is the only thing that can cover it>
 <details>
 <summary>Technical details</summary>
 
-related code paths, prior art, log excerpts, open questions
+<only background — for example, related code paths, prior art, log
+excerpts, open questions>
 
 </details>
 ```
