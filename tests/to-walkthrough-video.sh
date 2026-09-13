@@ -58,7 +58,7 @@ grep -q -- "--storage-state" "$TMP_DIR/record-help" || fail "record --help missi
 grep -q -- "--sign-in" "$TMP_DIR/record-help" || fail "record --help missing --sign-in"
 
 node --input-type=module <<EOF || fail "record helper exports"
-import { parseArgs, resolveViewport, resolvePauseMs } from "file://${RECORD}";
+import { findTopLayerHost, parseArgs, resolveViewport, resolvePauseMs } from "file://${RECORD}";
 
 const fail = (message) => {
   console.error(message);
@@ -105,6 +105,25 @@ if (resolvePauseMs({ pause: 800 }, { pauseMs: 2500 }) !== 800) {
 }
 if (resolvePauseMs({}, { pauseMs: 3000 }) !== 3000) {
   fail("state pause");
+}
+
+const mockDoc = {
+  documentElement: { tagName: "HTML" },
+  querySelectorAll(sel) {
+    if (sel.includes(":modal")) {
+      return [
+        { tagName: "DIALOG", hasAttribute: () => false },
+        { tagName: "X-PW-GLASS", hasAttribute: () => false },
+      ];
+    }
+    return [];
+  },
+};
+if (findTopLayerHost(mockDoc)?.tagName !== "DIALOG") {
+  fail("findTopLayerHost should filter out internal x-pw overlays");
+}
+if (findTopLayerHost({ documentElement: { tagName: "HTML" }, querySelectorAll: () => [] })?.tagName !== "HTML") {
+  fail("findTopLayerHost fallback to documentElement");
 }
 EOF
 
