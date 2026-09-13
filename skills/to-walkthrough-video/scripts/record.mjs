@@ -175,6 +175,28 @@ export async function loadPlaywright() {
   );
 }
 
+export function findTopLayerHost(doc = globalThis.document) {
+  if (!doc) {
+    return null;
+  }
+  try {
+    const modals = Array.from(
+      doc.querySelectorAll("dialog:modal, [popover]:popover-open"),
+    ).filter((el) => !el.tagName?.toLowerCase().startsWith("x-pw") && !el.hasAttribute?.("data-tvr"));
+    if (modals.length > 0) {
+      return modals[modals.length - 1];
+    }
+  } catch {
+    const dialogs = Array.from(doc.querySelectorAll("dialog[open]")).filter(
+      (el) => !el.tagName?.toLowerCase().startsWith("x-pw") && !el.hasAttribute?.("data-tvr"),
+    );
+    if (dialogs.length > 0) {
+      return dialogs[dialogs.length - 1];
+    }
+  }
+  return doc.fullscreenElement || doc.documentElement;
+}
+
 function installCursor() {
   if (window.__tvrCursor?.mount) {
     window.__tvrCursor.mount();
@@ -238,6 +260,25 @@ function installCursor() {
   const cursorEl = shadow.querySelector(".cursor");
   const effectsEl = shadow.querySelector(".effects");
 
+  const findTopLayerHost = () => {
+    try {
+      const modals = Array.from(
+        document.querySelectorAll("dialog:modal, [popover]:popover-open"),
+      ).filter((el) => !el.tagName.toLowerCase().startsWith("x-pw") && !el.hasAttribute("data-tvr"));
+      if (modals.length > 0) {
+        return modals[modals.length - 1];
+      }
+    } catch {
+      const dialogs = Array.from(document.querySelectorAll("dialog[open]")).filter(
+        (el) => !el.tagName.toLowerCase().startsWith("x-pw") && !el.hasAttribute("data-tvr"),
+      );
+      if (dialogs.length > 0) {
+        return dialogs[dialogs.length - 1];
+      }
+    }
+    return document.fullscreenElement || document.documentElement;
+  };
+
   const mount = () => {
     const root = document.documentElement;
     if (!root) {
@@ -247,13 +288,21 @@ function installCursor() {
     if (!pageStyle.isConnected) {
       root.appendChild(pageStyle);
     }
-    if (!host.isConnected) {
-      root.appendChild(host);
+    const container = findTopLayerHost();
+    if (host.parentElement !== container) {
+      container.appendChild(host);
     }
   };
   const watch = () => {
     mount();
-    new MutationObserver(mount).observe(document.documentElement, { childList: true, subtree: true });
+    new MutationObserver(mount).observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["open", "popover"],
+    });
+    document.addEventListener("toggle", mount, true);
+    document.addEventListener("close", mount, true);
   };
   if (document.documentElement) {
     watch();
@@ -265,8 +314,9 @@ function installCursor() {
     mount,
     move(x, y) {
       mount();
-      cursorEl.style.left = `${x}px`;
-      cursorEl.style.top = `${y}px`;
+      const rect = host.getBoundingClientRect();
+      cursorEl.style.left = `${x - rect.left}px`;
+      cursorEl.style.top = `${y - rect.top}px`;
     },
     setIcon(icon) {
       mount();
@@ -278,10 +328,11 @@ function installCursor() {
     },
     pulse(x, y) {
       mount();
+      const rect = host.getBoundingClientRect();
       const el = document.createElement("div");
       el.className = "ripple";
-      el.style.left = `${x}px`;
-      el.style.top = `${y}px`;
+      el.style.left = `${x - rect.left}px`;
+      el.style.top = `${y - rect.top}px`;
       effectsEl.appendChild(el);
       el.addEventListener("animationend", () => el.remove());
     },
