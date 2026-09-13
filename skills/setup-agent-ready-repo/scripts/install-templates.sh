@@ -165,8 +165,13 @@ check_docs() {
     fi
     # A placeholder inside a sample command (`gh issue view <number>`) is not a
     # template artefact; a bare <language> or an alternation such as
-    # <gh | glab> is.
-    leftover=$(grep -oE '<language>|<[^<>]+ \| [^<>]+>' "$f" | head -n 1 || true)
+    # <gh | glab> is. `placeholder:...` and a ```placeholder fence are the
+    # reserved marker for everything else that still needs a real value:
+    # unlike an <angle> shape, the keyword itself says so, so nothing has to
+    # guess whether a given <bracket> is a value to fill in or an example to
+    # keep.
+    # shellcheck disable=SC2016  # backticks are literal, not command substitution
+    leftover=$(grep -oE '<language>|<[^<>]+ \| [^<>]+>|`placeholder:[^`]*`|^```placeholder$' "$f" | head -n 1 || true)
     if [ -n "$leftover" ]; then
       printf 'PLACEHOLDER %s still carries %s\n' "${f#"$DIR"/}" "$leftover"
       found=1

@@ -107,7 +107,9 @@ The line it has to hold:
   pinned by `references/templates/`; the sentences around them are not. Every
   template opens with "Replace every `<angle placeholder>`", so a leaked
   `<language>` or `<gh | glab>` is fair game too, while the `<number>` inside a
-  sample command is not.
+  sample command is not. An inline `placeholder:name` span or a
+  ```placeholder fence is the same fair game for whatever else a template
+  still needs filled in, by keyword rather than shape.
 - **Report every failing assertion, then exit once.** Fail-fast made one defect
   — documents translated into the ticket language — surface as a different
   single message per run, which read as four unrelated flaky assertions and hid

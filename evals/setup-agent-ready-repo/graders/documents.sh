@@ -74,9 +74,12 @@ done
 # Every template opens with "Replace every <angle placeholder>". A bare
 # <language> or an alternation such as <gh | glab> is a template artefact;
 # an angle placeholder inside a sample command (`gh issue view <number>`)
-# is not, so only those two shapes are caught.
+# is not. `placeholder:...` and a ```placeholder fence are the reserved
+# marker for everything else that still needs a real value -- the keyword
+# says so directly, instead of the check having to infer it from shape.
 for f in "$pr" "$issues" "$verification"; do
-  leftover=$(grep -oE '<language>|<[^<>]+ \| [^<>]+>' "$f" | head -n 1 || true)
+  # shellcheck disable=SC2016  # backticks are literal, not command substitution
+  leftover=$(grep -oE '<language>|<[^<>]+ \| [^<>]+>|`placeholder:[^`]*`|^```placeholder$' "$f" | head -n 1 || true)
   [ -z "$leftover" ] || fail "$f ships an unresolved template placeholder: $leftover"
 done
 

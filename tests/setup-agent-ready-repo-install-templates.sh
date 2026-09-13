@@ -68,6 +68,49 @@ case "$OUT" in
   *) fail "--check did not name the unresolved placeholder: $OUT" ;;
 esac
 
+# --- an inline `placeholder:name` span is an unresolved placeholder too ---
+PH_DIR="$TMP_DIR/placeholder-marker"
+mkdir -p "$PH_DIR/docs/agents"
+# shellcheck disable=SC2016  # backticks are literal, not command substitution
+printf '# Issue tracker: GitHub\n\nIssues live as `placeholder:forge` issues.\n' \
+  > "$PH_DIR/docs/agents/issue-tracker.md"
+OUT="$("$SCRIPT" --check "$PH_DIR" 2>&1 || true)"
+case "$OUT" in
+  *"PLACEHOLDER"*"placeholder:forge"*) ;;
+  *) fail "--check did not catch an unresolved \`placeholder:name\` span: $OUT" ;;
+esac
+
+# --- resolving it makes the document clean of that finding ---
+printf '# Issue tracker: GitHub\n\nIssues live as GitHub issues.\n' \
+  > "$PH_DIR/docs/agents/issue-tracker.md"
+OUT="$("$SCRIPT" --check "$PH_DIR" 2>&1 || true)"
+case "$OUT" in
+  *"placeholder:"*) fail "--check still reported a placeholder after it was resolved: $OUT" ;;
+esac
+
+# --- an unresolved ```placeholder fence is caught the same way ---
+# shellcheck disable=SC2016  # backticks are literal, not command substitution
+printf '# Verification\n\n```placeholder\nthe one non-interactive command\n```\n' \
+  > "$PH_DIR/docs/agents/verification.md"
+OUT="$("$SCRIPT" --check "$PH_DIR" 2>&1 || true)"
+case "$OUT" in
+  *'```placeholder'*) ;;
+  *) fail "--check did not catch an unresolved \`\`\`placeholder fence: $OUT" ;;
+esac
+
+# --- the template's own author-facing mention of the convention is not a
+# leaked placeholder itself; a regression here would false-positive every
+# freshly installed template on its own instructions ---
+PH_COMMENT_DIR="$TMP_DIR/placeholder-comment"
+mkdir -p "$PH_COMMENT_DIR/docs/agents"
+# shellcheck disable=SC2016  # backticks are literal, not command substitution
+printf '<!-- Replace every inline `placeholder` span. -->\n# Issue tracker: GitHub\n\nIssues live as GitHub issues.\n' \
+  > "$PH_COMMENT_DIR/docs/agents/issue-tracker.md"
+OUT="$("$SCRIPT" --check "$PH_COMMENT_DIR" 2>&1 || true)"
+case "$OUT" in
+  *"PLACEHOLDER"*) fail "--check flagged the template's own author instructions as an unresolved placeholder: $OUT" ;;
+esac
+
 # --- check catches CJK, and passes a resolved English document ---
 CJK_DIR="$TMP_DIR/cjk"
 mkdir -p "$CJK_DIR/docs/agents"
