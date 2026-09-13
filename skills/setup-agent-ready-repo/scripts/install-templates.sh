@@ -70,6 +70,17 @@ DEST="$DIR/docs/agents"
 # grader applies, so the skill and its grader cannot disagree.
 CJK=$'[\xe4-\xe9][\x80-\xbf][\x80-\xbf]'
 
+# A backtick span is a value quoted character for character -- a label,
+# a path, the language's own name -- not prose to translate, so SKILL.md
+# tells the author to show a literal that way and this strips it before
+# the scan. Stripping the span rather than naming specific literals means
+# any repo-specific value quoted this way is covered without the check
+# knowing what it says.
+strip_literals() {
+  # shellcheck disable=SC2016  # backticks are literal, not command substitution
+  sed -E 's/`[^`]*`//g'
+}
+
 # Markdown hard-wraps prose and indents continuation lines, so a guarantee
 # spanning more than a few words straddles a line break and picks up the
 # indentation with it. Fold to one line and squeeze the runs, or where the wrap
@@ -147,7 +158,7 @@ check_docs() {
   for f in "$DEST/issue-tracker.md" "$DEST/pull-request.md" \
            "$DEST/merge-request.md" "$DEST/verification.md"; do
     [ -f "$f" ] || continue
-    stray=$(LC_ALL=C grep -nE "$CJK" "$f" | head -n 1 || true)
+    stray=$(strip_literals < "$f" | LC_ALL=C grep -nE "$CJK" | head -n 1 || true)
     if [ -n "$stray" ]; then
       printf 'NOT ENGLISH %s (first offending line: %s)\n' "${f#"$DIR"/}" "${stray:0:80}"
       found=1
