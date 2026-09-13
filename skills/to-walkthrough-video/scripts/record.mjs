@@ -31,6 +31,7 @@ const AUTH_EXPECT_TIMEOUT_MS = 15_000;
 function printUsage(stream) {
   stream.write(`Usage: record.mjs --scenario FILE --out FILE [--width PX] [--height PX] [--pause-ms MS]
                   [--storage-state FILE] [--sign-in]
+                  [--check-prereqs]
 
 Drive a Playwright walkthrough with a pointer, click echo, and auto-zoom.
 Auto-zoom works on both WebM and MP4, but requires ffmpeg.
@@ -64,11 +65,14 @@ export function parseArgs(argv) {
     pauseMs: null,
     storageState: null,
     signIn: false,
+    checkPrereqs: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--help" || arg === "-h") {
       args.help = true;
+    } else if (arg === "--check-prereqs") {
+      args.checkPrereqs = true;
     } else if (arg === "--scenario" || arg === "--out") {
       args[arg.slice(2)] = argv[i + 1];
       i += 1;
@@ -134,6 +138,15 @@ function tryRequire(fromDir, spec) {
     const require = createRequire(path.join(fromDir, "noop.js"));
     return require(spec);
   } catch {
+    try {
+      const direct = path.join(fromDir, spec);
+      if (fs.existsSync(direct)) {
+        const require = createRequire(path.join(direct, "package.json"));
+        return require(direct);
+      }
+    } catch {
+      // ignore
+    }
     return null;
   }
 }
@@ -149,8 +162,46 @@ function asPlaywright(mod) {
   return null;
 }
 
-export async function loadPlaywright() {
-  const dirs = [process.env.PLAYWRIGHT_DIR, process.cwd()].filter(Boolean);
+export function getGlobalNodeDirs() {
+  const dirs = [];
+  if (process.env.NODE_PATH) {
+    dirs.push(...process.env.NODE_PATH.split(path.delimiter).filter(Boolean));
+  }
+  const isWin = process.platform === "win32";
+  const spawnOpts = {
+    encoding: "utf8",
+    timeout: 3000,
+    stdio: ["ignore", "pipe", "ignore"],
+    shell: isWin,
+  };
+  try {
+    const res = spawnSync("npm", ["root", "-g"], spawnOpts);
+    if (res.status === 0 && res.stdout) {
+      const p = res.stdout.trim();
+      if (p && !dirs.includes(p)) {
+        dirs.push(p);
+      }
+    }
+  } catch {
+    // npm not on PATH or failed
+  }
+  try {
+    const res = spawnSync("pnpm", ["root", "-g"], spawnOpts);
+    if (res.status === 0 && res.stdout) {
+      const p = res.stdout.trim();
+      if (p && !dirs.includes(p)) {
+        dirs.push(p);
+      }
+    }
+  } catch {
+    // pnpm not on PATH or failed
+  }
+  return dirs;
+}
+
+export async function loadPlaywright(options = {}) {
+  const globalDirs = options.globalDirs ?? getGlobalNodeDirs();
+  const dirs = [process.env.PLAYWRIGHT_DIR, process.cwd(), ...globalDirs].filter(Boolean);
   const specs = ["playwright", "playwright-core"];
   for (const dir of dirs) {
     for (const spec of specs) {
@@ -171,8 +222,57 @@ export async function loadPlaywright() {
     }
   }
   throw new Error(
-    "Playwright is not installed. From the recording cwd: npm i -D playwright && npx playwright install chromium",
+    "Playwright is not installed. To avoid repo pollution, ask user authorization to install globally (npm i -g playwright && npx playwright install chromium) or in recording cwd (npm i -D playwright && npx playwright install chromium)",
   );
+}
+
+export async function checkPrereqs(options = {}) {
+  const result = {
+    ok: true,
+    playwright: false,
+    browser: false,
+    browserType: null,
+    ffmpeg: false,
+    messages: [],
+  };
+
+  const ffmpegChecker = options.hasFfmpeg ?? hasFfmpeg;
+  if (ffmpegChecker()) {
+    result.ffmpeg = true;
+    result.messages.push("ffmpeg: available");
+  } else {
+    result.messages.push(
+      "ffmpeg: not found on PATH (raw WebM recording works, but auto-zoom and MP4 conversion require ffmpeg)",
+    );
+  }
+
+  let playwright;
+  try {
+    const loader = options.loadPlaywright ?? loadPlaywright;
+    playwright = options.playwright ?? (await loader());
+    result.playwright = true;
+    result.messages.push("Playwright: available");
+  } catch (error) {
+    result.ok = false;
+    result.messages.push(`Playwright: missing (${error.message})`);
+    return result;
+  }
+
+  try {
+    const launcher = options.launchChromium ?? launchChromium;
+    const browser = await launcher(playwright, { headless: true });
+    result.browser = true;
+    result.browserType = browser.browserType?.()?.name?.() ?? "chromium";
+    await browser.close?.();
+    result.messages.push(`Browser: ${result.browserType} launched successfully`);
+  } catch (error) {
+    result.ok = false;
+    result.messages.push(
+      `Browser: launch failed (${error.message}). Run: npx playwright install chromium`,
+    );
+  }
+
+  return result;
 }
 
 export function findTopLayerHost(doc = globalThis.document) {
@@ -966,6 +1066,15 @@ export async function main(argv = process.argv.slice(2), io = process) {
   if (args.help) {
     printUsage(io.stdout);
     return 0;
+  }
+
+  if (args.checkPrereqs) {
+    const prereqs = await checkPrereqs();
+    const stream = prereqs.ok ? io.stdout : io.stderr;
+    stream.write(
+      `${prereqs.ok ? "Prerequisites satisfied" : "Prerequisites check failed"}:\n${prereqs.messages.map((m) => `  - ${m}`).join("\n")}\n`,
+    );
+    return prereqs.ok ? 0 : 1;
   }
 
   if (!args.scenario || !args.out) {

@@ -15,9 +15,17 @@ Scripts live in `scripts/` next to this file.
 ## Prerequisites
 
 - Node.js
-- Playwright 1.59+ with Chromium, resolvable from the recording cwd:
-  `npm i -D playwright && npx playwright install chromium`
+- Playwright 1.59+ with Chromium (global, cwd, or `PLAYWRIGHT_DIR`)
 - `ffmpeg` on PATH for auto-zoom (both `.webm` and `.mp4`), and whenever `.mp4` output is requested
+
+Check first with `node scripts/record.mjs --check-prereqs`. If satisfied (exit 0), skip installation.
+
+When missing, ask the user for confirmation before installing. Recommend global installation to avoid polluting the workspace:
+
+```bash
+npm i -g playwright && npx playwright install chromium  # global (avoids repo pollution)
+# or: npm i -D playwright && npx playwright install chromium
+```
 
 ## Workflow
 

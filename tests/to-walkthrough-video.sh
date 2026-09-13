@@ -56,14 +56,50 @@ grep -q -- "--width" "$TMP_DIR/record-help" || fail "record --help missing --wid
 grep -q -- "--pause-ms" "$TMP_DIR/record-help" || fail "record --help missing --pause-ms"
 grep -q -- "--storage-state" "$TMP_DIR/record-help" || fail "record --help missing --storage-state"
 grep -q -- "--sign-in" "$TMP_DIR/record-help" || fail "record --help missing --sign-in"
+grep -q -- "--check-prereqs" "$TMP_DIR/record-help" || fail "record --help missing --check-prereqs"
+
+set +e
+node "$RECORD" --check-prereqs >"$TMP_DIR/check-prereqs-out" 2>"$TMP_DIR/check-prereqs-err"
+check_status=$?
+set -e
+[ "$check_status" -eq 1 ] || fail "record --check-prereqs in unprovisioned cwd should exit 1, got $check_status"
+grep -q -- "Playwright: missing" "$TMP_DIR/check-prereqs-err" \
+  || fail "record --check-prereqs stderr missing 'Playwright: missing'"
+grep -qi -- "ask user" "$TMP_DIR/check-prereqs-err" \
+  || fail "record --check-prereqs stderr missing 'ask user' guidance"
 
 node --input-type=module <<EOF || fail "record helper exports"
-import { findTopLayerHost, parseArgs, resolveViewport, resolvePauseMs } from "file://${RECORD}";
+import fs from "node:fs";
+import path from "node:path";
+import { findTopLayerHost, parseArgs, resolveViewport, resolvePauseMs, checkPrereqs, getGlobalNodeDirs, loadPlaywright } from "file://${RECORD}";
 
 const fail = (message) => {
   console.error(message);
   process.exit(1);
 };
+
+if (!Array.isArray(getGlobalNodeDirs())) {
+  fail("getGlobalNodeDirs should return an array");
+}
+
+const mockGlobalDir = "${TMP_DIR}/global-modules";
+const mockPwDir = path.join(mockGlobalDir, "playwright");
+fs.mkdirSync(mockPwDir, { recursive: true });
+fs.writeFileSync(
+  path.join(mockPwDir, "package.json"),
+  JSON.stringify({ name: "playwright", main: "index.js" }),
+);
+fs.writeFileSync(
+  path.join(mockPwDir, "index.js"),
+  "module.exports = { chromium: { launch: async () => ({}) } };",
+);
+
+const loadedFromGlobal = await loadPlaywright({
+  globalDirs: [mockGlobalDir],
+});
+if (!loadedFromGlobal?.chromium?.launch) {
+  fail("loadPlaywright should resolve playwright from globalDirs");
+}
 
 const args = parseArgs([
   "--scenario", "s.json",
@@ -74,6 +110,56 @@ const args = parseArgs([
 ]);
 if (args.width !== 1920 || args.height !== 1081 || args.pauseMs !== 3000) {
   fail("parseArgs flags");
+}
+
+const checkArgs = parseArgs(["--check-prereqs"]);
+if (!checkArgs.checkPrereqs) {
+  fail("parseArgs should set checkPrereqs");
+}
+
+const mockPrereqsOk = await checkPrereqs({
+  hasFfmpeg: () => true,
+  playwright: {},
+  launchChromium: async () => ({
+    browserType: () => ({ name: () => "mock-chromium" }),
+    close: async () => {},
+  }),
+});
+if (!mockPrereqsOk.ok || !mockPrereqsOk.playwright || !mockPrereqsOk.browser || !mockPrereqsOk.ffmpeg) {
+  fail("checkPrereqs mock success failed");
+}
+
+const mockPrereqsNoFfmpeg = await checkPrereqs({
+  hasFfmpeg: () => false,
+  playwright: {},
+  launchChromium: async () => ({
+    browserType: () => ({ name: () => "mock-chromium" }),
+    close: async () => {},
+  }),
+});
+if (!mockPrereqsNoFfmpeg.ok || mockPrereqsNoFfmpeg.ffmpeg) {
+  fail("checkPrereqs should still pass without ffmpeg (raw webm supported)");
+}
+
+const mockPrereqsMissingPw = await checkPrereqs({
+  hasFfmpeg: () => true,
+  loadPlaywright: async () => {
+    throw new Error("not installed");
+  },
+});
+if (mockPrereqsMissingPw.ok || mockPrereqsMissingPw.playwright) {
+  fail("checkPrereqs should fail when playwright is missing");
+}
+
+const mockPrereqsLaunchFail = await checkPrereqs({
+  hasFfmpeg: () => true,
+  playwright: {},
+  launchChromium: async () => {
+    throw new Error("launch failed");
+  },
+});
+if (mockPrereqsLaunchFail.ok || !mockPrereqsLaunchFail.playwright || mockPrereqsLaunchFail.browser) {
+  fail("checkPrereqs should fail when browser launch fails");
 }
 
 for (const flag of ["--headed", "--live-zoom", "--keep-raw", "--channel"]) {
