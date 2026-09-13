@@ -62,16 +62,21 @@ set +e
 node "$RECORD" --check-prereqs >"$TMP_DIR/check-prereqs-out" 2>"$TMP_DIR/check-prereqs-err"
 check_status=$?
 set -e
-[ "$check_status" -eq 1 ] || fail "record --check-prereqs in unprovisioned cwd should exit 1, got $check_status"
-grep -q -- "Playwright: missing" "$TMP_DIR/check-prereqs-err" \
-  || fail "record --check-prereqs stderr missing 'Playwright: missing'"
-grep -qi -- "ask user" "$TMP_DIR/check-prereqs-err" \
-  || fail "record --check-prereqs stderr missing 'ask user' guidance"
+if [ "$check_status" -eq 0 ]; then
+  grep -q -- "Playwright: available" "$TMP_DIR/check-prereqs-out" \
+    || fail "record --check-prereqs stdout missing 'Playwright: available'"
+else
+  [ "$check_status" -eq 1 ] || fail "record --check-prereqs in unprovisioned cwd should exit 1, got $check_status"
+  grep -q -- "Playwright: missing" "$TMP_DIR/check-prereqs-err" \
+    || fail "record --check-prereqs stderr missing 'Playwright: missing'"
+  grep -qi -- "ask user" "$TMP_DIR/check-prereqs-err" \
+    || fail "record --check-prereqs stderr missing 'ask user' guidance"
+fi
 
 node --input-type=module <<EOF || fail "record helper exports"
 import fs from "node:fs";
 import path from "node:path";
-import { findTopLayerHost, parseArgs, resolveViewport, resolvePauseMs, checkPrereqs, getGlobalNodeDirs, loadPlaywright } from "file://${RECORD}";
+import { bringOverlayToFront, findTopLayerHost, parseArgs, resolveViewport, resolvePauseMs, checkPrereqs, getGlobalNodeDirs, loadPlaywright } from "file://${RECORD}";
 
 const fail = (message) => {
   console.error(message);
@@ -211,6 +216,22 @@ if (findTopLayerHost(mockDoc)?.tagName !== "DIALOG") {
 if (findTopLayerHost({ documentElement: { tagName: "HTML" }, querySelectorAll: () => [] })?.tagName !== "HTML") {
   fail("findTopLayerHost fallback to documentElement");
 }
+
+let popoverActions = [];
+const mockGlass = {
+  tagName: "X-PW-GLASS",
+  showPopover: () => { popoverActions.push("show"); },
+  hidePopover: () => { popoverActions.push("hide"); },
+};
+const mockGlassDoc = {
+  querySelector: (sel) => (sel === "x-pw-glass" ? mockGlass : null),
+};
+bringOverlayToFront(mockGlassDoc);
+if (popoverActions.join(",") !== "hide,show") {
+  fail("bringOverlayToFront should hide and re-show popover to bring to front");
+}
+bringOverlayToFront({ querySelector: () => null });
+bringOverlayToFront(null);
 EOF
 
 # --- credential and storage-state guards -------------------------------------
@@ -519,6 +540,7 @@ http_status() {
 }
 
 [ "$(http_status "$BASE/")" = "200" ] || fail "fixture public page should be served"
+curl -s "$BASE/" | grep -q 'id="search-modal"' || fail "fixture public page should contain search modal"
 [ "$(http_status "$BASE/app")" = "302" ] || fail "fixture protected page should redirect without a cookie"
 [ "$(http_status -H 'Cookie: walkthrough_session=1' "$BASE/app")" = "200" ] \
   || fail "fixture protected page should be served with a session cookie"
