@@ -297,6 +297,21 @@ export function findTopLayerHost(doc = globalThis.document) {
   return doc.fullscreenElement || doc.documentElement;
 }
 
+export function bringOverlayToFront(doc = globalThis.document) {
+  if (!doc) {
+    return;
+  }
+  const glass = doc.querySelector?.("x-pw-glass");
+  if (glass && typeof glass.showPopover === "function") {
+    try {
+      glass.hidePopover();
+      glass.showPopover();
+    } catch {
+      // ignore
+    }
+  }
+}
+
 function installCursor() {
   if (window.__tvrCursor?.mount) {
     window.__tvrCursor.mount();
@@ -393,16 +408,34 @@ function installCursor() {
       container.appendChild(host);
     }
   };
+  const syncGlass = () => {
+    try {
+      const glass = document.querySelector("x-pw-glass");
+      if (glass && typeof glass.showPopover === "function" && glass.matches?.(":popover-open")) {
+        glass.hidePopover();
+        glass.showPopover();
+      }
+    } catch {
+      // ignore
+    }
+  };
+  const onTopLayerChange = (event) => {
+    if (event?.target?.tagName?.toLowerCase().startsWith("x-pw")) {
+      return;
+    }
+    mount();
+    syncGlass();
+  };
   const watch = () => {
     mount();
-    new MutationObserver(mount).observe(document.documentElement, {
+    new MutationObserver(onTopLayerChange).observe(document.documentElement, {
       childList: true,
       subtree: true,
       attributes: true,
       attributeFilter: ["open", "popover"],
     });
-    document.addEventListener("toggle", mount, true);
-    document.addEventListener("close", mount, true);
+    document.addEventListener("toggle", onTopLayerChange, true);
+    document.addEventListener("close", onTopLayerChange, true);
   };
   if (document.documentElement) {
     watch();
@@ -587,7 +620,11 @@ async function showCaption(page, state, step, anchor) {
     return null;
   }
   const viewport = page.viewportSize() ?? DEFAULT_VIEWPORT;
-  return page.screencast.showOverlay(captionHtml(text, anchor, viewport)).catch(() => null);
+  const overlay = await page.screencast.showOverlay(captionHtml(text, anchor, viewport)).catch(() => null);
+  if (overlay) {
+    await page.evaluate(bringOverlayToFront).catch(() => {});
+  }
+  return overlay;
 }
 
 async function hideCaption(overlay) {
