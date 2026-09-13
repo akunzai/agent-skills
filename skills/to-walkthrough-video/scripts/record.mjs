@@ -226,6 +226,31 @@ export async function loadPlaywright(options = {}) {
   );
 }
 
+export function getFfmpegInstallAdvice(options = {}) {
+  const checkMise = options.hasMise ?? (() => {
+    try {
+      const res = spawnSync("mise", ["--version"], { stdio: "ignore", timeout: 2000 });
+      return res.status === 0;
+    } catch {
+      return false;
+    }
+  });
+  const platform = options.platform ?? process.platform;
+  let sysCmd = "see https://ffmpeg.org/download.html";
+  if (platform === "darwin") {
+    sysCmd = "brew install ffmpeg";
+  } else if (platform === "linux") {
+    sysCmd = "sudo apt install ffmpeg";
+  } else if (platform === "win32") {
+    sysCmd = "winget install Gyan.FFmpeg";
+  }
+
+  if (checkMise()) {
+    return `To install ffmpeg, ask user authorization to run: mise use -g ffmpeg (or system package manager: ${sysCmd})`;
+  }
+  return `To install ffmpeg, ask user authorization to install via mise (curl https://mise.run | sh && mise use -g ffmpeg) or system package manager (${sysCmd})`;
+}
+
 export async function checkPrereqs(options = {}) {
   const result = {
     ok: true,
@@ -241,8 +266,9 @@ export async function checkPrereqs(options = {}) {
     result.ffmpeg = true;
     result.messages.push("ffmpeg: available");
   } else {
+    const advice = getFfmpegInstallAdvice(options);
     result.messages.push(
-      "ffmpeg: not found on PATH (raw WebM recording works, but auto-zoom and MP4 conversion require ffmpeg)",
+      `ffmpeg: not found on PATH (raw WebM recording works, but auto-zoom and MP4 conversion require ffmpeg. ${advice})`,
     );
   }
 
@@ -863,7 +889,8 @@ export async function recordWalkthrough(options) {
   const wantWebm = /\.webm$/i.test(outPath);
   const ffmpeg = hasFfmpeg();
   if (!ffmpeg && !wantWebm) {
-    throw new Error("ffmpeg is required for auto-zoom, and for any output that is not .webm");
+    const advice = getFfmpegInstallAdvice();
+    throw new Error(`ffmpeg is required for auto-zoom, and for any output that is not .webm. ${advice}`);
   }
   const playwright = options.playwright ?? (await loadPlaywright());
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "to-walkthrough-video-"));
