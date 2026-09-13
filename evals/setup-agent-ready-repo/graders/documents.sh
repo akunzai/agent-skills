@@ -52,12 +52,16 @@ done
 # types into the forge, never the language of the file recording that rule.
 # Asserting it directly beats inferring it from whether some English word
 # happens to survive further down the file.
-# Matches the UTF-8 byte range for CJK ideographs; the language's own name is
-# the one literal the skill lets through.
+# Matches the UTF-8 byte range for CJK ideographs. A backtick span is a
+# quoted literal per SKILL.md's Phase 1 rule -- a label, a path, the
+# language's own name -- so it is stripped before the scan rather than
+# naming specific literals here, the same rule install-templates.sh --check
+# applies.
 cjk=$'[\xe4-\xe9][\x80-\xbf][\x80-\xbf]'
 english_throughout() {
   local f=$1 stray
-  stray=$(sed 's/繁體中文//g; s/繁体中文//g' "$f" \
+  # shellcheck disable=SC2016  # backticks are literal, not command substitution
+  stray=$(sed -E 's/`[^`]*`//g' "$f" \
     | LC_ALL=C grep -nE "$cjk" | head -n 1 || true)
   [ -z "$stray" ] \
     || fail "$f is not English throughout (first offending line: ${stray:0:80})"

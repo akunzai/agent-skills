@@ -88,6 +88,24 @@ case "$OUT" in
   *) fail "--check did not name the language defect: $OUT" ;;
 esac
 
+# --- a backtick span is a literal, not a translation, whatever it quotes ---
+# shellcheck disable=SC2016  # backticks are literal, not command substitution
+printf '# Issue tracker: GitHub\n\nWrite issue titles and descriptions in **Traditional Chinese** (`繁體中文`).\nLabel: `個資與資安議題`. Path: `docs/認識產品/入門.md`.\n' \
+  > "$CJK_DIR/docs/agents/issue-tracker.md"
+OUT="$("$SCRIPT" --check "$CJK_DIR" 2>&1 || true)"
+case "$OUT" in
+  *"NOT ENGLISH"*) fail "--check flagged backtick-quoted literals as not English: $OUT" ;;
+esac
+
+# --- CJK outside a backtick span still fails, even the language's own name ---
+printf '# Issue tracker: GitHub\n\nWrite issue titles and descriptions in **Traditional Chinese** (繁體中文).\n' \
+  > "$CJK_DIR/docs/agents/issue-tracker.md"
+OUT="$("$SCRIPT" --check "$CJK_DIR" 2>&1 || true)"
+case "$OUT" in
+  *"NOT ENGLISH"*) ;;
+  *) fail "--check let CJK outside backticks through: $OUT" ;;
+esac
+
 # --- check reports a guarantee the document has lost, by name and origin ---
 BEHIND_DIR="$TMP_DIR/behind"
 mkdir -p "$BEHIND_DIR/docs/agents"

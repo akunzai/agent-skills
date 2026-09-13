@@ -72,7 +72,10 @@ follows the conversation's language; copying bytes does not.
 nobody replaced, for any guarantee in
 [guarantees.tsv](references/guarantees.tsv) the document no longer
 carries, and for `@path` file references in any `docs/agents/*.md`. Run
-it before asking for confirmation, and fix what it names.
+it before asking for confirmation. On any finding, fix the file and run
+it again — do not pause to judge whether this finding applies given the
+language answer below; loop on fix-then-rerun until it exits 0, the same
+mechanical step regardless of which language issues or requests use.
 
 A repo set up by an earlier version reaches the current one through that
 last check. It reports the guarantee and where in the template to read
@@ -130,9 +133,12 @@ avoid here, and it looks like obedience while you do it.
 The exception is a **literal**: a string reproduced character for
 character, such as a label that lands in a published release note, or a
 citation of an existing section title that a reader has to match. Show a
-literal as it must appear, and write everything the agent reads rather
-than copies in English. Where a forge-native template already dictates
-structure, that template wins; nothing else does.
+literal inside backticks — a value quoted from outside the document,
+never a wrapper for translated prose — and write everything the agent
+reads rather than copies in English. `--check` skips a backtick span and
+holds everything outside one to the rule above. Where a forge-native
+template already dictates structure, that template wins; nothing else
+does.
 
 Then propose rather than interview. Probe and offer a concrete default
 the developer confirms or edits: the source paths whose changes must
@@ -150,7 +156,8 @@ Body shape, diagram selection, evidence and PII rules:
 [ticket-and-pr.md](references/ticket-and-pr.md).
 
 **Done when** the issue document and the PR/MR document exist, each
-carries its language rule, and the developer has confirmed both.
+carries its language rule, `install-templates.sh --check` exits 0 against
+them, and the developer has confirmed both.
 
 ## Phase 2 — verification
 

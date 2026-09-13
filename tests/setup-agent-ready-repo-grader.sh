@@ -59,7 +59,7 @@ DOC
 cat > "$WS/docs/agents/issue-tracker.md" <<'DOC'
 # Issue tracker: GitHub
 
-Write issue titles and descriptions in **Traditional Chinese** (繁體中文).
+Write issue titles and descriptions in **Traditional Chinese** (`繁體中文`).
 This file is English throughout, sample blocks included.
 
 Use the `gh` CLI: `gh issue create --title "..." --body "..."`.
@@ -92,7 +92,7 @@ cat > "$WS/docs/agents/pull-request.md" <<'DOC'
 # Pull requests
 
 Write pull request titles and descriptions in **Traditional Chinese**
-(繁體中文). Git commit messages are English, imperative, subject under 72
+(`繁體中文`). Git commit messages are English, imperative, subject under 72
 characters. This file is English throughout.
 
 Open the request with `gh pr create`, and never without the developer asking.
@@ -193,6 +193,30 @@ if WAZA_WORKSPACE_DIR="$WS_ZH" bash "$GRADER" 2>"$TMP_DIR/zh.err"; then
 fi
 grep -q "pull-request.md is not English throughout" "$TMP_DIR/zh.err" \
   || fail "translated document was rejected without naming the language rule: $(cat "$TMP_DIR/zh.err")"
+
+# --- a backtick-quoted literal is exempt, whatever it quotes, but bare CJK
+# next to it still is not ---
+WS_LITERAL="$TMP_DIR/literal"
+cp -R "$WS" "$WS_LITERAL"
+cat >> "$WS_LITERAL/docs/agents/issue-tracker.md" <<'DOC'
+
+Label: `個資與資安議題`. Path: `docs/認識產品/入門.md`.
+DOC
+if ! WAZA_WORKSPACE_DIR="$WS_LITERAL" bash "$GRADER" 2>"$TMP_DIR/literal.err"; then
+  fail "backtick-quoted CJK literals were rejected: $(cat "$TMP_DIR/literal.err")"
+fi
+
+WS_BARE="$TMP_DIR/bare-cjk"
+cp -R "$WS" "$WS_BARE"
+cat >> "$WS_BARE/docs/agents/issue-tracker.md" <<'DOC'
+
+標籤：個資與資安議題。
+DOC
+if WAZA_WORKSPACE_DIR="$WS_BARE" bash "$GRADER" 2>"$TMP_DIR/bare.err"; then
+  fail "CJK prose outside backticks was accepted"
+fi
+grep -q "issue-tracker.md is not English throughout" "$TMP_DIR/bare.err" \
+  || fail "bare CJK was rejected without naming the language rule: $(cat "$TMP_DIR/bare.err")"
 
 # --- every failing assertion is reported, not just the first ---
 WS_MULTI="$TMP_DIR/multi"
