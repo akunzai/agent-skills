@@ -32,8 +32,9 @@ function printUsage(stream) {
   stream.write(`Usage: record.mjs --scenario FILE --out FILE [--width PX] [--height PX] [--pause-ms MS]
                   [--storage-state FILE] [--sign-in]
 
-Drive a Playwright walkthrough with a pointer and click echo.
-WebM keeps those effects without ffmpeg. Auto-zoom (and MP4) needs ffmpeg.
+Drive a Playwright walkthrough with a pointer, click echo, and auto-zoom.
+Auto-zoom works on both WebM and MP4, but requires ffmpeg.
+Without ffmpeg, output is raw WebM without zoom (pointer & click echo only).
 `);
 }
 
