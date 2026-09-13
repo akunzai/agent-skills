@@ -4,7 +4,7 @@
 
 ## Related Issue
 
-<!-- Link to the issue this PR addresses. -->
+<!-- Link to the issue this PR addresses (e.g. Closes #123). Drop this section if there is no tracked issue. -->
 
 Closes #
 
