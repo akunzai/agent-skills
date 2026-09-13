@@ -17,7 +17,7 @@ Scripts live in `scripts/` next to this file.
 - Node.js
 - Playwright 1.59+ with Chromium, resolvable from the recording cwd:
   `npm i -D playwright && npx playwright install chromium`
-- `ffmpeg` on PATH for auto-zoom, and for `.mp4` output
+- `ffmpeg` on PATH for auto-zoom (both `.webm` and `.mp4`), and whenever `.mp4` output is requested
 
 ## Workflow
 
@@ -63,8 +63,8 @@ node scripts/record.mjs --scenario scenario.json --out demo.webm
 
 Leave this step when the video, `demo.clicks.jsonl`, and `demo.zooms.json`
 exist and the zoom file has `"status": "ok"` with one region per click
-cluster. Without ffmpeg, WebM is the raw capture and the zoom
-file still lists the clusters.
+cluster. Without ffmpeg, output is raw `.webm` without auto-zoom (pointer and
+click echo are still included), and the zoom file still lists the clusters.
 
 3. **Hand back.** Give the user the video path.
 
