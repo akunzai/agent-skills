@@ -65,6 +65,8 @@ For mobile/tablet, set `scenario.device` to `"phone"` (newest iPhone Pro) or
 — see `DEVICE_PRESET_ALIASES` in `record.mjs`) rather than shrinking
 `viewport`. Also accepts an exact Playwright device name.
 `scenario.viewport`/`--width`/`--height` still override it.
+`scenario.locale` (e.g. `"zh-TW"`) sets the browser language, and
+`"ignoreHTTPSErrors": true` accepts a self-signed local certificate.
 
 2. **Record.** From a directory that can `import('playwright')`:
 

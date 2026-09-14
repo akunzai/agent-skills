@@ -76,7 +76,7 @@ fi
 node --input-type=module <<EOF || fail "record helper exports"
 import fs from "node:fs";
 import path from "node:path";
-import { bringOverlayToFront, findTopLayerHost, parseArgs, resolveViewport, resolvePauseMs, checkPrereqs, getGlobalNodeDirs, loadPlaywright, getFfmpegInstallAdvice, pickLatestDevice, resolveDevice } from "file://${RECORD}";
+import { bringOverlayToFront, findTopLayerHost, parseArgs, resolveContextOptions, resolveViewport, resolvePauseMs, checkPrereqs, getGlobalNodeDirs, loadPlaywright, getFfmpegInstallAdvice, pickLatestDevice, resolveDevice } from "file://${RECORD}";
 
 const fail = (message) => {
   console.error(message);
@@ -268,6 +268,20 @@ if (viewportFromDevice.width !== 394 || viewportFromDevice.height !== 852) {
 const explicitOverridesDevice = resolveViewport({ viewport: { width: 800, height: 600 } }, {}, phoneDevice);
 if (explicitOverridesDevice.width !== 800 || explicitOverridesDevice.height !== 600) {
   fail("scenario.viewport should override the device's viewport");
+}
+
+// A local stack on a self-signed certificate, or a page whose content follows
+// Accept-Language, needs the context configured before the first request.
+const phoneContext = resolveContextOptions({ locale: "zh-TW", ignoreHTTPSErrors: true }, phoneDevice, explicitOverridesDevice, null);
+if (phoneContext.locale !== "zh-TW" || phoneContext.ignoreHTTPSErrors !== true) {
+  fail("resolveContextOptions should pass locale and ignoreHTTPSErrors through: " + JSON.stringify(phoneContext));
+}
+if (phoneContext.isMobile !== true || phoneContext.viewport.width !== 800) {
+  fail("resolveContextOptions should keep the device's own options and the resolved viewport: " + JSON.stringify(phoneContext));
+}
+const desktopContext = resolveContextOptions({}, null, vp, null);
+if ("locale" in desktopContext || "ignoreHTTPSErrors" in desktopContext || desktopContext.deviceScaleFactor !== 1) {
+  fail("resolveContextOptions should leave Playwright's defaults alone when the scenario says nothing: " + JSON.stringify(desktopContext));
 }
 
 if (resolvePauseMs({}, {}) !== 2500) {
@@ -510,6 +524,13 @@ if (!validateScenario({ device: 42, steps: [] })[0].includes("scenario.device mu
   fail("a non-string scenario.device should be refused before recording");
 }
 same(validateScenario({ device: "phone", steps: [] }), [], "a string scenario.device should pass validation");
+if (!validateScenario({ locale: 7, steps: [] })[0].includes("scenario.locale")) {
+  fail("a non-string scenario.locale should be refused before recording");
+}
+if (!validateScenario({ ignoreHTTPSErrors: "yes", steps: [] })[0].includes("ignoreHTTPSErrors")) {
+  fail("a non-boolean scenario.ignoreHTTPSErrors should be refused before recording");
+}
+same(validateScenario({ locale: "zh-TW", ignoreHTTPSErrors: true, steps: [] }), [], "well-formed context settings");
 
 // The pointer icon is read off the step's own action, not the live page.
 if (resolvePointerIcon({ action: "click" }) !== "hand") {

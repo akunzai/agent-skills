@@ -123,6 +123,17 @@ function contextOptionsForDevice(device) {
   return { viewport, userAgent, deviceScaleFactor, isMobile, hasTouch };
 }
 
+export function resolveContextOptions(scenario, device, viewport, storageState) {
+  return {
+    ...contextOptionsForDevice(device),
+    viewport,
+    ...(device ? {} : { deviceScaleFactor: 1 }),
+    ...(storageState ? { storageState: path.resolve(storageState) } : {}),
+    ...(scenario.locale ? { locale: scenario.locale } : {}),
+    ...(scenario.ignoreHTTPSErrors ? { ignoreHTTPSErrors: true } : {}),
+  };
+}
+
 export function parseArgs(argv) {
   const args = {
     scenario: null,
@@ -963,12 +974,13 @@ export async function recordWalkthrough(options) {
   const viewport = resolveViewport(scenario, options, device);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "to-walkthrough-video-"));
   const browser = await launchChromium(playwright, { headless: !signIn });
-  const context = await browser.newContext({
-    ...contextOptionsForDevice(device),
+  const contextOptions = resolveContextOptions(
+    scenario,
+    device,
     viewport,
-    ...(device ? {} : { deviceScaleFactor: 1 }),
-    ...(authMode ? { storageState: path.resolve(options.storageState) } : {}),
-  });
+    authMode ? options.storageState : null,
+  );
+  const context = await browser.newContext(contextOptions);
   if (effects.cursor && !signIn) {
     await context.addInitScript(installCursor);
   }
@@ -1097,6 +1109,12 @@ export function validateScenario(scenario, options = {}) {
   }
   if (scenario.device !== undefined && typeof scenario.device !== "string") {
     problems.push('scenario.device must be a string: "phone", "tablet", or an exact Playwright device name');
+  }
+  if (scenario.locale !== undefined && typeof scenario.locale !== "string") {
+    problems.push('scenario.locale must be a BCP 47 string such as "zh-TW"');
+  }
+  if (scenario.ignoreHTTPSErrors !== undefined && typeof scenario.ignoreHTTPSErrors !== "boolean") {
+    problems.push("scenario.ignoreHTTPSErrors must be true or false");
   }
   if (options.sessionMode === "conflict") {
     problems.push(
