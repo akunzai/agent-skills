@@ -48,6 +48,11 @@ the page. Auto-zoom crops a 1.5x window around the click, and a caption pinned
 to the bottom edge falls outside that crop exactly when the viewer is looking
 hardest. A step with no element — `press` — centres its caption instead.
 
+A long caption wraps rather than running off the edge: it is at most 720px
+wide, or the viewport less a 16px gutter each side on a phone, and it moves
+toward the centre as far as that width needs. A narrow viewport also gets a
+smaller font.
+
 The wording is generated from the step — a verb plus what it acts on, types,
 or presses. `captionLocale` picks the wording. English, Traditional Chinese (`zh-TW`) and
 Japanese (`ja`) ship; anything else falls back to English. Each locale carries

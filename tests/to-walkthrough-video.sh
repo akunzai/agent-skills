@@ -650,16 +650,32 @@ if (!captionHtml('<img src=x onerror="boom">').includes("&lt;img")) {
 
 // Auto-zoom crops around the click, so the caption has to travel with it.
 const vp = { width: 1280, height: 720 };
-same(captionPosition({ x: 350, y: 175 }, vp), { left: 350, top: 219 }, "caption under the target");
+same(captionPosition({ x: 350, y: 175 }, vp), { left: 376, top: 219, maxWidth: 720 }, "caption under the target");
 const low = captionPosition({ x: 350, y: 700 }, vp);
-if (low.top >= 700) {
+if (!(vp.height - low.bottom < 700)) {
   fail("a target near the bottom should put the caption above it: " + JSON.stringify(low));
 }
-if (captionPosition({ x: 10, y: 300 }, vp).left !== 140) {
-  fail("a target near the edge should keep the caption on screen");
+const onScreen = (position, viewport) =>
+  position.left - position.maxWidth / 2 >= 0 && position.left + position.maxWidth / 2 <= viewport.width;
+const phoneVp = { width: 390, height: 844 };
+for (const [anchor, viewport, what] of [
+  [{ x: 10, y: 300 }, vp, "a target near the left edge"],
+  [{ x: 1270, y: 300 }, vp, "a target near the right edge"],
+  [{ x: 30, y: 300 }, phoneVp, "a target on a phone"],
+  [{ x: 380, y: 830 }, phoneVp, "a target in a phone's corner"],
+  [null, phoneVp, "a step with no target on a phone"],
+]) {
+  const position = captionPosition(anchor, viewport);
+  if (!onScreen(position, viewport)) {
+    fail(what + " should keep the widest caption on screen: " + JSON.stringify(position));
+  }
 }
 if (captionPosition(null, vp).left !== 640) {
   fail("a step with no anchor should centre the caption");
+}
+const phoneCaption = captionHtml("Check the agreement before you continue to the identity provider", { x: 30, y: 300 }, phoneVp);
+if (!phoneCaption.includes("max-width: 358px") || phoneCaption.includes("nowrap")) {
+  fail("a caption on a phone should wrap inside the viewport: " + phoneCaption);
 }
 EOF
 

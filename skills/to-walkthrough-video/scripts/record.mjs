@@ -691,25 +691,39 @@ function escapeHtml(text) {
   return String(text).replace(/[&<>"']/g, (c) => HTML_ESCAPES[c]);
 }
 
+const CAPTION_GUTTER = 16;
+const CAPTION_MAX_WIDTH = 720;
+const NARROW_VIEWPORT = 640;
+
+// A caption wraps at a known width instead of running on in one line, so it
+// can be centred where its widest line still stays inside a phone's viewport.
 export function captionPosition(anchor, viewport = DEFAULT_VIEWPORT) {
+  const maxWidth = Math.min(CAPTION_MAX_WIDTH, viewport.width - 2 * CAPTION_GUTTER);
   if (!anchor) {
-    return { left: viewport.width / 2, top: viewport.height - 72 };
+    return { left: viewport.width / 2, bottom: 24, maxWidth };
   }
+  const half = maxWidth / 2 + CAPTION_GUTTER;
+  const left = Math.min(Math.max(anchor.x, half), viewport.width - half);
   const below = anchor.y + 44;
-  const top = below > viewport.height - 56 ? Math.max(24, anchor.y - 56) : below;
-  const left = Math.min(Math.max(anchor.x, 140), Math.max(140, viewport.width - 140));
-  return { left, top };
+  if (below > viewport.height - 56) {
+    // Held by its bottom edge, so a wrapped line grows away from the target.
+    return { left, bottom: viewport.height - anchor.y + 12, maxWidth };
+  }
+  return { left, top: below, maxWidth };
 }
 
 export function captionHtml(text, anchor, viewport = DEFAULT_VIEWPORT) {
-  const { left, top } = captionPosition(anchor, viewport);
+  const { left, top, bottom, maxWidth } = captionPosition(anchor, viewport);
+  const vertical = top === undefined ? `bottom: ${bottom}px` : `top: ${top}px`;
+  const fontSize = viewport.width < NARROW_VIEWPORT ? 16 : 20;
   return `<style>
     .tvr-caption {
-      position: absolute; left: ${left}px; top: ${top}px; transform: translateX(-50%);
-      font: 600 20px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+      position: absolute; left: ${left}px; ${vertical}; transform: translateX(-50%);
+      box-sizing: border-box; width: max-content; max-width: ${maxWidth}px;
+      font: 600 ${fontSize}px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
       color: #fff; background: rgba(17,18,22,.82); padding: 10px 18px;
-      border-radius: 999px; backdrop-filter: blur(6px); white-space: nowrap;
-      box-shadow: 0 6px 24px rgba(0,0,0,.28);
+      border-radius: 24px; backdrop-filter: blur(6px); text-align: center;
+      overflow-wrap: anywhere; box-shadow: 0 6px 24px rgba(0,0,0,.28);
     }
   </style>
   <div class="tvr-caption">${escapeHtml(text)}</div>`;
