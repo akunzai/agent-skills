@@ -767,6 +767,80 @@ try {
     fail("type and select should still work after a tap: " + JSON.stringify(typed));
   }
   await phone.close();
+
+  // A caption ends with its page: one whose step navigates is gone by the time
+  // the next document loads, not held over it for the rest of the pause.
+  const server = (await import("node:http")).createServer((req, res) => {
+    if (req.url === "/slow.js") {
+      setTimeout(() => res.end(""), 2000);
+      return;
+    }
+    res.writeHead(200, { "content-type": "text/html" });
+    const pages = {
+      "/next": "<h1>Next page</h1>",
+      "/slow": '<button>Stay</button><script defer src="/slow.js"></script>',
+    };
+    res.end(pages[req.url] ?? '<a href="/next">Continue</a> <a href="/slow">Slow</a>');
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const navigating = await browser.newPage({ viewport });
+    await navigating.goto("http://127.0.0.1:" + server.address().port + "/");
+    let loadedAt = 0;
+    let disposedAt = 0;
+    navigating.on("domcontentloaded", () => { loadedAt ||= Date.now(); });
+    const showOverlay = navigating.screencast.showOverlay.bind(navigating.screencast);
+    navigating.screencast.showOverlay = async (html) => {
+      const overlay = await showOverlay(html);
+      return {
+        async [Symbol.asyncDispose]() {
+          disposedAt ||= Date.now();
+          await overlay[Symbol.asyncDispose]();
+        },
+      };
+    };
+    await runScenario(navigating, {
+      steps: [{ action: "click", role: "link", name: "Continue", pause: 2500 }],
+    }, () => {}, stateFor(viewport, { effects: { ...quiet, captions: true }, captionLocale: "en" }));
+    if (!loadedAt || !disposedAt || disposedAt - loadedAt > 1000) {
+      fail("a caption should be removed once its step navigates: loaded " + loadedAt + ", removed " + disposedAt);
+    }
+    await navigating.close();
+
+    // A page an earlier step loaded can be usable long before DOMContentLoaded;
+    // that late event is not the next step's navigation and leaves its caption.
+    const slow = await browser.newPage({ viewport });
+    await slow.goto("http://127.0.0.1:" + server.address().port + "/");
+    const lifetimes = [];
+    const showSlowOverlay = slow.screencast.showOverlay.bind(slow.screencast);
+    slow.screencast.showOverlay = async (html) => {
+      const overlay = await showSlowOverlay(html);
+      const shownAt = Date.now();
+      let removed = false;
+      return {
+        async [Symbol.asyncDispose]() {
+          // Only the first removal ends what a viewer sees; later ones are no-ops.
+          if (!removed) {
+            removed = true;
+            lifetimes.push(Date.now() - shownAt);
+          }
+          await overlay[Symbol.asyncDispose]();
+        },
+      };
+    };
+    await runScenario(slow, {
+      steps: [
+        { action: "click", role: "link", name: "Slow", pause: 100 },
+        { action: "click", role: "button", name: "Stay", pause: 3000 },
+      ],
+    }, () => {}, stateFor(viewport, { effects: { ...quiet, captions: true }, captionLocale: "en" }));
+    if (!(lifetimes[lifetimes.length - 1] >= 3000)) {
+      fail("an earlier step's late page load should not remove this step's caption: " + JSON.stringify(lifetimes));
+    }
+    await slow.close();
+  } finally {
+    server.close();
+  }
 } finally {
   await browser.close();
 }

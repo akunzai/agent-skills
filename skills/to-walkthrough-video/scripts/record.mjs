@@ -737,16 +737,29 @@ async function showCaption(page, state, step, anchor) {
   if (!text) {
     return null;
   }
+  // A page an earlier step loaded can still be short of DOMContentLoaded
+  // while its content is already usable; waiting here leaves only this step's
+  // own navigation to take the caption down below.
+  await page.waitForLoadState("domcontentloaded").catch(() => {});
   const viewport = page.viewportSize() ?? DEFAULT_VIEWPORT;
   const overlay = await page.screencast.showOverlay(captionHtml(text, anchor, viewport)).catch(() => null);
-  if (overlay) {
-    await page.evaluate(bringOverlayToFront).catch(() => {});
+  if (!overlay) {
+    return null;
   }
-  return overlay;
+  await page.evaluate(bringOverlayToFront).catch(() => {});
+  // The overlay belongs to the page, not the document, so a step that
+  // navigates would otherwise go on captioning the page it lands on.
+  const dispose = () => overlay[Symbol.asyncDispose]?.().catch(() => {});
+  page.once("domcontentloaded", dispose);
+  return { page, dispose };
 }
 
-async function hideCaption(overlay) {
-  await overlay?.[Symbol.asyncDispose]?.().catch(() => {});
+async function hideCaption(caption) {
+  if (!caption) {
+    return;
+  }
+  caption.page.off("domcontentloaded", caption.dispose);
+  await caption.dispose();
 }
 
 export function resolveAction(step) {
@@ -959,6 +972,9 @@ export async function runScenario(page, scenario, log, state) {
       state.x = x;
       state.y = y;
     }
+    // Shown while the pointer rests rather than at the click, so a step that
+    // navigates, and so takes its caption with it, is still read first.
+    const caption = await showCaption(page, state, step, { x, y });
     await sleep(PRE_CLICK_MS);
     const button = step.button ?? "left";
     const isDouble = action === "dblclick" || action === "double-click";
@@ -973,7 +989,6 @@ export async function runScenario(page, scenario, log, state) {
     if (effects.cursor && (action === "click" || isDouble)) {
       await firePulses(page, x, y, isDouble ? 2 : 1);
     }
-    const caption = await showCaption(page, state, step, { x, y });
     if (action === "dblclick" || action === "double-click") {
       await page.mouse.dblclick(x, y);
     } else {

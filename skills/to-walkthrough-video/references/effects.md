@@ -41,7 +41,9 @@ click leaves no ring — only `click` and `dblclick` do.
 
 Every interaction step is captioned: `click`, `dblclick`, `type`, `select`
 and `press`. `wait` and `goto` are not. The caption holds for the whole step,
-so an instant keypress still stays on screen long enough to read.
+so an instant keypress still stays on screen long enough to read. It appears
+once the pointer reaches the target, before the click, and a step that loads
+another page removes it then, rather than leaving it over the page it lands on.
 
 A caption sits just under the element the step acts on, not at the bottom of
 the page. Auto-zoom crops a 1.5x window around the click, and a caption pinned
