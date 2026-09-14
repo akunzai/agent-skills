@@ -41,12 +41,34 @@ click leaves no ring — only `click` and `dblclick` do.
 
 Every interaction step is captioned: `click`, `dblclick`, `type`, `select`
 and `press`. `wait` and `goto` are not. The caption holds for the whole step,
-so an instant keypress still stays on screen long enough to read.
+so an instant keypress still stays on screen long enough to read. It appears
+once the pointer reaches the target, before the click, and a step that loads
+another page removes it then, rather than leaving it over the page it lands on.
 
 A caption sits just under the element the step acts on, not at the bottom of
 the page. Auto-zoom crops a 1.5x window around the click, and a caption pinned
 to the bottom edge falls outside that crop exactly when the viewer is looking
 hardest. A step with no element — `press` — centres its caption instead.
+
+A long caption wraps rather than running off the edge: it is at most 720px
+wide, or the viewport less a 16px gutter each side on a phone, and it moves
+toward the centre as far as that width needs. A narrow viewport also gets a
+smaller font.
+
+Only you know what a click opens, so a step can move its caption out of the
+way with `captionPlacement`. The default, `auto`, puts the caption under the
+target, or above it near the bottom edge. `above` and `below` force a side,
+and `bottom` centres it at the foot of the viewport. A menu that drops down
+under its toggle is the usual reason:
+
+```json
+{ "action": "click", "role": "button", "name": "Menu", "captionPlacement": "bottom" }
+```
+
+`above` is not moved back on screen for a target near the top edge. Use
+`bottom` there instead. `bottom` lies outside the auto-zoom crop unless the
+target is itself near the bottom, so the caption shows only while the view is
+not zoomed in.
 
 The wording is generated from the step — a verb plus what it acts on, types,
 or presses. `captionLocale` picks the wording. English, Traditional Chinese (`zh-TW`) and

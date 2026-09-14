@@ -76,11 +76,16 @@ fi
 node --input-type=module <<EOF || fail "record helper exports"
 import fs from "node:fs";
 import path from "node:path";
-import { bringOverlayToFront, findTopLayerHost, parseArgs, resolveViewport, resolvePauseMs, checkPrereqs, getGlobalNodeDirs, loadPlaywright, getFfmpegInstallAdvice, pickLatestDevice, resolveDevice } from "file://${RECORD}";
+import { bringOverlayToFront, findTopLayerHost, parseArgs, resolveContextOptions, resolveViewport, resolvePauseMs, checkPrereqs, getGlobalNodeDirs, loadPlaywright, getFfmpegInstallAdvice, pickLatestDevice, resolveDevice, targetPoint } from "file://${RECORD}";
 
 const fail = (message) => {
   console.error(message);
   process.exit(1);
+};
+const same = (a, b, what) => {
+  if (JSON.stringify(a) !== JSON.stringify(b)) {
+    fail(what + ": got " + JSON.stringify(a) + ", wanted " + JSON.stringify(b));
+  }
 };
 
 if (!Array.isArray(getGlobalNodeDirs())) {
@@ -268,6 +273,28 @@ if (viewportFromDevice.width !== 394 || viewportFromDevice.height !== 852) {
 const explicitOverridesDevice = resolveViewport({ viewport: { width: 800, height: 600 } }, {}, phoneDevice);
 if (explicitOverridesDevice.width !== 800 || explicitOverridesDevice.height !== 600) {
   fail("scenario.viewport should override the device's viewport");
+}
+
+// A local stack on a self-signed certificate, or a page whose content follows
+// Accept-Language, needs the context configured before the first request.
+const phoneContext = resolveContextOptions({ locale: "zh-TW", ignoreHTTPSErrors: true }, phoneDevice, explicitOverridesDevice, null);
+if (phoneContext.locale !== "zh-TW" || phoneContext.ignoreHTTPSErrors !== true) {
+  fail("resolveContextOptions should pass locale and ignoreHTTPSErrors through: " + JSON.stringify(phoneContext));
+}
+if (phoneContext.isMobile !== true || phoneContext.viewport.width !== 800) {
+  fail("resolveContextOptions should keep the device's own options and the resolved viewport: " + JSON.stringify(phoneContext));
+}
+const desktopContext = resolveContextOptions({}, null, vp, null);
+if ("locale" in desktopContext || "ignoreHTTPSErrors" in desktopContext || desktopContext.deviceScaleFactor !== 1) {
+  fail("resolveContextOptions should leave Playwright's defaults alone when the scenario says nothing: " + JSON.stringify(desktopContext));
+}
+
+// The pointer aims at what is actually on screen, and refuses a target that
+// is not rather than clicking whatever else sits at those coordinates.
+same(targetPoint({ x: 100, y: 200, width: 40, height: 20 }, { width: 390, height: 844 }), { x: 120, y: 210 }, "target centre");
+same(targetPoint({ x: 0, y: -500, width: 390, height: 2000 }, { width: 390, height: 844 }), { x: 195, y: 422 }, "a target taller than the viewport aims at its visible part");
+if (targetPoint({ x: 10, y: 2000, width: 40, height: 20 }, { width: 390, height: 844 }) !== null) {
+  fail("a target below the fold has no point to aim at");
 }
 
 if (resolvePauseMs({}, {}) !== 2500) {
@@ -462,6 +489,7 @@ EOF
 
 node --input-type=module <<EOF || fail "effects and captions"
 import {
+  CAPTION_PLACEMENTS,
   DEFAULT_CAPTION_LOCALE,
   EFFECT_DEFAULTS,
   captionFor,
@@ -470,6 +498,7 @@ import {
   formatKeys,
   resolveCaptionLocale,
   resolveEffects,
+  resolveInput,
   resolvePointerIcon,
   validateScenario,
 } from "file://${RECORD}";
@@ -510,6 +539,13 @@ if (!validateScenario({ device: 42, steps: [] })[0].includes("scenario.device mu
   fail("a non-string scenario.device should be refused before recording");
 }
 same(validateScenario({ device: "phone", steps: [] }), [], "a string scenario.device should pass validation");
+if (!validateScenario({ locale: 7, steps: [] })[0].includes("scenario.locale")) {
+  fail("a non-string scenario.locale should be refused before recording");
+}
+if (!validateScenario({ ignoreHTTPSErrors: "yes", steps: [] })[0].includes("ignoreHTTPSErrors")) {
+  fail("a non-boolean scenario.ignoreHTTPSErrors should be refused before recording");
+}
+same(validateScenario({ locale: "zh-TW", ignoreHTTPSErrors: true, steps: [] }), [], "well-formed context settings");
 
 // The pointer icon is read off the step's own action, not the live page.
 if (resolvePointerIcon({ action: "click" }) !== "hand") {
@@ -529,6 +565,24 @@ if (resolvePointerIcon({ action: "press", keys: "Control+k" }) !== null) {
 }
 if (resolvePointerIcon({ action: "wait", ms: 100 }) !== null) {
   fail("wait should leave the arrow alone");
+}
+
+// A touch device taps wherever a finger could; touch has no double-click or
+// secondary button, so those stay on the mouse.
+const touch = { touch: true };
+same(
+  ["click", "type", "select"].map((action) => resolveInput({ action }, touch)),
+  ["tap", "tap", "tap"],
+  "a touch device taps to click, focus, and open",
+);
+if (resolveInput({ action: "dblclick" }, touch) !== "mouse") {
+  fail("a double-click has no tap equivalent");
+}
+if (resolveInput({ action: "click", button: "right" }, touch) !== "mouse") {
+  fail("a right click has no tap equivalent");
+}
+if (resolveInput({ action: "click" }, {}) !== "mouse") {
+  fail("a context without touch clicks with the mouse");
 }
 
 // A press step carries no locator, so its keys are the only thing to check.
@@ -597,18 +651,237 @@ if (!captionHtml('<img src=x onerror="boom">').includes("&lt;img")) {
 
 // Auto-zoom crops around the click, so the caption has to travel with it.
 const vp = { width: 1280, height: 720 };
-same(captionPosition({ x: 350, y: 175 }, vp), { left: 350, top: 219 }, "caption under the target");
+same(captionPosition({ x: 350, y: 175 }, vp), { left: 376, top: 219, maxWidth: 720 }, "caption under the target");
 const low = captionPosition({ x: 350, y: 700 }, vp);
-if (low.top >= 700) {
+if (!(vp.height - low.bottom < 700)) {
   fail("a target near the bottom should put the caption above it: " + JSON.stringify(low));
 }
-if (captionPosition({ x: 10, y: 300 }, vp).left !== 140) {
-  fail("a target near the edge should keep the caption on screen");
+const onScreen = (position, viewport) =>
+  position.left - position.maxWidth / 2 >= 0 && position.left + position.maxWidth / 2 <= viewport.width;
+const phoneVp = { width: 390, height: 844 };
+for (const [anchor, viewport, what] of [
+  [{ x: 10, y: 300 }, vp, "a target near the left edge"],
+  [{ x: 1270, y: 300 }, vp, "a target near the right edge"],
+  [{ x: 30, y: 300 }, phoneVp, "a target on a phone"],
+  [{ x: 380, y: 830 }, phoneVp, "a target in a phone's corner"],
+  [null, phoneVp, "a step with no target on a phone"],
+]) {
+  const position = captionPosition(anchor, viewport);
+  if (!onScreen(position, viewport)) {
+    fail(what + " should keep the widest caption on screen: " + JSON.stringify(position));
+  }
 }
 if (captionPosition(null, vp).left !== 640) {
   fail("a step with no anchor should centre the caption");
 }
+// A menu opening under its toggle is something only the author knows about,
+// so a step can move its caption out of the way.
+same(captionPosition({ x: 350, y: 175 }, vp, "above"), { left: 376, bottom: 557, maxWidth: 720 }, "caption above the target");
+same(captionPosition({ x: 350, y: 700 }, vp, "below"), { left: 376, top: 744, maxWidth: 720 }, "an explicit below does not flip");
+same(captionPosition({ x: 350, y: 175 }, vp, "bottom"), captionPosition(null, vp), "caption at the bottom centre");
+same(captionPosition({ x: 350, y: 175 }, vp, "auto"), captionPosition({ x: 350, y: 175 }, vp), "auto is the default");
+if (!captionHtml("Menu", { x: 350, y: 175 }, vp, "above").includes("bottom: 557px")) {
+  fail("captionHtml should honour the placement");
+}
+if (!validateScenario({ steps: [{ action: "click", text: "Menu", captionPlacement: "left" }] })[0].includes("captionPlacement must be one of")) {
+  fail("an unknown captionPlacement should be refused before recording");
+}
+same(
+  validateScenario({ steps: CAPTION_PLACEMENTS.map((captionPlacement) => ({ action: "click", text: "Menu", captionPlacement })) }),
+  [],
+  "every known captionPlacement",
+);
+
+const phoneCaption = captionHtml("Check the agreement before you continue to the identity provider", { x: 30, y: 300 }, phoneVp);
+if (!phoneCaption.includes("max-width: 358px") || phoneCaption.includes("nowrap")) {
+  fail("a caption on a phone should wrap inside the viewport: " + phoneCaption);
+}
 EOF
+
+# --- real browser --------------------------------------------------------------
+# The pointer drives page.mouse at viewport coordinates, so what it actually hits
+# only shows in a browser. Skipped where --check-prereqs found no Playwright.
+
+if [ "$check_status" -eq 0 ]; then
+  node --input-type=module <<EOF || fail "real browser steps"
+import { loadPlaywright, runScenario } from "file://${RECORD}";
+
+const fail = (message) => {
+  console.error(message);
+  process.exit(1);
+};
+
+const playwright = await loadPlaywright();
+const browser = await playwright.chromium.launch();
+const quiet = { zoom: false, cursor: false, captions: false };
+const stateFor = (viewport, extra = {}) => ({
+  x: viewport.width / 2, y: viewport.height / 2, startedAt: Date.now(), pauseMs: 0, effects: quiet, ...extra,
+});
+
+try {
+  // A target below the fold is scrolled to, not clicked at off-screen
+  // coordinates, and one that never stops pulsing is not waited on to settle.
+  const viewport = { width: 390, height: 844 };
+  const page = await browser.newPage({ viewport });
+  await page.setContent(
+    '<style>@keyframes pulse { 50% { transform: scale(1.2); } } button { animation: pulse .4s infinite; }</style>' +
+    '<div style="height:2000px"></div><button onclick="window.hit = true">Far</button><div style="height:400px"></div>',
+  );
+  await runScenario(page, { steps: [{ action: "click", role: "button", name: "Far" }] }, () => {}, stateFor(viewport));
+  if (!(await page.evaluate(() => window.hit === true))) {
+    fail("a click on a target below the fold should reach it");
+  }
+  await page.close();
+
+  // A phone page without a viewport meta tag lays out 980px wide and zooms
+  // out, so a target past the device's own width is still on screen.
+  const zoomedOut = await browser.newContext({ viewport, isMobile: true });
+  const unscaled = await zoomedOut.newPage();
+  await unscaled.setContent('<button style="position:absolute; left:700px; top:100px" onclick="window.hit = true">Wide</button>');
+  await runScenario(unscaled, { steps: [{ action: "click", role: "button", name: "Wide" }] }, () => {}, stateFor(viewport));
+  if (!(await unscaled.evaluate(() => window.hit === true))) {
+    fail("a click on a zoomed-out phone page should reach a target past the device width");
+  }
+  await zoomedOut.close();
+
+  // A step's captionPlacement reaches the overlay the recording draws.
+  const placed = await browser.newPage({ viewport });
+  await placed.setContent("<button>Menu</button>");
+  const drawn = [];
+  const showPlacedOverlay = placed.screencast.showOverlay.bind(placed.screencast);
+  placed.screencast.showOverlay = async (html) => {
+    drawn.push(html);
+    return showPlacedOverlay(html);
+  };
+  await runScenario(placed, {
+    steps: [{ action: "click", role: "button", name: "Menu", captionPlacement: "bottom", pause: 0 }],
+  }, () => {}, stateFor(viewport, { effects: { ...quiet, captions: true }, captionLocale: "en" }));
+  if (drawn.length !== 1 || !drawn[0].includes("bottom: 24px")) {
+    fail("a step's captionPlacement should place its caption: " + JSON.stringify(drawn));
+  }
+  await placed.close();
+
+  // A touch device taps, so touch-only handlers fire, and the cursor's sweep
+  // does not hover anything on the way. Double-click still works there.
+  const phone = await browser.newContext({ viewport, isMobile: true, hasTouch: true });
+  const tapped = await phone.newPage();
+  await tapped.setContent(\`
+    <button id="menu">Menu</button>
+    <p><button id="details">Details</button></p>
+    <p><label>Search <input id="q"></label></p>
+    <p><label>Language <select id="lang"><option>English</option><option>Japanese</option></select></label></p>
+    <script>
+      window.seen = [];
+      for (const type of ["touchstart", "mouseover", "click", "dblclick"]) {
+        document.addEventListener(type, (event) => {
+          seen.push(type + ":" + event.target.id + (event.pointerType ? ":" + event.pointerType : ""));
+        }, true);
+      }
+    </script>\`);
+  await runScenario(tapped, {
+    steps: [
+      { action: "click", role: "button", name: "Menu" },
+      { action: "dblclick", role: "button", name: "Details" },
+      { action: "type", role: "textbox", name: "Search", text: "SSH" },
+      { action: "select", role: "combobox", name: "Language", value: "Japanese" },
+    ],
+  }, () => {}, stateFor(viewport, { touch: true, effects: { ...quiet, cursor: true } }));
+  const seen = await tapped.evaluate(() => window.seen);
+  if (!seen.includes("touchstart:menu") || !seen.includes("click:menu:touch")) {
+    fail("a click on a touch device should arrive as a tap: " + JSON.stringify(seen));
+  }
+  // A real tap is followed by compatibility mouse events, so only a hover
+  // before the touch would mean the pointer's sweep dispatched it.
+  if (seen.indexOf("mouseover:menu") < seen.indexOf("touchstart:menu")) {
+    fail("a tap should not hover its target on the way: " + JSON.stringify(seen));
+  }
+  if (!seen.includes("dblclick:details")) {
+    fail("a double-click should still land on a touch device: " + JSON.stringify(seen));
+  }
+  const typed = await tapped.evaluate(() => [document.getElementById("q").value, document.getElementById("lang").value]);
+  if (typed[0] !== "SSH" || typed[1] !== "Japanese") {
+    fail("type and select should still work after a tap: " + JSON.stringify(typed));
+  }
+  await phone.close();
+
+  // A caption ends with its page: one whose step navigates is gone by the time
+  // the next document loads, not held over it for the rest of the pause.
+  const server = (await import("node:http")).createServer((req, res) => {
+    if (req.url === "/slow.js") {
+      setTimeout(() => res.end(""), 2000);
+      return;
+    }
+    res.writeHead(200, { "content-type": "text/html" });
+    const pages = {
+      "/next": "<h1>Next page</h1>",
+      "/slow": '<button>Stay</button><script defer src="/slow.js"></script>',
+    };
+    res.end(pages[req.url] ?? '<a href="/next">Continue</a> <a href="/slow">Slow</a>');
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const navigating = await browser.newPage({ viewport });
+    await navigating.goto("http://127.0.0.1:" + server.address().port + "/");
+    let loadedAt = 0;
+    let disposedAt = 0;
+    navigating.on("domcontentloaded", () => { loadedAt ||= Date.now(); });
+    const showOverlay = navigating.screencast.showOverlay.bind(navigating.screencast);
+    navigating.screencast.showOverlay = async (html) => {
+      const overlay = await showOverlay(html);
+      return {
+        async [Symbol.asyncDispose]() {
+          disposedAt ||= Date.now();
+          await overlay[Symbol.asyncDispose]();
+        },
+      };
+    };
+    await runScenario(navigating, {
+      steps: [{ action: "click", role: "link", name: "Continue", pause: 2500 }],
+    }, () => {}, stateFor(viewport, { effects: { ...quiet, captions: true }, captionLocale: "en" }));
+    if (!loadedAt || !disposedAt || disposedAt - loadedAt > 1000) {
+      fail("a caption should be removed once its step navigates: loaded " + loadedAt + ", removed " + disposedAt);
+    }
+    await navigating.close();
+
+    // A page an earlier step loaded can be usable long before DOMContentLoaded;
+    // that late event is not the next step's navigation and leaves its caption.
+    const slow = await browser.newPage({ viewport });
+    await slow.goto("http://127.0.0.1:" + server.address().port + "/");
+    const lifetimes = [];
+    const showSlowOverlay = slow.screencast.showOverlay.bind(slow.screencast);
+    slow.screencast.showOverlay = async (html) => {
+      const overlay = await showSlowOverlay(html);
+      const shownAt = Date.now();
+      let removed = false;
+      return {
+        async [Symbol.asyncDispose]() {
+          // Only the first removal ends what a viewer sees; later ones are no-ops.
+          if (!removed) {
+            removed = true;
+            lifetimes.push(Date.now() - shownAt);
+          }
+          await overlay[Symbol.asyncDispose]();
+        },
+      };
+    };
+    await runScenario(slow, {
+      steps: [
+        { action: "click", role: "link", name: "Slow", pause: 100 },
+        { action: "click", role: "button", name: "Stay", pause: 3000 },
+      ],
+    }, () => {}, stateFor(viewport, { effects: { ...quiet, captions: true }, captionLocale: "en" }));
+    if (!(lifetimes[lifetimes.length - 1] >= 3000)) {
+      fail("an earlier step's late page load should not remove this step's caption: " + JSON.stringify(lifetimes));
+    }
+    await slow.close();
+  } finally {
+    server.close();
+  }
+} finally {
+  await browser.close();
+}
+EOF
+fi
 
 # --- fixture site ------------------------------------------------------------
 

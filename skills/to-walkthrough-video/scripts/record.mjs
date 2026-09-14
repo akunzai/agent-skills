@@ -123,6 +123,17 @@ function contextOptionsForDevice(device) {
   return { viewport, userAgent, deviceScaleFactor, isMobile, hasTouch };
 }
 
+export function resolveContextOptions(scenario, device, viewport, storageState) {
+  return {
+    ...contextOptionsForDevice(device),
+    viewport,
+    ...(device ? {} : { deviceScaleFactor: 1 }),
+    ...(storageState ? { storageState: path.resolve(storageState) } : {}),
+    ...(scenario.locale ? { locale: scenario.locale } : {}),
+    ...(scenario.ignoreHTTPSErrors ? { ignoreHTTPSErrors: true } : {}),
+  };
+}
+
 export function parseArgs(argv) {
   const args = {
     scenario: null,
@@ -680,25 +691,43 @@ function escapeHtml(text) {
   return String(text).replace(/[&<>"']/g, (c) => HTML_ESCAPES[c]);
 }
 
-export function captionPosition(anchor, viewport = DEFAULT_VIEWPORT) {
-  if (!anchor) {
-    return { left: viewport.width / 2, top: viewport.height - 72 };
+const CAPTION_GUTTER = 16;
+const CAPTION_MAX_WIDTH = 720;
+const NARROW_VIEWPORT = 640;
+
+// Where a step's click opens something, a menu below its toggle say, only the
+// scenario author knows, so "auto" can be overridden per step.
+export const CAPTION_PLACEMENTS = ["auto", "above", "below", "bottom"];
+
+// A caption wraps at a known width instead of running on in one line, so it
+// can be centred where its widest line still stays inside a phone's viewport.
+export function captionPosition(anchor, viewport = DEFAULT_VIEWPORT, placement = "auto") {
+  const maxWidth = Math.min(CAPTION_MAX_WIDTH, viewport.width - 2 * CAPTION_GUTTER);
+  if (!anchor || placement === "bottom") {
+    return { left: viewport.width / 2, bottom: 24, maxWidth };
   }
+  const half = maxWidth / 2 + CAPTION_GUTTER;
+  const left = Math.min(Math.max(anchor.x, half), viewport.width - half);
   const below = anchor.y + 44;
-  const top = below > viewport.height - 56 ? Math.max(24, anchor.y - 56) : below;
-  const left = Math.min(Math.max(anchor.x, 140), Math.max(140, viewport.width - 140));
-  return { left, top };
+  if (placement === "above" || (placement !== "below" && below > viewport.height - 56)) {
+    // Held by its bottom edge, so a wrapped line grows away from the target.
+    return { left, bottom: viewport.height - anchor.y + 12, maxWidth };
+  }
+  return { left, top: below, maxWidth };
 }
 
-export function captionHtml(text, anchor, viewport = DEFAULT_VIEWPORT) {
-  const { left, top } = captionPosition(anchor, viewport);
+export function captionHtml(text, anchor, viewport = DEFAULT_VIEWPORT, placement = "auto") {
+  const { left, top, bottom, maxWidth } = captionPosition(anchor, viewport, placement);
+  const vertical = top === undefined ? `bottom: ${bottom}px` : `top: ${top}px`;
+  const fontSize = viewport.width < NARROW_VIEWPORT ? 16 : 20;
   return `<style>
     .tvr-caption {
-      position: absolute; left: ${left}px; top: ${top}px; transform: translateX(-50%);
-      font: 600 20px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+      position: absolute; left: ${left}px; ${vertical}; transform: translateX(-50%);
+      box-sizing: border-box; width: max-content; max-width: ${maxWidth}px;
+      font: 600 ${fontSize}px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
       color: #fff; background: rgba(17,18,22,.82); padding: 10px 18px;
-      border-radius: 999px; backdrop-filter: blur(6px); white-space: nowrap;
-      box-shadow: 0 6px 24px rgba(0,0,0,.28);
+      border-radius: 24px; backdrop-filter: blur(6px); text-align: center;
+      overflow-wrap: anywhere; box-shadow: 0 6px 24px rgba(0,0,0,.28);
     }
   </style>
   <div class="tvr-caption">${escapeHtml(text)}</div>`;
@@ -712,16 +741,29 @@ async function showCaption(page, state, step, anchor) {
   if (!text) {
     return null;
   }
+  // A page an earlier step loaded can still be short of DOMContentLoaded
+  // while its content is already usable; waiting here leaves only this step's
+  // own navigation to take the caption down below.
+  await page.waitForLoadState("domcontentloaded").catch(() => {});
   const viewport = page.viewportSize() ?? DEFAULT_VIEWPORT;
-  const overlay = await page.screencast.showOverlay(captionHtml(text, anchor, viewport)).catch(() => null);
-  if (overlay) {
-    await page.evaluate(bringOverlayToFront).catch(() => {});
+  const overlay = await page.screencast.showOverlay(captionHtml(text, anchor, viewport, step.captionPlacement)).catch(() => null);
+  if (!overlay) {
+    return null;
   }
-  return overlay;
+  await page.evaluate(bringOverlayToFront).catch(() => {});
+  // The overlay belongs to the page, not the document, so a step that
+  // navigates would otherwise go on captioning the page it lands on.
+  const dispose = () => overlay[Symbol.asyncDispose]?.().catch(() => {});
+  page.once("domcontentloaded", dispose);
+  return { page, dispose };
 }
 
-async function hideCaption(overlay) {
-  await overlay?.[Symbol.asyncDispose]?.().catch(() => {});
+async function hideCaption(caption) {
+  if (!caption) {
+    return;
+  }
+  caption.page.off("domcontentloaded", caption.dispose);
+  await caption.dispose();
 }
 
 export function resolveAction(step) {
@@ -764,7 +806,18 @@ function locatorFor(page, step) {
   throw new Error(`step needs selector, role, text, or label: ${JSON.stringify(step)}`);
 }
 
-async function animateMove(page, state, x, y) {
+// A touch device taps, and a tap is where touchstart and pointerType "touch"
+// come from; a site can behave differently for it, which may be the very thing
+// the recording is for. Touch has no double-click or secondary button, so
+// those still go through the mouse.
+export function resolveInput(step, state) {
+  const action = resolveAction(step);
+  const tappable = action === "click" || action === "type" || action === "select";
+  return state.touch && tappable && (step.button ?? "left") === "left" ? "tap" : "mouse";
+}
+
+async function animateMove(page, state, x, y, options = {}) {
+  const hover = options.hover ?? true;
   const steps = 14;
   const fromX = state.x;
   const fromY = state.y;
@@ -773,7 +826,9 @@ async function animateMove(page, state, x, y) {
     const eased = 0.5 - 0.5 * Math.cos(Math.PI * t);
     const nx = fromX + (x - fromX) * eased;
     const ny = fromY + (y - fromY) * eased;
-    await page.mouse.move(nx, ny);
+    if (hover) {
+      await page.mouse.move(nx, ny);
+    }
     await page.evaluate(
       ([cx, cy]) => {
         window.__tvrCursor?.move(cx, cy);
@@ -827,6 +882,48 @@ export function resolvePauseMs(step, state) {
   return POST_CLICK_MS;
 }
 
+// The centre of the part of the box on screen, or null when none of it is: an
+// element taller than the viewport still gets a point the viewer can see, and
+// a point off screen would hit whatever else sits there, or nothing.
+export function targetPoint(box, viewport = DEFAULT_VIEWPORT) {
+  const left = Math.max(box.x, 0);
+  const top = Math.max(box.y, 0);
+  const right = Math.min(box.x + box.width, viewport.width);
+  const bottom = Math.min(box.y + box.height, viewport.height);
+  if (right <= left || bottom <= top) {
+    return null;
+  }
+  return { x: (left + right) / 2, y: (top + bottom) / 2 };
+}
+
+// Boxes are in layout pixels, which a phone page without a viewport meta tag
+// makes wider than page.viewportSize(); Playwright's own clickable point is
+// clipped against innerWidth/innerHeight for the same reason.
+async function layoutViewport(page, fallback) {
+  return page.evaluate(() => ({ width: innerWidth, height: innerHeight })).catch(() => fallback);
+}
+
+// The pointer acts at viewport coordinates so it can be drawn getting there,
+// which skips the scroll a locator action would do for itself. It scrolls
+// with the DOM rather than scrollIntoViewIfNeeded(), which also waits for the
+// box to stop moving and so never returns for a pulsing or sliding target.
+async function scrollToTarget(page, target) {
+  const box = await target.boundingBox();
+  if (!box) {
+    return null;
+  }
+  const viewport = await layoutViewport(page, page.viewportSize() ?? DEFAULT_VIEWPORT);
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  if (cx >= 0 && cx <= viewport.width && cy >= 0 && cy <= viewport.height) {
+    return box;
+  }
+  await target.evaluate((el) => {
+    el.scrollIntoView({ block: "center", inline: "center", behavior: "instant" });
+  });
+  return target.boundingBox();
+}
+
 export async function runScenario(page, scenario, log, state) {
   const steps = scenario.steps ?? [];
   const effects = state.effects ?? EFFECT_DEFAULTS;
@@ -853,24 +950,36 @@ export async function runScenario(page, scenario, log, state) {
     }
     const locator = locatorFor(page, step);
     await locator.first().waitFor({ state: "visible", timeout: 15_000 });
-    const box = await locator.first().boundingBox();
+    const box = await scrollToTarget(page, locator.first());
     if (!box) {
       throw new Error(`no bounding box for ${JSON.stringify(step)}`);
     }
-    const x = box.x + box.width / 2;
-    const y = box.y + box.height / 2;
+    const viewport = page.viewportSize() ?? DEFAULT_VIEWPORT;
+    const target = targetPoint(box, await layoutViewport(page, viewport));
+    if (!target) {
+      throw new Error(`target is outside the viewport even after scrolling: ${JSON.stringify(step)}`);
+    }
+    const { x, y } = target;
+    const input = resolveInput(step, state);
+    // A finger does not hover on its way to the target, so a tap moves only
+    // the drawn pointer and leaves hover-only UI closed.
+    const hover = input === "mouse";
     if (effects.cursor) {
-      await animateMove(page, state, x, y);
+      await animateMove(page, state, x, y, { hover });
       await installOverlay(page, state);
       await syncCursor(page, state);
       await setPointerIcon(page, state, resolvePointerIcon(step));
     } else {
-      await page.mouse.move(x, y);
+      if (hover) {
+        await page.mouse.move(x, y);
+      }
       state.x = x;
       state.y = y;
     }
+    // Shown while the pointer rests rather than at the click, so a step that
+    // navigates, and so takes its caption with it, is still read first.
+    const caption = await showCaption(page, state, step, { x, y });
     await sleep(PRE_CLICK_MS);
-    const viewport = page.viewportSize() ?? DEFAULT_VIEWPORT;
     const button = step.button ?? "left";
     const isDouble = action === "dblclick" || action === "double-click";
     const interaction = isDouble ? "double-click" : "click";
@@ -884,11 +993,14 @@ export async function runScenario(page, scenario, log, state) {
     if (effects.cursor && (action === "click" || isDouble)) {
       await firePulses(page, x, y, isDouble ? 2 : 1);
     }
-    const caption = await showCaption(page, state, step, { x, y });
     if (action === "dblclick" || action === "double-click") {
       await page.mouse.dblclick(x, y);
     } else {
-      await page.mouse.click(x, y, { button });
+      if (input === "tap") {
+        await page.touchscreen.tap(x, y);
+      } else {
+        await page.mouse.click(x, y, { button });
+      }
       if (action === "type") {
         const typed = String(step.text ?? "");
         if (typed) {
@@ -963,12 +1075,13 @@ export async function recordWalkthrough(options) {
   const viewport = resolveViewport(scenario, options, device);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "to-walkthrough-video-"));
   const browser = await launchChromium(playwright, { headless: !signIn });
-  const context = await browser.newContext({
-    ...contextOptionsForDevice(device),
+  const contextOptions = resolveContextOptions(
+    scenario,
+    device,
     viewport,
-    ...(device ? {} : { deviceScaleFactor: 1 }),
-    ...(authMode ? { storageState: path.resolve(options.storageState) } : {}),
-  });
+    authMode ? options.storageState : null,
+  );
+  const context = await browser.newContext(contextOptions);
   if (effects.cursor && !signIn) {
     await context.addInitScript(installCursor);
   }
@@ -994,6 +1107,7 @@ export async function recordWalkthrough(options) {
         : POST_CLICK_MS,
     effects,
     captionLocale: resolveCaptionLocale(scenario),
+    touch: Boolean(contextOptions.hasTouch),
   };
   const rawPath = path.join(tmp, "raw.webm");
 
@@ -1089,6 +1203,10 @@ export function validateScenario(scenario, options = {}) {
     if (resolveAction(steps[index]) === "press" && !steps[index].keys) {
       problems.push(`steps[${index}] is a press step without keys`);
     }
+    const placement = steps[index].captionPlacement;
+    if (placement !== undefined && !CAPTION_PLACEMENTS.includes(placement)) {
+      problems.push(`steps[${index}].captionPlacement must be one of ${CAPTION_PLACEMENTS.join(", ")}`);
+    }
   }
   try {
     resolveEffects(scenario);
@@ -1097,6 +1215,12 @@ export function validateScenario(scenario, options = {}) {
   }
   if (scenario.device !== undefined && typeof scenario.device !== "string") {
     problems.push('scenario.device must be a string: "phone", "tablet", or an exact Playwright device name');
+  }
+  if (scenario.locale !== undefined && typeof scenario.locale !== "string") {
+    problems.push('scenario.locale must be a BCP 47 string such as "zh-TW"');
+  }
+  if (scenario.ignoreHTTPSErrors !== undefined && typeof scenario.ignoreHTTPSErrors !== "boolean") {
+    problems.push("scenario.ignoreHTTPSErrors must be true or false");
   }
   if (options.sessionMode === "conflict") {
     problems.push(
