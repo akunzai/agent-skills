@@ -838,6 +838,48 @@ export function resolvePauseMs(step, state) {
   return POST_CLICK_MS;
 }
 
+// The centre of the part of the box on screen, or null when none of it is: an
+// element taller than the viewport still gets a point the viewer can see, and
+// a point off screen would hit whatever else sits there, or nothing.
+export function targetPoint(box, viewport = DEFAULT_VIEWPORT) {
+  const left = Math.max(box.x, 0);
+  const top = Math.max(box.y, 0);
+  const right = Math.min(box.x + box.width, viewport.width);
+  const bottom = Math.min(box.y + box.height, viewport.height);
+  if (right <= left || bottom <= top) {
+    return null;
+  }
+  return { x: (left + right) / 2, y: (top + bottom) / 2 };
+}
+
+// Boxes are in layout pixels, which a phone page without a viewport meta tag
+// makes wider than page.viewportSize(); Playwright's own clickable point is
+// clipped against innerWidth/innerHeight for the same reason.
+async function layoutViewport(page, fallback) {
+  return page.evaluate(() => ({ width: innerWidth, height: innerHeight })).catch(() => fallback);
+}
+
+// The pointer acts at viewport coordinates so it can be drawn getting there,
+// which skips the scroll a locator action would do for itself. It scrolls
+// with the DOM rather than scrollIntoViewIfNeeded(), which also waits for the
+// box to stop moving and so never returns for a pulsing or sliding target.
+async function scrollToTarget(page, target) {
+  const box = await target.boundingBox();
+  if (!box) {
+    return null;
+  }
+  const viewport = await layoutViewport(page, page.viewportSize() ?? DEFAULT_VIEWPORT);
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  if (cx >= 0 && cx <= viewport.width && cy >= 0 && cy <= viewport.height) {
+    return box;
+  }
+  await target.evaluate((el) => {
+    el.scrollIntoView({ block: "center", inline: "center", behavior: "instant" });
+  });
+  return target.boundingBox();
+}
+
 export async function runScenario(page, scenario, log, state) {
   const steps = scenario.steps ?? [];
   const effects = state.effects ?? EFFECT_DEFAULTS;
@@ -864,12 +906,16 @@ export async function runScenario(page, scenario, log, state) {
     }
     const locator = locatorFor(page, step);
     await locator.first().waitFor({ state: "visible", timeout: 15_000 });
-    const box = await locator.first().boundingBox();
+    const box = await scrollToTarget(page, locator.first());
     if (!box) {
       throw new Error(`no bounding box for ${JSON.stringify(step)}`);
     }
-    const x = box.x + box.width / 2;
-    const y = box.y + box.height / 2;
+    const viewport = page.viewportSize() ?? DEFAULT_VIEWPORT;
+    const target = targetPoint(box, await layoutViewport(page, viewport));
+    if (!target) {
+      throw new Error(`target is outside the viewport even after scrolling: ${JSON.stringify(step)}`);
+    }
+    const { x, y } = target;
     if (effects.cursor) {
       await animateMove(page, state, x, y);
       await installOverlay(page, state);
@@ -881,7 +927,6 @@ export async function runScenario(page, scenario, log, state) {
       state.y = y;
     }
     await sleep(PRE_CLICK_MS);
-    const viewport = page.viewportSize() ?? DEFAULT_VIEWPORT;
     const button = step.button ?? "left";
     const isDouble = action === "dblclick" || action === "double-click";
     const interaction = isDouble ? "double-click" : "click";

@@ -76,11 +76,16 @@ fi
 node --input-type=module <<EOF || fail "record helper exports"
 import fs from "node:fs";
 import path from "node:path";
-import { bringOverlayToFront, findTopLayerHost, parseArgs, resolveContextOptions, resolveViewport, resolvePauseMs, checkPrereqs, getGlobalNodeDirs, loadPlaywright, getFfmpegInstallAdvice, pickLatestDevice, resolveDevice } from "file://${RECORD}";
+import { bringOverlayToFront, findTopLayerHost, parseArgs, resolveContextOptions, resolveViewport, resolvePauseMs, checkPrereqs, getGlobalNodeDirs, loadPlaywright, getFfmpegInstallAdvice, pickLatestDevice, resolveDevice, targetPoint } from "file://${RECORD}";
 
 const fail = (message) => {
   console.error(message);
   process.exit(1);
+};
+const same = (a, b, what) => {
+  if (JSON.stringify(a) !== JSON.stringify(b)) {
+    fail(what + ": got " + JSON.stringify(a) + ", wanted " + JSON.stringify(b));
+  }
 };
 
 if (!Array.isArray(getGlobalNodeDirs())) {
@@ -282,6 +287,14 @@ if (phoneContext.isMobile !== true || phoneContext.viewport.width !== 800) {
 const desktopContext = resolveContextOptions({}, null, vp, null);
 if ("locale" in desktopContext || "ignoreHTTPSErrors" in desktopContext || desktopContext.deviceScaleFactor !== 1) {
   fail("resolveContextOptions should leave Playwright's defaults alone when the scenario says nothing: " + JSON.stringify(desktopContext));
+}
+
+// The pointer aims at what is actually on screen, and refuses a target that
+// is not rather than clicking whatever else sits at those coordinates.
+same(targetPoint({ x: 100, y: 200, width: 40, height: 20 }, { width: 390, height: 844 }), { x: 120, y: 210 }, "target centre");
+same(targetPoint({ x: 0, y: -500, width: 390, height: 2000 }, { width: 390, height: 844 }), { x: 195, y: 422 }, "a target taller than the viewport aims at its visible part");
+if (targetPoint({ x: 10, y: 2000, width: 40, height: 20 }, { width: 390, height: 844 }) !== null) {
+  fail("a target below the fold has no point to aim at");
 }
 
 if (resolvePauseMs({}, {}) !== 2500) {
@@ -630,6 +643,57 @@ if (captionPosition(null, vp).left !== 640) {
   fail("a step with no anchor should centre the caption");
 }
 EOF
+
+# --- real browser --------------------------------------------------------------
+# The pointer drives page.mouse at viewport coordinates, so what it actually hits
+# only shows in a browser. Skipped where --check-prereqs found no Playwright.
+
+if [ "$check_status" -eq 0 ]; then
+  node --input-type=module <<EOF || fail "real browser steps"
+import { loadPlaywright, runScenario } from "file://${RECORD}";
+
+const fail = (message) => {
+  console.error(message);
+  process.exit(1);
+};
+
+const playwright = await loadPlaywright();
+const browser = await playwright.chromium.launch();
+const quiet = { zoom: false, cursor: false, captions: false };
+const stateFor = (viewport, extra = {}) => ({
+  x: viewport.width / 2, y: viewport.height / 2, startedAt: Date.now(), pauseMs: 0, effects: quiet, ...extra,
+});
+
+try {
+  // A target below the fold is scrolled to, not clicked at off-screen
+  // coordinates, and one that never stops pulsing is not waited on to settle.
+  const viewport = { width: 390, height: 844 };
+  const page = await browser.newPage({ viewport });
+  await page.setContent(
+    '<style>@keyframes pulse { 50% { transform: scale(1.2); } } button { animation: pulse .4s infinite; }</style>' +
+    '<div style="height:2000px"></div><button onclick="window.hit = true">Far</button><div style="height:400px"></div>',
+  );
+  await runScenario(page, { steps: [{ action: "click", role: "button", name: "Far" }] }, () => {}, stateFor(viewport));
+  if (!(await page.evaluate(() => window.hit === true))) {
+    fail("a click on a target below the fold should reach it");
+  }
+  await page.close();
+
+  // A phone page without a viewport meta tag lays out 980px wide and zooms
+  // out, so a target past the device's own width is still on screen.
+  const zoomedOut = await browser.newContext({ viewport, isMobile: true });
+  const unscaled = await zoomedOut.newPage();
+  await unscaled.setContent('<button style="position:absolute; left:700px; top:100px" onclick="window.hit = true">Wide</button>');
+  await runScenario(unscaled, { steps: [{ action: "click", role: "button", name: "Wide" }] }, () => {}, stateFor(viewport));
+  if (!(await unscaled.evaluate(() => window.hit === true))) {
+    fail("a click on a zoomed-out phone page should reach a target past the device width");
+  }
+  await zoomedOut.close();
+} finally {
+  await browser.close();
+}
+EOF
+fi
 
 # --- fixture site ------------------------------------------------------------
 
