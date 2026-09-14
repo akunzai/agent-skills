@@ -17,6 +17,8 @@ inputs:
     Take these as given, since this workspace is offline:
 
     - The repo is hosted on GitHub at github.com/example/storefront.
+    - Issues are tracked in GitHub's own issue tracker, same as the forge
+      — there is no separate Jira, Linear, or other external tracker.
     - Docker is not available here, so the stack cannot actually be
       started. Do not run docker, npm install, or any network command.
 

@@ -113,6 +113,13 @@ lands correctly. Both probes below resolve the host from that remote.
 A CLI that is absent is not evidence about the forge. When neither is
 installed, say which one the remote suggests and ask.
 
+Steps 1-3 identify the code forge, not where the team tracks issues — the
+two commonly differ when planning lives in Jira, Linear, or another
+external tool rather than the forge's own tracker. A working `gh` or
+`glab` probe is evidence about the code host only. Phase 1 confirms the
+actual tracker as one more proposed default, not a second interview
+question.
+
 ## Phase 1 — filing and review conventions
 
 Ask one language question: which language issues and PR/MR bodies use.
@@ -143,9 +150,15 @@ does.
 Then propose rather than interview. Probe and offer a concrete default
 the developer confirms or edits: the source paths whose changes must
 land with tests, which of the repo's existing labels an agent should
-apply, and the request-title convention, read from merged requests
+apply, the request-title convention, read from merged requests
 (`gh pr list --state merged --limit 30 --json title`,
-`glab mr list --merged`). Read the labels with the page size raised
+`glab mr list --merged`), and where issues actually live. Default the
+last one to the forge from the ladder above; when the developer names an
+external tool instead (Jira, Linear, or another), `issue-tracker.md`
+documents that tool by name and whatever CLI or MCP commands the
+developer already has configured for it, never invented ones — finding
+or installing that tooling is `find-skills`'s or `skills-manager`'s job,
+not this skill's. Read the labels with the page size raised
 (`gh label list --limit 100`, `glab label list --per-page 100`): both
 default to 30 and present that page as the whole set, so a label further
 down reads as missing. Inventing a label vocabulary, or importing one
@@ -255,4 +268,7 @@ still covers a new field — is left to review.
 
 `agents-md` for `AGENTS.md` itself. `pr-workflow`, `github-epic`,
 `gitlab-epic` at runtime. `to-walkthrough-video` and `tcut` for capture.
-`wizard` for the human prerequisite script.
+`wizard` for the human prerequisite script. `find-skills` and
+`skills-manager` to locate or install CLI/MCP tooling for an external
+issue tracker; this skill only records that the tracker exists, never
+its tooling.
