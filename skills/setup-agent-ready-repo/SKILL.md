@@ -143,16 +143,17 @@ does.
 Then propose rather than interview. Probe and offer a concrete default
 the developer confirms or edits: the source paths whose changes must
 land with tests, which of the repo's existing labels an agent should
-apply, and the request-title convention, read from merged requests
+apply, the request-title convention, read from merged requests
 (`gh pr list --state merged --limit 30 --json title`,
-`glab mr list --merged`). Read the labels with the page size raised
+`glab mr list --merged`), and where issues are tracked. Read
+the labels with the page size raised
 (`gh label list --limit 100`, `glab label list --per-page 100`): both
 default to 30 and present that page as the whole set, so a label further
 down reads as missing. Inventing a label vocabulary, or importing one
 from another project, produces labels nobody uses; a missing label is a
 conversation with the maintainer.
 
-Body shape, diagram selection, evidence and PII rules:
+Where issues are tracked, body shape, diagrams, evidence and PII rules:
 [ticket-and-pr.md](references/ticket-and-pr.md).
 
 **Done when** the issue document and the PR/MR document exist, each
