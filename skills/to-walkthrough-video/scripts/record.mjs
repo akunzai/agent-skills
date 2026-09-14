@@ -438,7 +438,7 @@ function installCursor() {
       :host { pointer-events: none; }
       .cursor {
         position: absolute; left: 0; top: 0; width: 28px; height: 32px;
-        transform-origin: 4px 3px;
+        transform: scale(var(--tvr-k, 1)); transform-origin: 4px 3px;
         filter: drop-shadow(0 2px 3px rgba(0,0,0,.38));
       }
       .cursor svg { display: block; position: absolute; left: 0; top: 0; }
@@ -450,8 +450,9 @@ function installCursor() {
       .cursor[data-icon="text"] .shape-text { opacity: 1; }
       .effects { position: absolute; inset: 0; }
       .ripple {
-        position: absolute; width: 80px; height: 80px; margin: -40px 0 0 -40px;
-        border-radius: 999px; border: 7px solid #2563EB; pointer-events: none;
+        position: absolute; width: calc(80px * var(--tvr-k, 1)); height: calc(80px * var(--tvr-k, 1));
+        margin: calc(-40px * var(--tvr-k, 1)) 0 0 calc(-40px * var(--tvr-k, 1));
+        border-radius: 999px; border: calc(7px * var(--tvr-k, 1)) solid #2563EB; pointer-events: none;
         animation: tvr-ripple 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
       @keyframes tvr-ripple {
@@ -511,6 +512,9 @@ function installCursor() {
     if (host.parentElement !== container) {
       container.appendChild(host);
     }
+    // A zoomed-out page shrinks whatever is drawn into it, so the pointer and
+    // its ring are scaled back up to their size on screen.
+    host.style.setProperty("--tvr-k", String(1 / (window.visualViewport?.scale || 1)));
   };
   const syncGlass = () => {
     try {
@@ -716,13 +720,18 @@ export function captionPosition(anchor, viewport = DEFAULT_VIEWPORT, placement =
   return { left, top: below, maxWidth };
 }
 
-export function captionHtml(text, anchor, viewport = DEFAULT_VIEWPORT, placement = "auto") {
+// anchor and viewport are in screen pixels; scale is pageScale(), and the
+// caption is emitted in the page's CSS pixels so it reads the same size either way.
+export function captionHtml(text, anchor, viewport = DEFAULT_VIEWPORT, placement = "auto", scale = 1) {
   const { left, top, bottom, maxWidth } = captionPosition(anchor, viewport, placement);
-  const vertical = top === undefined ? `bottom: ${bottom}px` : `top: ${top}px`;
+  const css = (px) => `${px / scale}px`;
+  const vertical = top === undefined ? `bottom: ${css(bottom)}` : `top: ${css(top)}`;
+  const origin = top === undefined ? "50% 100%" : "50% 0";
   const fontSize = viewport.width < NARROW_VIEWPORT ? 16 : 20;
   return `<style>
     .tvr-caption {
-      position: absolute; left: ${left}px; ${vertical}; transform: translateX(-50%);
+      position: absolute; left: ${css(left)}; ${vertical};
+      transform: translateX(-50%) scale(${1 / scale}); transform-origin: ${origin};
       box-sizing: border-box; width: max-content; max-width: ${maxWidth}px;
       font: 600 ${fontSize}px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
       color: #fff; background: rgba(17,18,22,.82); padding: 10px 18px;
@@ -745,8 +754,13 @@ async function showCaption(page, state, step, anchor) {
   // while its content is already usable; waiting here leaves only this step's
   // own navigation to take the caption down below.
   await page.waitForLoadState("domcontentloaded").catch(() => {});
-  const viewport = page.viewportSize() ?? DEFAULT_VIEWPORT;
-  const overlay = await page.screencast.showOverlay(captionHtml(text, anchor, viewport, step.captionPlacement)).catch(() => null);
+  // The overlay is drawn into the page, so it is placed in CSS pixels and
+  // zoomed with the page; it is laid out in screen pixels and scaled back.
+  const screen = page.viewportSize() ?? DEFAULT_VIEWPORT;
+  const scale = pageScale(screen, await cssViewport(page, screen));
+  const onScreen = anchor ? { x: anchor.x * scale, y: anchor.y * scale } : undefined;
+  const html = captionHtml(text, onScreen, screen, step.captionPlacement, scale);
+  const overlay = await page.screencast.showOverlay(html).catch(() => null);
   if (!overlay) {
     return null;
   }
@@ -896,11 +910,18 @@ export function targetPoint(box, viewport = DEFAULT_VIEWPORT) {
   return { x: (left + right) / 2, y: (top + bottom) / 2 };
 }
 
-// Boxes are in layout pixels, which a phone page without a viewport meta tag
-// makes wider than page.viewportSize(); Playwright's own clickable point is
-// clipped against innerWidth/innerHeight for the same reason.
-async function layoutViewport(page, fallback) {
+// Boxes, the pointer, and anything drawn into the page are in the page's own
+// CSS pixels. A phone page without a viewport meta tag lays out wider than
+// the screen and is zoomed out to fit, so innerWidth/innerHeight, not
+// page.viewportSize(), is what they are measured against; Playwright's own
+// clickable point is clipped against the same.
+async function cssViewport(page, fallback) {
   return page.evaluate(() => ({ width: innerWidth, height: innerHeight })).catch(() => fallback);
+}
+
+// How many screen pixels one CSS pixel covers: 1 unless the page is zoomed out.
+export function pageScale(screen, css) {
+  return css?.width > 0 ? screen.width / css.width : 1;
 }
 
 // The pointer acts at viewport coordinates so it can be drawn getting there,
@@ -912,7 +933,7 @@ async function scrollToTarget(page, target) {
   if (!box) {
     return null;
   }
-  const viewport = await layoutViewport(page, page.viewportSize() ?? DEFAULT_VIEWPORT);
+  const viewport = await cssViewport(page, page.viewportSize() ?? DEFAULT_VIEWPORT);
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
   if (cx >= 0 && cx <= viewport.width && cy >= 0 && cy <= viewport.height) {
@@ -954,8 +975,8 @@ export async function runScenario(page, scenario, log, state) {
     if (!box) {
       throw new Error(`no bounding box for ${JSON.stringify(step)}`);
     }
-    const viewport = page.viewportSize() ?? DEFAULT_VIEWPORT;
-    const target = targetPoint(box, await layoutViewport(page, viewport));
+    const viewport = await cssViewport(page, page.viewportSize() ?? DEFAULT_VIEWPORT);
+    const target = targetPoint(box, viewport);
     if (!target) {
       throw new Error(`target is outside the viewport even after scrolling: ${JSON.stringify(step)}`);
     }
