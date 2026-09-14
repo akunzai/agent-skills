@@ -5,6 +5,9 @@ myself and saved the browser storage state to auth.json, so the recording must
 start already signed in. The button named "Account" appears only once signed
 in.
 
+The site picks its language from the browser, and the recording must show
+the Traditional Chinese (zh-TW) version of every page.
+
 Steps, in order:
 1. Wait 800ms
 2. Click the link named "More information"

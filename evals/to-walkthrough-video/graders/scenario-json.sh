@@ -86,6 +86,11 @@ if (!expect || typeof expect !== "object") {
   fail("auth.expect must locate the Account control that only a signed-in user sees");
 }
 
+// The page language is the browser context's, not the caption wording's.
+if (doc.locale !== "zh-TW") {
+  fail(`scenario.locale must set the browser language to zh-TW: got ${JSON.stringify(doc.locale ?? null)}`);
+}
+
 if (problems.length > 0) {
   console.error(problems.join("\n"));
   process.exit(1);
