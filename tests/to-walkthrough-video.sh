@@ -496,6 +496,7 @@ import {
   captionHtml,
   captionPosition,
   formatKeys,
+  pageScale,
   resolveCaptionLocale,
   resolveEffects,
   resolveInput,
@@ -680,6 +681,14 @@ same(captionPosition({ x: 350, y: 175 }, vp, "above"), { left: 376, bottom: 557,
 same(captionPosition({ x: 350, y: 700 }, vp, "below"), { left: 376, top: 744, maxWidth: 720 }, "an explicit below does not flip");
 same(captionPosition({ x: 350, y: 175 }, vp, "bottom"), captionPosition(null, vp), "caption at the bottom centre");
 same(captionPosition({ x: 350, y: 175 }, vp, "auto"), captionPosition({ x: 350, y: 175 }, vp), "auto is the default");
+// On a page zoomed out to half size, positions are halved into CSS pixels
+// and the caption is scaled back up around the edge that holds it.
+same(pageScale({ width: 390 }, { width: 975 }), 0.4, "page scale of a zoomed-out page");
+same(pageScale({ width: 390 }, { width: 390 }), 1, "page scale of a page that fits");
+const halved = captionHtml("Menu", { x: 350, y: 175 }, vp, "above", 0.5);
+if (!halved.includes("left: 752px") || !halved.includes("bottom: 1114px") || !halved.includes("scale(2)") || !halved.includes("transform-origin: 50% 100%")) {
+  fail("a caption on a zoomed-out page should be placed in CSS pixels and scaled back up: " + halved);
+}
 if (!captionHtml("Menu", { x: 350, y: 175 }, vp, "above").includes("bottom: 557px")) {
   fail("captionHtml should honour the placement");
 }
@@ -738,9 +747,38 @@ try {
   const zoomedOut = await browser.newContext({ viewport, isMobile: true });
   const unscaled = await zoomedOut.newPage();
   await unscaled.setContent('<button style="position:absolute; left:700px; top:100px" onclick="window.hit = true">Wide</button>');
-  await runScenario(unscaled, { steps: [{ action: "click", role: "button", name: "Wide" }] }, () => {}, stateFor(viewport));
+  const zoomedLog = [];
+  const zoomedDrawn = [];
+  const showZoomedOverlay = unscaled.screencast.showOverlay.bind(unscaled.screencast);
+  unscaled.screencast.showOverlay = async (html) => {
+    zoomedDrawn.push(html);
+    return showZoomedOverlay(html);
+  };
+  await runScenario(
+    unscaled,
+    { steps: [{ action: "click", role: "button", name: "Wide", pause: 0 }] },
+    (entry) => zoomedLog.push(entry),
+    stateFor(viewport, { effects: { zoom: false, cursor: true, captions: true }, captionLocale: "en" }),
+  );
   if (!(await unscaled.evaluate(() => window.hit === true))) {
     fail("a click on a zoomed-out phone page should reach a target past the device width");
+  }
+  // The page is zoomed to fit 980 CSS pixels into 390 screen pixels, and the
+  // video frame is the screen: the click is logged where the viewer sees it.
+  const zoomed = await unscaled.evaluate(() => ({ width: innerWidth, box: document.querySelector("button").getBoundingClientRect() }));
+  const seenAt = (zoomed.box.left + zoomed.box.width / 2) / zoomed.width;
+  if (zoomedLog.length !== 1 || Math.abs(zoomedLog[0].cx - seenAt) > 0.01 || zoomedLog[0].cx > 1) {
+    fail("a click on a zoomed-out page should be logged as a fraction of the screen: " + JSON.stringify({ zoomedLog, seenAt }));
+  }
+  // What is drawn into the page is zoomed out with it, so it is scaled back up.
+  const zoomFactor = zoomed.width / viewport.width;
+  const drawnScale = Number(zoomedDrawn[0]?.match(/scale\(([\d.]+)\)/)?.[1]);
+  if (Math.abs(drawnScale - zoomFactor) > 0.01) {
+    fail("a caption on a zoomed-out page should be scaled back to screen size: " + JSON.stringify({ zoomFactor, zoomedDrawn }));
+  }
+  const pointerScale = Number(await unscaled.evaluate(() => document.querySelector("[data-tvr]")?.style.getPropertyValue("--tvr-k")));
+  if (Math.abs(pointerScale - zoomFactor) > 0.01) {
+    fail("the pointer on a zoomed-out page should be scaled back to screen size: " + JSON.stringify({ zoomFactor, pointerScale }));
   }
   await zoomedOut.close();
 
