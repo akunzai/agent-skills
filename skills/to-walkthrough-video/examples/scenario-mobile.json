@@ -1,0 +1,10 @@
+{
+  "url": "http://localhost:4173/",
+  "device": "phone",
+  "captionLocale": "zh-TW",
+  "steps": [
+    { "action": "wait", "ms": 800 },
+    { "action": "click", "role": "button", "name": "Menu" },
+    { "action": "click", "role": "link", "name": "Sign in" }
+  ]
+}

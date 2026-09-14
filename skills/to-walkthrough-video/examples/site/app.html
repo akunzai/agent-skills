@@ -9,7 +9,10 @@
   <body>
     <header>
       <h1>Dashboard</h1>
-      <button type="button" id="account">Account</button>
+      <button type="button" id="menu-toggle" class="menu-toggle" aria-expanded="false">Menu</button>
+      <nav class="nav-links" id="nav-links">
+        <button type="button" id="account">Account</button>
+      </nav>
     </header>
     <main>
       <p>Served only when the session cookie is present, so it stands in for any
@@ -28,5 +31,13 @@
         <p>Anchored so the click never leaves the page.</p>
       </section>
     </main>
+    <script>
+      // Below the RWD breakpoint, nav links collapse behind this toggle.
+      document.getElementById("menu-toggle").addEventListener("click", (event) => {
+        const nav = document.getElementById("nav-links");
+        const open = nav.classList.toggle("is-open");
+        event.currentTarget.setAttribute("aria-expanded", String(open));
+      });
+    </script>
   </body>
 </html>
