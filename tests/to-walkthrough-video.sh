@@ -489,6 +489,7 @@ EOF
 
 node --input-type=module <<EOF || fail "effects and captions"
 import {
+  CAPTION_PLACEMENTS,
   DEFAULT_CAPTION_LOCALE,
   EFFECT_DEFAULTS,
   captionFor,
@@ -673,6 +674,24 @@ for (const [anchor, viewport, what] of [
 if (captionPosition(null, vp).left !== 640) {
   fail("a step with no anchor should centre the caption");
 }
+// A menu opening under its toggle is something only the author knows about,
+// so a step can move its caption out of the way.
+same(captionPosition({ x: 350, y: 175 }, vp, "above"), { left: 376, bottom: 557, maxWidth: 720 }, "caption above the target");
+same(captionPosition({ x: 350, y: 700 }, vp, "below"), { left: 376, top: 744, maxWidth: 720 }, "an explicit below does not flip");
+same(captionPosition({ x: 350, y: 175 }, vp, "bottom"), captionPosition(null, vp), "caption at the bottom centre");
+same(captionPosition({ x: 350, y: 175 }, vp, "auto"), captionPosition({ x: 350, y: 175 }, vp), "auto is the default");
+if (!captionHtml("Menu", { x: 350, y: 175 }, vp, "above").includes("bottom: 557px")) {
+  fail("captionHtml should honour the placement");
+}
+if (!validateScenario({ steps: [{ action: "click", text: "Menu", captionPlacement: "left" }] })[0].includes("captionPlacement must be one of")) {
+  fail("an unknown captionPlacement should be refused before recording");
+}
+same(
+  validateScenario({ steps: CAPTION_PLACEMENTS.map((captionPlacement) => ({ action: "click", text: "Menu", captionPlacement })) }),
+  [],
+  "every known captionPlacement",
+);
+
 const phoneCaption = captionHtml("Check the agreement before you continue to the identity provider", { x: 30, y: 300 }, phoneVp);
 if (!phoneCaption.includes("max-width: 358px") || phoneCaption.includes("nowrap")) {
   fail("a caption on a phone should wrap inside the viewport: " + phoneCaption);
@@ -724,6 +743,23 @@ try {
     fail("a click on a zoomed-out phone page should reach a target past the device width");
   }
   await zoomedOut.close();
+
+  // A step's captionPlacement reaches the overlay the recording draws.
+  const placed = await browser.newPage({ viewport });
+  await placed.setContent("<button>Menu</button>");
+  const drawn = [];
+  const showPlacedOverlay = placed.screencast.showOverlay.bind(placed.screencast);
+  placed.screencast.showOverlay = async (html) => {
+    drawn.push(html);
+    return showPlacedOverlay(html);
+  };
+  await runScenario(placed, {
+    steps: [{ action: "click", role: "button", name: "Menu", captionPlacement: "bottom", pause: 0 }],
+  }, () => {}, stateFor(viewport, { effects: { ...quiet, captions: true }, captionLocale: "en" }));
+  if (drawn.length !== 1 || !drawn[0].includes("bottom: 24px")) {
+    fail("a step's captionPlacement should place its caption: " + JSON.stringify(drawn));
+  }
+  await placed.close();
 
   // A touch device taps, so touch-only handlers fire, and the cursor's sweep
   // does not hover anything on the way. Double-click still works there.

@@ -55,6 +55,21 @@ wide, or the viewport less a 16px gutter each side on a phone, and it moves
 toward the centre as far as that width needs. A narrow viewport also gets a
 smaller font.
 
+Only you know what a click opens, so a step can move its caption out of the
+way with `captionPlacement`. The default, `auto`, puts the caption under the
+target, or above it near the bottom edge. `above` and `below` force a side,
+and `bottom` centres it at the foot of the viewport. A menu that drops down
+under its toggle is the usual reason:
+
+```json
+{ "action": "click", "role": "button", "name": "Menu", "captionPlacement": "bottom" }
+```
+
+`above` is not moved back on screen for a target near the top edge. Use
+`bottom` there instead. `bottom` lies outside the auto-zoom crop unless the
+target is itself near the bottom, so the caption shows only while the view is
+not zoomed in.
+
 The wording is generated from the step — a verb plus what it acts on, types,
 or presses. `captionLocale` picks the wording. English, Traditional Chinese (`zh-TW`) and
 Japanese (`ja`) ship; anything else falls back to English. Each locale carries

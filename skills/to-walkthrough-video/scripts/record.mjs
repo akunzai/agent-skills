@@ -695,25 +695,29 @@ const CAPTION_GUTTER = 16;
 const CAPTION_MAX_WIDTH = 720;
 const NARROW_VIEWPORT = 640;
 
+// Where a step's click opens something, a menu below its toggle say, only the
+// scenario author knows, so "auto" can be overridden per step.
+export const CAPTION_PLACEMENTS = ["auto", "above", "below", "bottom"];
+
 // A caption wraps at a known width instead of running on in one line, so it
 // can be centred where its widest line still stays inside a phone's viewport.
-export function captionPosition(anchor, viewport = DEFAULT_VIEWPORT) {
+export function captionPosition(anchor, viewport = DEFAULT_VIEWPORT, placement = "auto") {
   const maxWidth = Math.min(CAPTION_MAX_WIDTH, viewport.width - 2 * CAPTION_GUTTER);
-  if (!anchor) {
+  if (!anchor || placement === "bottom") {
     return { left: viewport.width / 2, bottom: 24, maxWidth };
   }
   const half = maxWidth / 2 + CAPTION_GUTTER;
   const left = Math.min(Math.max(anchor.x, half), viewport.width - half);
   const below = anchor.y + 44;
-  if (below > viewport.height - 56) {
+  if (placement === "above" || (placement !== "below" && below > viewport.height - 56)) {
     // Held by its bottom edge, so a wrapped line grows away from the target.
     return { left, bottom: viewport.height - anchor.y + 12, maxWidth };
   }
   return { left, top: below, maxWidth };
 }
 
-export function captionHtml(text, anchor, viewport = DEFAULT_VIEWPORT) {
-  const { left, top, bottom, maxWidth } = captionPosition(anchor, viewport);
+export function captionHtml(text, anchor, viewport = DEFAULT_VIEWPORT, placement = "auto") {
+  const { left, top, bottom, maxWidth } = captionPosition(anchor, viewport, placement);
   const vertical = top === undefined ? `bottom: ${bottom}px` : `top: ${top}px`;
   const fontSize = viewport.width < NARROW_VIEWPORT ? 16 : 20;
   return `<style>
@@ -742,7 +746,7 @@ async function showCaption(page, state, step, anchor) {
   // own navigation to take the caption down below.
   await page.waitForLoadState("domcontentloaded").catch(() => {});
   const viewport = page.viewportSize() ?? DEFAULT_VIEWPORT;
-  const overlay = await page.screencast.showOverlay(captionHtml(text, anchor, viewport)).catch(() => null);
+  const overlay = await page.screencast.showOverlay(captionHtml(text, anchor, viewport, step.captionPlacement)).catch(() => null);
   if (!overlay) {
     return null;
   }
@@ -1198,6 +1202,10 @@ export function validateScenario(scenario, options = {}) {
   for (let index = 0; index < steps.length; index += 1) {
     if (resolveAction(steps[index]) === "press" && !steps[index].keys) {
       problems.push(`steps[${index}] is a press step without keys`);
+    }
+    const placement = steps[index].captionPlacement;
+    if (placement !== undefined && !CAPTION_PLACEMENTS.includes(placement)) {
+      problems.push(`steps[${index}].captionPlacement must be one of ${CAPTION_PLACEMENTS.join(", ")}`);
     }
   }
   try {
