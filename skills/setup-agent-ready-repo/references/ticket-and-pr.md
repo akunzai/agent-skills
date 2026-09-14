@@ -4,6 +4,22 @@ What goes into `issue-tracker.md` and into `pull-request.md` /
 `merge-request.md`. Use the forge's own vocabulary throughout: pull
 request and `gh` on GitHub, merge request and `glab` on GitLab.
 
+## Where issues are actually tracked
+
+A working `gh`/`glab` probe only proves the code forge; it is not
+evidence that the team's issues live in that forge's own tracker rather
+than another tool. Propose the forge above as the default and ask the
+developer to confirm or name the real one — do not guess or list
+specific external tools.
+
+When the developer confirms the forge's own tracker, install
+`issue-tracker.md` as usual. When they name another tool,
+`issue-tracker.md` documents that tool by name and whatever CLI or MCP
+commands the developer already has configured for it — never invented
+ones. When none is configured yet, say so and point at `find-skills` or
+`skills-manager` to locate or install one; that is their job, not this
+skill's.
+
 ## Body shape
 
 Issues and requests share one shape, top to bottom:

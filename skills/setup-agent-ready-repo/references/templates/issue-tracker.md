@@ -6,7 +6,7 @@
      translate what surrounds it. Write that name in English too: the first
      non-English word in the file is what pulls the rest of it across. -->
 
-# Issue tracker: <GitHub | GitLab | Jira | Linear | other>
+# Issue tracker: <GitHub | GitLab | other>
 
 **This file is English throughout**, sample blocks included, so it reads
 one way to every model, whatever language the repo chose for its issues.
@@ -14,10 +14,10 @@ one way to every model, whatever language the repo chose for its issues.
 Issues live as `placeholder:forge` issues. Use the `<gh | glab>` CLI for all
 operations; it infers the repo when run inside a clone.
 
-<!-- When issues live outside this repo's code forge — Jira, Linear, or
-     another external tool — replace the heading's forge name with that
-     tool's, and every `<gh | glab>` command below with the CLI or MCP
-     calls the developer already has configured for it. Keep each verb
+<!-- When issues live outside this repo's code forge, in another tool the
+     developer named — replace the heading's forge name with that tool's,
+     and every `<gh | glab>` command below with the CLI or MCP calls the
+     developer already has configured for it. Keep each verb
      (create, view, list, comment, label, close) even when the mechanism
      changes, so an agent reading this recognizes the operation. Do not
      invent commands for a tool with no CLI or MCP configured yet: name
