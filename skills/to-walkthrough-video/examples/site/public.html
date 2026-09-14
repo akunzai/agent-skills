@@ -9,7 +9,10 @@
   <body>
     <header>
       <h1>Walkthrough fixture</h1>
-      <a href="/login">Sign in</a>
+      <button type="button" id="menu-toggle" class="menu-toggle" aria-expanded="false">Menu</button>
+      <nav class="nav-links" id="nav-links">
+        <a href="/login">Sign in</a>
+      </nav>
     </header>
     <main>
       <p>This page needs no session. It exists so a walkthrough can be recorded offline.</p>
@@ -56,6 +59,12 @@
       // A modal dialog target to test top-layer cursor and caption visibility.
       document.getElementById("search-dialog-toggle").addEventListener("click", () => {
         document.getElementById("search-modal").showModal();
+      });
+      // Below the RWD breakpoint, nav links collapse behind this toggle.
+      document.getElementById("menu-toggle").addEventListener("click", (event) => {
+        const nav = document.getElementById("nav-links");
+        const open = nav.classList.toggle("is-open");
+        event.currentTarget.setAttribute("aria-expanded", String(open));
       });
     </script>
   </body>

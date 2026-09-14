@@ -47,13 +47,80 @@ function evenPx(value) {
   return n % 2 === 0 ? n : n + 1;
 }
 
-export function resolveViewport(scenario, options) {
-  const width = evenPx(options.width ?? scenario.viewport?.width ?? DEFAULT_VIEWPORT.width);
-  const height = evenPx(options.height ?? scenario.viewport?.height ?? DEFAULT_VIEWPORT.height);
+export function resolveViewport(scenario, options, device) {
+  const width = evenPx(
+    options.width ?? scenario.viewport?.width ?? device?.viewport?.width ?? DEFAULT_VIEWPORT.width,
+  );
+  const height = evenPx(
+    options.height ?? scenario.viewport?.height ?? device?.viewport?.height ?? DEFAULT_VIEWPORT.height,
+  );
   if (!width || !height) {
     throw new Error("viewport width and height must be numbers >= 2");
   }
   return { width, height };
+}
+
+// "phone" names a shape, not a model: the newest matching entry in this
+// Playwright's own device list is picked at call time, so the default tracks
+// whatever Playwright currently ships without this file naming a model that
+// goes stale the moment Apple (or Playwright) ships another one.
+const DEVICE_PRESET_PATTERNS = {
+  phone: /^iPhone (\d+) Pro$/,
+};
+
+// "tablet" is pinned to iPad Mini rather than picked by the same generation
+// pattern as "phone": Playwright ships one undated "iPad Mini" entry with no
+// generation to pick among, and its narrower width also matters on its own
+// merits — an iPad Pro's viewport is wide enough that plenty of real
+// responsive sites already show their desktop nav on it, so a "tablet"
+// recording would silently miss the mobile-style interaction (e.g. an
+// expand-menu tap) it was asked to demonstrate.
+const DEVICE_PRESET_ALIASES = {
+  tablet: "iPad Mini",
+};
+
+export function pickLatestDevice(devices, pattern) {
+  let bestName = null;
+  let bestGen = -1;
+  for (const name of Object.keys(devices ?? {})) {
+    const match = name.match(pattern);
+    if (!match) {
+      continue;
+    }
+    const gen = Number(match[1]);
+    if (gen > bestGen) {
+      bestGen = gen;
+      bestName = name;
+    }
+  }
+  return bestName;
+}
+
+export function resolveDevice(playwright, scenario) {
+  const requested = scenario.device;
+  if (!requested) {
+    return null;
+  }
+  const pattern = DEVICE_PRESET_PATTERNS[requested];
+  const alias = DEVICE_PRESET_ALIASES[requested];
+  const name = pattern ? pickLatestDevice(playwright.devices, pattern) : alias ?? requested;
+  const descriptor = name ? playwright.devices[name] : null;
+  if (!descriptor) {
+    throw new Error(
+      pattern || alias
+        ? `no ${requested} device preset found in this Playwright's devices registry`
+        : `unknown scenario.device: ${requested} (not "phone", "tablet", or a name in playwright.devices)`,
+    );
+  }
+  return { name, ...descriptor };
+}
+
+function contextOptionsForDevice(device) {
+  if (!device) {
+    return {};
+  }
+  const { viewport, userAgent, deviceScaleFactor, isMobile, hasTouch } = device;
+  return { viewport, userAgent, deviceScaleFactor, isMobile, hasTouch };
 }
 
 export function parseArgs(argv) {
@@ -885,7 +952,6 @@ export async function recordWalkthrough(options) {
     }
   }
   const outPath = path.resolve(options.out);
-  const viewport = resolveViewport(scenario, options);
   const wantWebm = /\.webm$/i.test(outPath);
   const ffmpeg = hasFfmpeg();
   if (!ffmpeg && !wantWebm) {
@@ -893,11 +959,14 @@ export async function recordWalkthrough(options) {
     throw new Error(`ffmpeg is required for auto-zoom, and for any output that is not .webm. ${advice}`);
   }
   const playwright = options.playwright ?? (await loadPlaywright());
+  const device = resolveDevice(playwright, scenario);
+  const viewport = resolveViewport(scenario, options, device);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "to-walkthrough-video-"));
   const browser = await launchChromium(playwright, { headless: !signIn });
   const context = await browser.newContext({
+    ...contextOptionsForDevice(device),
     viewport,
-    deviceScaleFactor: 1,
+    ...(device ? {} : { deviceScaleFactor: 1 }),
     ...(authMode ? { storageState: path.resolve(options.storageState) } : {}),
   });
   if (effects.cursor && !signIn) {
@@ -1025,6 +1094,9 @@ export function validateScenario(scenario, options = {}) {
     resolveEffects(scenario);
   } catch (error) {
     problems.push(error.message);
+  }
+  if (scenario.device !== undefined && typeof scenario.device !== "string") {
+    problems.push('scenario.device must be a string: "phone", "tablet", or an exact Playwright device name');
   }
   if (options.sessionMode === "conflict") {
     problems.push(

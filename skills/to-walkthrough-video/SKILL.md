@@ -60,6 +60,12 @@ Pointer, captions and auto-zoom are on; `effects` turns any off. Set
 `captionLocale` to the language of the conversation asking for the
 recording. See `references/effects.md`.
 
+For mobile/tablet, set `scenario.device` to `"phone"` (newest iPhone Pro) or
+`"tablet"` (iPad Mini, narrower than iPad Pro so a collapsed nav still shows
+— see `DEVICE_PRESET_ALIASES` in `record.mjs`) rather than shrinking
+`viewport`. Also accepts an exact Playwright device name.
+`scenario.viewport`/`--width`/`--height` still override it.
+
 2. **Record.** From a directory that can `import('playwright')`:
 
 ```bash

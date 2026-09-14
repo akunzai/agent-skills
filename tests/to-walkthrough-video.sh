@@ -76,7 +76,7 @@ fi
 node --input-type=module <<EOF || fail "record helper exports"
 import fs from "node:fs";
 import path from "node:path";
-import { bringOverlayToFront, findTopLayerHost, parseArgs, resolveViewport, resolvePauseMs, checkPrereqs, getGlobalNodeDirs, loadPlaywright, getFfmpegInstallAdvice } from "file://${RECORD}";
+import { bringOverlayToFront, findTopLayerHost, parseArgs, resolveViewport, resolvePauseMs, checkPrereqs, getGlobalNodeDirs, loadPlaywright, getFfmpegInstallAdvice, pickLatestDevice, resolveDevice } from "file://${RECORD}";
 
 const fail = (message) => {
   console.error(message);
@@ -202,6 +202,72 @@ if (vp.width !== 1280 || vp.height !== 720) {
 const odd = resolveViewport({}, { width: 1919, height: 601 });
 if (odd.width !== 1920 || odd.height !== 602) {
   fail("odd viewport rounding");
+}
+
+// "phone" picks the newest matching entry rather than naming one, so the
+// default tracks whatever this Playwright's device list currently has.
+// "tablet" is pinned to iPad Mini instead: an iPad Pro's viewport is wide
+// enough that plenty of real sites keep their desktop nav at that width.
+const mockDevices = {
+  "iPhone 13": { viewport: { width: 390, height: 844 } },
+  "iPhone 15 Pro": { viewport: { width: 393, height: 852 }, isMobile: true },
+  "iPhone 15 Pro Max": { viewport: { width: 430, height: 932 }, isMobile: true },
+  "iPhone 15 Pro landscape": { viewport: { width: 852, height: 393 }, isMobile: true },
+  "iPad Pro 11": { viewport: { width: 834, height: 1194 }, isMobile: true },
+  "iPad Mini": { viewport: { width: 768, height: 1024 }, isMobile: true },
+};
+if (pickLatestDevice(mockDevices, /^iPhone (\d+) Pro$/) !== "iPhone 15 Pro") {
+  fail("pickLatestDevice should skip Max/landscape variants and pick the highest generation");
+}
+if (pickLatestDevice(mockDevices, /^iPad Pro (\d+)$/) !== "iPad Pro 11") {
+  fail("pickLatestDevice should still match a generation pattern");
+}
+if (pickLatestDevice(mockDevices, /^Pixel (\d+)$/) !== null) {
+  fail("pickLatestDevice should return null when nothing matches");
+}
+
+const mockPlaywright = { devices: mockDevices };
+const phoneDevice = resolveDevice(mockPlaywright, { device: "phone" });
+if (phoneDevice.name !== "iPhone 15 Pro" || phoneDevice.viewport.width !== 393) {
+  fail("resolveDevice phone: " + JSON.stringify(phoneDevice));
+}
+const tabletDevice = resolveDevice(mockPlaywright, { device: "tablet" });
+if (tabletDevice.name !== "iPad Mini" || tabletDevice.viewport.width !== 768) {
+  fail("resolveDevice tablet should be pinned to iPad Mini, not the newest iPad Pro: " + JSON.stringify(tabletDevice));
+}
+if (resolveDevice(mockPlaywright, {}) !== null) {
+  fail("resolveDevice with no scenario.device should return null");
+}
+const exactDevice = resolveDevice(mockPlaywright, { device: "iPad Pro 11" });
+if (exactDevice.name !== "iPad Pro 11") {
+  fail("resolveDevice should pass an exact device name through");
+}
+let deviceThrew = false;
+try {
+  resolveDevice(mockPlaywright, { device: "bogus" });
+} catch {
+  deviceThrew = true;
+}
+if (!deviceThrew) {
+  fail("resolveDevice should refuse an unknown device name");
+}
+let tabletMissingThrew = false;
+try {
+  resolveDevice({ devices: {} }, { device: "tablet" });
+} catch {
+  tabletMissingThrew = true;
+}
+if (!tabletMissingThrew) {
+  fail("resolveDevice should refuse tablet when iPad Mini is absent from the registry");
+}
+
+const viewportFromDevice = resolveViewport({}, {}, phoneDevice);
+if (viewportFromDevice.width !== 394 || viewportFromDevice.height !== 852) {
+  fail("resolveViewport should fall back to the device's own viewport: " + JSON.stringify(viewportFromDevice));
+}
+const explicitOverridesDevice = resolveViewport({ viewport: { width: 800, height: 600 } }, {}, phoneDevice);
+if (explicitOverridesDevice.width !== 800 || explicitOverridesDevice.height !== 600) {
+  fail("scenario.viewport should override the device's viewport");
 }
 
 if (resolvePauseMs({}, {}) !== 2500) {
@@ -438,6 +504,13 @@ if (!validateScenario({ effects: { zoom: "yes" }, steps: [] })[0].includes("true
   fail("a non-boolean effect should be refused");
 }
 
+// scenario.device is checked for shape here; whether the name actually
+// resolves is Playwright's own device registry, checked at record time.
+if (!validateScenario({ device: 42, steps: [] })[0].includes("scenario.device must be a string")) {
+  fail("a non-string scenario.device should be refused before recording");
+}
+same(validateScenario({ device: "phone", steps: [] }), [], "a string scenario.device should pass validation");
+
 // The pointer icon is read off the step's own action, not the live page.
 if (resolvePointerIcon({ action: "click" }) !== "hand") {
   fail("click should show the hand icon");
@@ -557,9 +630,12 @@ http_status() {
 
 [ "$(http_status "$BASE/")" = "200" ] || fail "fixture public page should be served"
 curl -s "$BASE/" | grep -q 'id="search-modal"' || fail "fixture public page should contain search modal"
+curl -s "$BASE/" | grep -q 'id="menu-toggle"' || fail "fixture public page should have an RWD menu toggle"
 [ "$(http_status "$BASE/app")" = "302" ] || fail "fixture protected page should redirect without a cookie"
 [ "$(http_status -H 'Cookie: walkthrough_session=1' "$BASE/app")" = "200" ] \
   || fail "fixture protected page should be served with a session cookie"
+curl -s -H 'Cookie: walkthrough_session=1' "$BASE/app" | grep -q 'id="menu-toggle"' \
+  || fail "fixture dashboard page should have an RWD menu toggle"
 [ "$(http_status -d 'username=a&password=b' "$BASE/login")" = "302" ] || fail "fixture login should redirect"
 curl -s -D- -o /dev/null --max-time 5 -d 'username=a&password=b' "$BASE/login" \
   | grep -qi '^set-cookie: walkthrough_session=' || fail "fixture login should set the session cookie"
