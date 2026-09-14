@@ -497,6 +497,7 @@ import {
   formatKeys,
   resolveCaptionLocale,
   resolveEffects,
+  resolveInput,
   resolvePointerIcon,
   validateScenario,
 } from "file://${RECORD}";
@@ -563,6 +564,24 @@ if (resolvePointerIcon({ action: "press", keys: "Control+k" }) !== null) {
 }
 if (resolvePointerIcon({ action: "wait", ms: 100 }) !== null) {
   fail("wait should leave the arrow alone");
+}
+
+// A touch device taps wherever a finger could; touch has no double-click or
+// secondary button, so those stay on the mouse.
+const touch = { touch: true };
+same(
+  ["click", "type", "select"].map((action) => resolveInput({ action }, touch)),
+  ["tap", "tap", "tap"],
+  "a touch device taps to click, focus, and open",
+);
+if (resolveInput({ action: "dblclick" }, touch) !== "mouse") {
+  fail("a double-click has no tap equivalent");
+}
+if (resolveInput({ action: "click", button: "right" }, touch) !== "mouse") {
+  fail("a right click has no tap equivalent");
+}
+if (resolveInput({ action: "click" }, {}) !== "mouse") {
+  fail("a context without touch clicks with the mouse");
 }
 
 // A press step carries no locator, so its keys are the only thing to check.
@@ -689,6 +708,49 @@ try {
     fail("a click on a zoomed-out phone page should reach a target past the device width");
   }
   await zoomedOut.close();
+
+  // A touch device taps, so touch-only handlers fire, and the cursor's sweep
+  // does not hover anything on the way. Double-click still works there.
+  const phone = await browser.newContext({ viewport, isMobile: true, hasTouch: true });
+  const tapped = await phone.newPage();
+  await tapped.setContent(\`
+    <button id="menu">Menu</button>
+    <p><button id="details">Details</button></p>
+    <p><label>Search <input id="q"></label></p>
+    <p><label>Language <select id="lang"><option>English</option><option>Japanese</option></select></label></p>
+    <script>
+      window.seen = [];
+      for (const type of ["touchstart", "mouseover", "click", "dblclick"]) {
+        document.addEventListener(type, (event) => {
+          seen.push(type + ":" + event.target.id + (event.pointerType ? ":" + event.pointerType : ""));
+        }, true);
+      }
+    </script>\`);
+  await runScenario(tapped, {
+    steps: [
+      { action: "click", role: "button", name: "Menu" },
+      { action: "dblclick", role: "button", name: "Details" },
+      { action: "type", role: "textbox", name: "Search", text: "SSH" },
+      { action: "select", role: "combobox", name: "Language", value: "Japanese" },
+    ],
+  }, () => {}, stateFor(viewport, { touch: true, effects: { ...quiet, cursor: true } }));
+  const seen = await tapped.evaluate(() => window.seen);
+  if (!seen.includes("touchstart:menu") || !seen.includes("click:menu:touch")) {
+    fail("a click on a touch device should arrive as a tap: " + JSON.stringify(seen));
+  }
+  // A real tap is followed by compatibility mouse events, so only a hover
+  // before the touch would mean the pointer's sweep dispatched it.
+  if (seen.indexOf("mouseover:menu") < seen.indexOf("touchstart:menu")) {
+    fail("a tap should not hover its target on the way: " + JSON.stringify(seen));
+  }
+  if (!seen.includes("dblclick:details")) {
+    fail("a double-click should still land on a touch device: " + JSON.stringify(seen));
+  }
+  const typed = await tapped.evaluate(() => [document.getElementById("q").value, document.getElementById("lang").value]);
+  if (typed[0] !== "SSH" || typed[1] !== "Japanese") {
+    fail("type and select should still work after a tap: " + JSON.stringify(typed));
+  }
+  await phone.close();
 } finally {
   await browser.close();
 }

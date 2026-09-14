@@ -775,7 +775,18 @@ function locatorFor(page, step) {
   throw new Error(`step needs selector, role, text, or label: ${JSON.stringify(step)}`);
 }
 
-async function animateMove(page, state, x, y) {
+// A touch device taps, and a tap is where touchstart and pointerType "touch"
+// come from; a site can behave differently for it, which may be the very thing
+// the recording is for. Touch has no double-click or secondary button, so
+// those still go through the mouse.
+export function resolveInput(step, state) {
+  const action = resolveAction(step);
+  const tappable = action === "click" || action === "type" || action === "select";
+  return state.touch && tappable && (step.button ?? "left") === "left" ? "tap" : "mouse";
+}
+
+async function animateMove(page, state, x, y, options = {}) {
+  const hover = options.hover ?? true;
   const steps = 14;
   const fromX = state.x;
   const fromY = state.y;
@@ -784,7 +795,9 @@ async function animateMove(page, state, x, y) {
     const eased = 0.5 - 0.5 * Math.cos(Math.PI * t);
     const nx = fromX + (x - fromX) * eased;
     const ny = fromY + (y - fromY) * eased;
-    await page.mouse.move(nx, ny);
+    if (hover) {
+      await page.mouse.move(nx, ny);
+    }
     await page.evaluate(
       ([cx, cy]) => {
         window.__tvrCursor?.move(cx, cy);
@@ -916,13 +929,19 @@ export async function runScenario(page, scenario, log, state) {
       throw new Error(`target is outside the viewport even after scrolling: ${JSON.stringify(step)}`);
     }
     const { x, y } = target;
+    const input = resolveInput(step, state);
+    // A finger does not hover on its way to the target, so a tap moves only
+    // the drawn pointer and leaves hover-only UI closed.
+    const hover = input === "mouse";
     if (effects.cursor) {
-      await animateMove(page, state, x, y);
+      await animateMove(page, state, x, y, { hover });
       await installOverlay(page, state);
       await syncCursor(page, state);
       await setPointerIcon(page, state, resolvePointerIcon(step));
     } else {
-      await page.mouse.move(x, y);
+      if (hover) {
+        await page.mouse.move(x, y);
+      }
       state.x = x;
       state.y = y;
     }
@@ -944,7 +963,11 @@ export async function runScenario(page, scenario, log, state) {
     if (action === "dblclick" || action === "double-click") {
       await page.mouse.dblclick(x, y);
     } else {
-      await page.mouse.click(x, y, { button });
+      if (input === "tap") {
+        await page.touchscreen.tap(x, y);
+      } else {
+        await page.mouse.click(x, y, { button });
+      }
       if (action === "type") {
         const typed = String(step.text ?? "");
         if (typed) {
@@ -1051,6 +1074,7 @@ export async function recordWalkthrough(options) {
         : POST_CLICK_MS,
     effects,
     captionLocale: resolveCaptionLocale(scenario),
+    touch: Boolean(contextOptions.hasTouch),
   };
   const rawPath = path.join(tmp, "raw.webm");
 

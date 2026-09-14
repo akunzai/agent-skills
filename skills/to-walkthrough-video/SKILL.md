@@ -63,7 +63,9 @@ recording. See `references/effects.md`.
 For mobile/tablet, set `scenario.device` to `"phone"` (newest iPhone Pro) or
 `"tablet"` (iPad Mini, narrower than iPad Pro so a collapsed nav still shows
 — see `DEVICE_PRESET_ALIASES` in `record.mjs`) rather than shrinking
-`viewport`. Also accepts an exact Playwright device name.
+`viewport`. Also accepts an exact Playwright device name. A touch device
+taps `click`/`type`/`select` targets, so touch-only handlers fire;
+`dblclick` and a non-left `button` still use the mouse.
 `scenario.viewport`/`--width`/`--height` still override it.
 `scenario.locale` (e.g. `"zh-TW"`) sets the browser language, and
 `"ignoreHTTPSErrors": true` accepts a self-signed local certificate.
