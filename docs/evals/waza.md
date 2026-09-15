@@ -12,7 +12,9 @@ Covered: `agents-md`, `mise`, `aube`, `tidy-commits`, `to-memory`,
 Not covered here: `agentsview-extract`, `agentsview-resume` — a suite
 would need a populated AgentsView archive, not just the CLI. Their
 cited CLI surface is checked by `tests/agentsview-cli-contract.sh`
-(`mise run test-agentsview-contract`) instead.
+(`mise run test-agentsview-contract`) instead. `tech-lead` is also
+uncovered: a suite would need live subagent and worktree dispatch, not
+fixtures.
 
 ## Install
 
