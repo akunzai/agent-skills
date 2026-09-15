@@ -12,12 +12,10 @@ GitHub Copilot** via [Waza](https://github.com/microsoft/waza). See
 
 AI agents are powerful out of the box, but they lack persistent memory
 and opinionated workflows across sessions. This project fills that gap with
-reusable skills grouped into five areas: **Memory** (durable project context
-that survives across sessions), **Git** (clean commit history and safe PR/issue
-workflows), **Toolchain** (pinned, opinionated tool and dependency
-management), **Testing** (framework-agnostic test generation and
-validation workflows), and **Media** (website walkthroughs as auto-zoom demo
-videos).
+reusable skills grouped into three areas: **Engineering** (implementation
+dispatch, git/forge workflows, toolchain, and tests), **Memory** (durable
+project context that survives across sessions), and **Media** (website
+walkthroughs as auto-zoom demo videos).
 
 ## Install
 
@@ -66,13 +64,7 @@ copilot plugin install charley-skills@akunzai-agent-skills
 
 ## Skills
 
-### Git
-
-#### [`tidy-commits`](skills/tidy-commits/SKILL.md)
-
-Clean up local git commit history before review or merge. Use it to turn WIP,
-fixup, review-fix, format-only, poorly ordered, unsigned, or poorly messaged
-commits into a clear, verified branch story.
+### Engineering
 
 #### [`setup-agent-ready-repo`](skills/setup-agent-ready-repo/SKILL.md)
 
@@ -83,6 +75,46 @@ document, `docs/agents/verification.md`, and `AGENTS.md` lines that
 say when to read them. Wraps whatever already starts the project into one
 non-interactive command, runs it, and records what it could not verify
 rather than claiming a pass.
+
+#### [`tech-lead`](skills/tech-lead/SKILL.md)
+
+Delegate implementation as a tech lead: split slices, brief an implementer
+with the cheapest live model and matching installed implementation skills,
+isolate independent slices in git worktrees, then accept the result in the
+primary session. Review skills stay with the tech lead after the implementer
+returns.
+
+#### [`mise`](skills/mise/SKILL.md)
+
+One `mise.toml` as the version source: prefix runtimes, tasks over scripts,
+host then CI then containers.
+
+#### [`aube`](skills/aube/SKILL.md)
+
+Use [aube](https://aube.sh/) as the Node.js package manager, installed and
+pinned through mise. Covers `aube run`/`aube ci` workflows, lockfile policy,
+the lifecycle-script jail, and migrating from pnpm/npm/bun.
+
+#### [`backfill-unit-tests`](skills/backfill-unit-tests/SKILL.md)
+
+Detect an existing codebase's test framework and backfill unit test
+coverage for gaps, validating each generated test builds, is
+CI-discoverable, and actually fails on broken code. For interactive
+feature-first development, use `tdd` instead.
+
+#### [`write-e2e-tests`](skills/write-e2e-tests/SKILL.md)
+
+Turn a browser UI flow into a durable, checked-in Playwright Test e2e
+spec. Unblocks a missing Playwright toolchain or
+[webwright](https://github.com/microsoft/Webwright) run after
+confirmation, converts Critical Points to assertions, and validates the
+result is stable and CI-discoverable.
+
+#### [`tidy-commits`](skills/tidy-commits/SKILL.md)
+
+Clean up local git commit history before review or merge. Use it to turn WIP,
+fixup, review-fix, format-only, poorly ordered, unsigned, or poorly messaged
+commits into a clear, verified branch story.
 
 #### [`pr-workflow`](skills/pr-workflow/SKILL.md)
 
@@ -136,36 +168,6 @@ Take over an unfinished session recorded by AgentsView — from another
 agent, another project, or another machine. Delegates the transcript
 read to a subagent, returns a bounded handoff, verifies it against the
 current repository, then stops for your call.
-
-### Toolchain
-
-#### [`mise`](skills/mise/SKILL.md)
-
-One `mise.toml` as the version source: prefix runtimes, tasks over scripts,
-host then CI then containers.
-
-#### [`aube`](skills/aube/SKILL.md)
-
-Use [aube](https://aube.sh/) as the Node.js package manager, installed and
-pinned through mise. Covers `aube run`/`aube ci` workflows, lockfile policy,
-the lifecycle-script jail, and migrating from pnpm/npm/bun.
-
-### Testing
-
-#### [`backfill-unit-tests`](skills/backfill-unit-tests/SKILL.md)
-
-Detect an existing codebase's test framework and backfill unit test
-coverage for gaps, validating each generated test builds, is
-CI-discoverable, and actually fails on broken code. For interactive
-feature-first development, use `tdd` instead.
-
-#### [`write-e2e-tests`](skills/write-e2e-tests/SKILL.md)
-
-Turn a browser UI flow into a durable, checked-in Playwright Test e2e
-spec. Unblocks a missing Playwright toolchain or
-[webwright](https://github.com/microsoft/Webwright) run after
-confirmation, converts Critical Points to assertions, and validates the
-result is stable and CI-discoverable.
 
 ### Media
 

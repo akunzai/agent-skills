@@ -1,7 +1,7 @@
 {
   "name": "charley-skills",
-  "description": "Charley's Agent Skills for memory, git hygiene, toolchain, testing, and media.",
-  "version": "1.14.0",
+  "description": "Charley's Agent Skills for engineering, memory, and media.",
+  "version": "1.15.0",
   "author": {
     "name": "Charley Wu"
   },
@@ -16,6 +16,7 @@
     "./skills/mise",
     "./skills/pr-workflow",
     "./skills/setup-agent-ready-repo",
+    "./skills/tech-lead",
     "./skills/tidy-commits",
     "./skills/to-memory",
     "./skills/to-walkthrough-video",

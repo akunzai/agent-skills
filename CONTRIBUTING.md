@@ -67,6 +67,9 @@ description: >-
 ---
 ```
 
+Write `SKILL.md` in **English**, including `description`. Agents follow
+the file; English is the shared language across harnesses.
+
 Also add `./skills/<name>` to the `skills` array in
 `.claude-plugin/plugin.json` so `skills add` / `npx skills add` groups it under
 **Charley Skills**.
