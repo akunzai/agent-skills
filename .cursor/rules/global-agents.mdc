@@ -1,0 +1,6 @@
+---
+description: Global agent instructions SSOT
+alwaysApply: true
+---
+
+Always adhere to the base agent guidelines defined in ~/.agents/AGENTS.md, in addition to this repository's own AGENTS.md.

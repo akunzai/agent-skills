@@ -19,6 +19,13 @@ file's format (symlink, import line, config array, etc.).
 | Antigravity / Gemini | `~/.gemini/GEMINI.md` | [geminicli.com/docs/cli/gemini-md.md](https://geminicli.com/docs/cli/gemini-md.md) |
 | OpenCode | `~/.config/opencode/opencode.json` | [opencode.ai/docs/rules](https://opencode.ai/docs/rules/) |
 | GitHub Copilot CLI | `~/.copilot/copilot-instructions.md` | [docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference#directory-overview) |
+| Cursor | `.cursor/rules/*.mdc` (or Cursor Settings) | [cursor.com/docs/context/rules](https://cursor.com/docs/context/rules) |
+
+Cursor does not provide a local file path for global memory (User Rules are
+managed in account settings). To wire Cursor projects to `~/.agents/AGENTS.md`,
+create a `.cursor/rules/global-agents.mdc` rule with `alwaysApply: true`
+instructing the agent to read `~/.agents/AGENTS.md`, or symlink project-level
+`AGENTS.md` to `~/.agents/AGENTS.md`.
 
 If the agent isn't listed above, look up its own docs (or search `<agent name>
 global memory file location / config`) to find the real native path before
