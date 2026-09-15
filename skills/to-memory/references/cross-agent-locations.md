@@ -19,6 +19,10 @@ file's format (symlink, import line, config array, etc.).
 | Antigravity / Gemini | `~/.gemini/GEMINI.md` | [geminicli.com/docs/cli/gemini-md.md](https://geminicli.com/docs/cli/gemini-md.md) |
 | OpenCode | `~/.config/opencode/opencode.json` | [opencode.ai/docs/rules](https://opencode.ai/docs/rules/) |
 | GitHub Copilot CLI | `~/.copilot/copilot-instructions.md` | [docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference#directory-overview) |
+| Cursor | `~/.cursor/rules/agents.mdc` | [cursor.com/docs/context/rules](https://cursor.com/docs/context/rules) |
+
+Cursor CLI reads user-level global rules from `~/.cursor/rules/*.mdc`. Set
+`alwaysApply: true` in the frontmatter to have it follow `~/.agents/AGENTS.md`.
 
 If the agent isn't listed above, look up its own docs (or search `<agent name>
 global memory file location / config`) to find the real native path before
