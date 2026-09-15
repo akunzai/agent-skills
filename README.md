@@ -17,23 +17,9 @@ dispatch, git/forge workflows, toolchain, and tests), **Memory** (durable
 project context that survives across sessions), and **Media** (website
 walkthroughs as auto-zoom demo videos).
 
-## Install
+## Skills
 
-Interactively install, upgrade, or uninstall any marketplace plugin in a
-detected Claude Code, Codex CLI, or GitHub Copilot CLI runtime:
-
-```bash
-bash scripts/setup.sh
-bash scripts/upgrade.sh
-bash scripts/uninstall.sh
-```
-
-The lifecycle scripts read the marketplace catalog, show each plugin's
-installed state, and only apply relevant selections. Use `--help` for
-non-interactive runtime/plugin filters suitable for scripts and CI. Codex
-upgrades marketplace snapshots as a unit because its CLI does not expose a
-per-plugin update command. These repository-root scripts are the only public
-plugin lifecycle entry points; plugin-local scripts are internal post-actions.
+### Install
 
 Install and manage skills across agents with [Skills Manager](https://github.com/akunzai/skills-manager):
 
@@ -47,22 +33,7 @@ Alternatively, install via `npx skills`:
 npx skills add akunzai/agent-skills
 ```
 
-The interactive picker groups the catalog as **Charley Skills**. The same set
-is also a Claude Code plugin:
-
-```bash
-claude plugin marketplace add akunzai/agent-skills
-claude plugin install charley-skills@akunzai-agent-skills --scope user
-```
-
-GitHub Copilot CLI reads the same marketplace manifest:
-
-```bash
-copilot plugin marketplace add akunzai/agent-skills
-copilot plugin install charley-skills@akunzai-agent-skills
-```
-
-## Skills
+The interactive picker groups the catalog as **Charley Skills**.
 
 ### Engineering
 
@@ -179,8 +150,63 @@ rendered video.
 
 ## Plugins
 
-Separate from the skills above (not installable via `skills add` or `npx skills add`):
+Agent-runtime wrappers distributed through the `akunzai-agent-skills`
+marketplace manifest.
 
+### Install
+
+Install a single plugin directly — no local clone needed. The skills
+catalog above ships as the `charley-skills` plugin:
+
+```bash
+claude plugin marketplace add akunzai/agent-skills
+claude plugin install charley-skills@akunzai-agent-skills --scope user
+```
+
+```bash
+codex plugin marketplace add akunzai/agent-skills
+codex plugin add charley-skills@akunzai-agent-skills
+```
+
+GitHub Copilot CLI reads the same marketplace manifest:
+
+```bash
+copilot plugin marketplace add akunzai/agent-skills
+copilot plugin install charley-skills@akunzai-agent-skills
+```
+
+Codex upgrades its marketplace snapshot as a unit (`codex plugin
+marketplace upgrade akunzai-agent-skills`) because its CLI does not expose a
+per-plugin update command.
+
+The other plugins need extra setup that the native commands skip — host
+integration for `codexbar-quota-handoff`, Codex personal-agent sync for
+`cheap-dev-workers` — so install them from a clone of this repository:
+
+```bash
+bash scripts/setup.sh --plugin codexbar-quota-handoff
+bash scripts/setup.sh --plugin cheap-dev-workers
+```
+
+To manage every detected runtime at once, or to upgrade and uninstall, use
+the lifecycle scripts. They read the marketplace catalog, show each
+plugin's installed state, and only apply relevant selections:
+
+```bash
+bash scripts/setup.sh
+bash scripts/upgrade.sh
+bash scripts/uninstall.sh
+```
+
+Use `--help` for non-interactive runtime/plugin filters suitable for scripts
+and CI. These repository-root scripts are the only public plugin lifecycle
+entry points; plugin-local scripts are internal post-actions.
+
+### Available plugins
+
+- [`charley-skills`](#skills) — the skills catalog above, packaged as a
+  Claude Code / Codex CLI / GitHub Copilot CLI plugin. Prefer `skills add`
+  when the runtime supports it.
 - [`codexbar-quota-handoff`](plugins/codexbar-quota-handoff/README.md) — a
   Claude Code / Codex CLI / GitHub Copilot CLI plugin and Grok Build hook that
   reminds the agent to wrap up when
@@ -199,7 +225,3 @@ Separate from the skills above (not installable via `skills add` or `npx skills 
 
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for
 guidelines on how to get started.
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
