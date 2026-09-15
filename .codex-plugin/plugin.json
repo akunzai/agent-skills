@@ -1,0 +1,9 @@
+{
+  "name": "charley-skills",
+  "description": "Charley's Agent Skills for engineering, memory, and media.",
+  "version": "1.15.0",
+  "author": {
+    "name": "Charley Wu"
+  },
+  "skills": "./skills/"
+}

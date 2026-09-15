@@ -205,9 +205,12 @@ codex_marketplace_registered() {
     'any(.marketplaces[]?; .name == $name)' \
     <<<"$codex_marketplace_output" >/dev/null 2>&1
 }
+# Codex resolves plugins from .agents/plugins/marketplace.json, not from the
+# Claude marketplace; an entry missing there is "not found" even with a manifest.
+# https://developers.openai.com/codex/plugins/build
 codex_supports_plugin() {
-  local source_path="${2#./}"
-  [[ -f "$repo_root/$source_path/.codex-plugin/plugin.json" ]]
+  jq -e --arg name "$1" 'any(.plugins[]?; .name == $name)' \
+    "$repo_root/.agents/plugins/marketplace.json" >/dev/null 2>&1
 }
 codex_add_marketplace() { codex plugin marketplace add "$marketplace_source"; }
 codex_refresh_marketplace() { codex plugin marketplace upgrade "$marketplace_name"; }

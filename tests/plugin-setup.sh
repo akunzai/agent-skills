@@ -182,8 +182,8 @@ PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" CLAUDE_LOG="$claude_log" \
 grep -qx 'plugin uninstall cheap-dev-workers@akunzai-agent-skills --scope user --yes' "$claude_log" \
   || fail "uninstall did not remove cheap-dev-workers from Claude Code"
 
-# Codex also exposes JSON status. Only entries with a Codex manifest are
-# compatible, so charley-skills must not be passed to `codex plugin add`.
+# Codex also exposes JSON status. Every entry is listed in the Codex
+# marketplace, so charley-skills installs alongside the sub-plugins.
 codex_log="$tmp_dir/codex.log"
 cat >"$stub_bin/codex" <<'STUB'
 #!/usr/bin/env bash
@@ -205,9 +205,8 @@ PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" CODEX_LOG="$codex_log" \
   || fail "non-interactive Codex setup failed"
 grep -qx 'plugin add codexbar-quota-handoff@akunzai-agent-skills' "$codex_log" \
   || fail "setup did not install codexbar-quota-handoff for Codex"
-if grep -q 'charley-skills' "$codex_log"; then
-  fail "setup tried to install Codex-incompatible charley-skills"
-fi
+grep -qx 'plugin add charley-skills@akunzai-agent-skills' "$codex_log" \
+  || fail "setup did not install charley-skills for Codex"
 if grep -qx 'plugin add cheap-dev-workers@akunzai-agent-skills' "$codex_log"; then
   fail "setup reinstalled an existing Codex plugin"
 fi

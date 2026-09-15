@@ -81,9 +81,9 @@ actually exercised.
 
 Claude Code pins marketplace plugins on the `version` string, so a shipped file
 that changes without a bump never reaches an installed user. Any change under
-`skills/` bumps the root `.claude-plugin/plugin.json`; any change under
-`plugins/<name>/` bumps that plugin's `.claude-plugin/plugin.json` and
-`.codex-plugin/plugin.json`, kept equal. `tests/plugin-version-bump.sh` enforces
+`skills/` bumps the root manifests; any change under `plugins/<name>/` bumps
+that plugin's. Either way `.claude-plugin/plugin.json` and
+`.codex-plugin/plugin.json` move together, kept equal. `tests/plugin-version-bump.sh` enforces
 both, so the gate catches a miss. Semver rules are in `CONTRIBUTING.md`.
 
 A new or renamed skill also updates `README.md` and the `skills` array in

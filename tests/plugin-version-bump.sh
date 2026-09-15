@@ -69,6 +69,13 @@ root_version="$(jq -r '.version // empty' "$root_json")"
 [ -n "$root_version" ] || fail "charley-skills plugin.json is missing version"
 [[ "$root_version" =~ $semver_re ]] || fail "charley-skills version '$root_version' is not X.Y.Z"
 
+root_codex_json="$ROOT_DIR/.codex-plugin/plugin.json"
+if [ -f "$root_codex_json" ]; then
+  root_codex_version="$(jq -r '.version // empty' "$root_codex_json")"
+  [ "$root_codex_version" = "$root_version" ] \
+    || fail "charley-skills Codex version '$root_codex_version' != Claude '$root_version'"
+fi
+
 if [ -n "$base" ] && git -C "$ROOT_DIR" cat-file -e "$base:.claude-plugin/plugin.json" 2>/dev/null; then
   if [ -n "$(git -C "$ROOT_DIR" diff --name-only "$base" -- skills)" ]; then
     root_old="$(git -C "$ROOT_DIR" show "$base:.claude-plugin/plugin.json" | jq -r '.version // empty')"
