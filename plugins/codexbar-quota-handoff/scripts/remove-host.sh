@@ -64,7 +64,8 @@ if [[ -f "$codexbar_config" ]]; then
       select(.id != "agent-skills-codexbar-quota-handoff-claude"
       and .id != "agent-skills-codexbar-quota-handoff-grok"
       and .id != "agent-skills-codexbar-quota-handoff-codex"
-      and .id != "agent-skills-codexbar-quota-handoff-copilot")
+      and .id != "agent-skills-codexbar-quota-handoff-copilot"
+      and .id != "agent-skills-codexbar-quota-handoff-cursor")
     ))
   ' "$codexbar_config" >"$temporary"
   mv "$temporary" "$codexbar_config"

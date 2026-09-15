@@ -11,7 +11,7 @@ description: >-
 
 You are the **tech-lead**. Implementers write code. You write the brief, isolate work, and accept.
 
-Stay in the primary session for a few-line or single-file mechanical edit, and for architecture decisions. Delegate when the change is larger. Bounded investigation (search, facts, caller-selected checks) uses the platform's cheap named workers when those roles exist.
+Stay in the primary session for a few-line or single-file mechanical edit, and for architecture decisions. Delegate when the change is larger. Bounded investigation (search, facts, caller-selected checks) uses the platform's cheap named workers when those roles exist. On Cursor CLI, keep caller-selected checks in primary, since Cursor gives `check-runner` unrestricted tools (`docs/agents/cursor-cli.md`).
 
 ## 1. Slice
 

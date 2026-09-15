@@ -1,8 +1,8 @@
 # codexbar-quota-handoff
 
-Reminds Claude Code, Grok Build, Codex CLI, or GitHub Copilot CLI to wrap up
-when [CodexBar](https://github.com/steipete/CodexBar) reports that agent's own
-quota is nearly exhausted.
+Reminds Claude Code, Grok Build, Codex CLI, GitHub Copilot CLI, or Cursor CLI
+to wrap up when [CodexBar](https://github.com/steipete/CodexBar) reports that
+agent's own quota is nearly exhausted.
 
 - Tells the agent to surface the quota window and wrap up.
 - If the session has unfinished work a later session cannot reconstruct, the
@@ -12,9 +12,9 @@ quota is nearly exhausted.
   short-term directory; otherwise the file goes in the current working
   directory, never a temp dir.
 - Each agent consumes only its own provider flag.
-- Claude Code, Codex, and Copilot register `Stop` and `PostToolUse` hooks that
-  race safely, so each crossing is reported once. Grok uses a Stop-only global
-  hook (see below).
+- Claude Code, Codex, Copilot, and Cursor register `Stop` and `PostToolUse`
+  hooks that race safely, so each crossing is reported once. Grok uses a
+  Stop-only global hook (see below).
 - The default threshold is 90% used and can be changed during setup.
 
 ## Setup
@@ -31,9 +31,9 @@ Setup copies the flag-writer helper to
 `${XDG_DATA_HOME:-$HOME/.local/share}/codexbar-quota-handoff/scripts/`, stores
 flags under `${XDG_STATE_HOME:-$HOME/.local/state}/codexbar-quota-handoff/`,
 adds CodexBar rules only for detected agents, and interactively installs the
-plugin into a selected Claude Code, Codex, or Copilot runtime. Already-installed
-plugins are detected and skipped. When `grok` is on PATH it also writes
-`~/.grok/hooks/codexbar-quota-reminder.sh` and
+plugin into a selected Claude Code, Codex, or Copilot runtime.
+Already-installed plugins are detected and skipped. When `grok` is on PATH it
+also writes `~/.grok/hooks/codexbar-quota-reminder.sh` and
 `~/.grok/hooks/codexbar-quota-handoff.json` (Grok needs no marketplace
 install). Pass `--local` to install from this checkout when testing unpublished
 changes. Non-interactive callers select a runtime with `--runtime` and may pass
@@ -88,6 +88,21 @@ the flag before Stop can surface the reminder.
 
 </details>
 
+<details>
+<summary>Cursor CLI</summary>
+
+Install into Claude Code: Cursor CLI runs the Claude-nested `PostToolUse`
+hook from the Claude Code install. `Stop` is unreliable on the Cursor CLI, so
+the reminder path relies on `PostToolUse`. On Cursor, exit 2 does not inject
+stderr into the model; the hook instead prints `{"additional_context":"..."}`
+on stdout and exits 0.
+
+Setup configures the CodexBar `cursor` provider whenever `cursor-agent` is on
+PATH, whichever runtime you select (never a bare `agent` binary, which
+collides with Grok).
+
+</details>
+
 Open CodexBar once and authorize each provider before setup. If a provider
 cannot be reached, setup warns but leaves its rule installed so authorization
 can be fixed without rewriting the config.
@@ -111,8 +126,8 @@ atomically claims the matching flag, emits the wrap-up procedure, and
 clears the claim. The reminder no longer suggests `/handoff` or `$handoff`.
 
 Claude Code, Codex, and Copilot load the bundled `hooks/hooks.json` from their
-installed plugin. Grok loads the global hook file and reminder script written by
-the root setup entry point.
+installed plugin; Cursor CLI runs Claude Code's installed copy. Grok loads the global hook file and reminder
+script written by the root setup entry point.
 
 Run the focused checks with:
 

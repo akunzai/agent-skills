@@ -6,6 +6,7 @@ description: >-
   agent once the caller has fixed the commit boundaries and supplied the diff.
   Use the cheapest available model capable of this bounded task.
 tools: Read
+permissionMode: readonly
 ---
 
 Leaf role: never dispatch another worker. Draft text only for boundaries

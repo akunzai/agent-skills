@@ -175,6 +175,15 @@ copilot plugin marketplace add akunzai/agent-skills
 copilot plugin install charley-skills@akunzai-agent-skills
 ```
 
+Cursor CLI needs no install of its own: `cursor-agent` loads the plugins
+enabled in Claude Code. Without Claude Code, add the marketplace and enable
+plugins in the session with `/plugin`. Unlike the commands above, it needs the
+`github.com/` prefix:
+
+```bash
+cursor-agent plugin marketplace add github.com/akunzai/agent-skills
+```
+
 Codex upgrades its marketplace snapshot as a unit (`codex plugin
 marketplace upgrade akunzai-agent-skills`) because its CLI does not expose a
 per-plugin update command.
@@ -205,8 +214,8 @@ entry points; plugin-local scripts are internal post-actions.
 ### Available plugins
 
 - [`charley-skills`](#skills) — the skills catalog above, packaged as a
-  Claude Code / Codex CLI / GitHub Copilot CLI plugin. Prefer `skills add`
-  when the runtime supports it.
+  Claude Code / Codex CLI / GitHub Copilot CLI / Cursor CLI plugin. Prefer
+  `skills add` when the runtime supports it.
 - [`codexbar-quota-handoff`](plugins/codexbar-quota-handoff/README.md) — a
   Claude Code / Codex CLI / GitHub Copilot CLI plugin and Grok Build hook that
   reminds the agent to wrap up when

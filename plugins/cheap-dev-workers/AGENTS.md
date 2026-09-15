@@ -17,6 +17,11 @@ bash scripts/setup.sh --plugin cheap-dev-workers
 Select GitHub Copilot CLI in the interactive installer. Scripts and CI may use
 `--runtime copilot --yes`. See `../../docs/agents/copilot-cli.md`.
 
+Cursor CLI loads these `agents/*.md` from the Claude Code install; there is no
+Cursor runtime to select. It ignores `tools:` but enforces the rendered
+`permissionMode: readonly`, so skills delegate the read-only roles there and
+keep `check-runner` in primary. See `../../docs/agents/cursor-cli.md`.
+
 Codex CLI has no plugin-bundled agent mechanism, so its subagents must be
 copied into a personal or trusted-project agents directory:
 
@@ -107,6 +112,9 @@ plugin-local scripts are internal post-action helpers.
 - Skills request roles, never plugin identities or provider models. Runtime
   adapters resolve them: Claude Code and Copilot CLI dispatch
   `cheap-dev-workers:<role>`; Codex requests the installed role name.
+  Cursor CLI loads the same plugin agents and dispatches the read-only roles;
+  `check-runner` work stays in primary there because Cursor ignores its
+  `tools:` (`../../docs/agents/cursor-cli.md`).
 - Choose the role before the model. Prefer an available named worker for
   bounded, context-heavy work. If the role is unavailable or unsupported,
   callers may use one generic worker only when they can reproduce its
@@ -140,13 +148,17 @@ runtime supports per-dispatch selection. Otherwise the runtime inherits its
 parent or configured defaults. Skills name no provider or model, so targets can
 change without coupling workflow instructions.
 
-The `agents/*.md` (Claude Code and Copilot CLI) and `codex-agents/*.toml`
-(Codex CLI) definitions carry the same hard rules and instructions in each
-tool's native format. Both are rendered from `roles/`, so they cannot be kept
-in sync by hand — edit the source and re-render. A role's single `capability`
-becomes the `tools:` frontmatter and the `sandbox_mode` together; Copilot maps
-that `tools:` list onto its own tool names, so the permission boundary survives
-without a Copilot-specific list.
+The `agents/*.md` (Claude Code, Copilot CLI, and Cursor CLI) and
+`codex-agents/*.toml` (Codex CLI) definitions carry the same hard rules and
+instructions in each tool's native format. Both are rendered from `roles/`, so
+they cannot be kept in sync by hand — edit the source and re-render. A role's
+single `capability` becomes the `tools:` frontmatter and the `sandbox_mode`
+together; Copilot maps that `tools:` list onto its own tool names, so the
+permission boundary survives without a Copilot-specific list. Cursor CLI
+ignores plugin `tools:`, so a `read-only` sandbox also renders
+`permissionMode: readonly`, the only field Cursor enforces on plugin agents.
+Readonly blocks every shell call, so `read+exec` renders no such field. Claude
+Code ignores it on plugin agents and logs a debug-level warning per file.
 
 Claude plugin subagents do not support `hooks` or `permissionMode`, so the
 check-runner's Bash mutation boundary is prompt-enforced. The primary supplies

@@ -15,6 +15,11 @@ work at `low`; otherwise the worker inherits the runtime's parent or configured
 defaults. Environment, organization, and runtime policies can override that
 request, and the plugin does not bypass them.
 
+Cursor CLI loads plugin `agents/*.md` from the Claude Code install. It ignores
+`tools:` but enforces `permissionMode: readonly` on the three read-only roles,
+so caller skills delegate those there and keep `check-runner` in primary. See
+`../../docs/agents/cursor-cli.md`.
+
 When these named profiles are unavailable, current caller skills may try one
 generic subagent with a compact copy of the role's task and permission boundary.
 They use the same fallback for explicit pre-execution runtime errors such as
