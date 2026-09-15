@@ -136,8 +136,10 @@ The same cache-key mechanism gates the root **charley-skills** plugin (source
 `./` in `.claude-plugin/marketplace.json`), which ships `skills/**` directly —
 there is no `plugins/charley-skills/` wrapper. Any change under `skills/`
 (a new skill, an edited `SKILL.md`, added scripts/references/examples) bumps
-`version` in the root `.claude-plugin/plugin.json`, same semver rule as
-above. `tests/plugin-version-bump.sh` enforces this bump too.
+`version` in the root `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json`,
+kept equal, same semver rule as above. `tests/plugin-version-bump.sh` enforces
+this bump too. Codex resolves plugins only from
+`.agents/plugins/marketplace.json`, so every plugin also needs an entry there.
 
 ## Code Style
 

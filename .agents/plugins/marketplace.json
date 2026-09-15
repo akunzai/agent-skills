@@ -8,6 +8,10 @@
     {
       "name": "cheap-dev-workers",
       "source": { "source": "local", "path": "./plugins/cheap-dev-workers" }
+    },
+    {
+      "name": "charley-skills",
+      "source": { "source": "local", "path": "./" }
     }
   ]
 }
