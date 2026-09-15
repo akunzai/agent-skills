@@ -13,8 +13,9 @@ TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 # A stub `codexbar` on PATH: `guard` reports every provider reachable, and
-# nothing else is ever called (claude/grok/codex/copilot are only detected via
-# `command -v`, never actually invoked, so plain no-op stubs are enough).
+# nothing else is ever called (claude/grok/codex/copilot/cursor-agent are only
+# detected via `command -v`, never actually invoked, so plain no-op stubs are
+# enough).
 STUB_BIN="$TMP_DIR/stub-bin"
 mkdir -p "$STUB_BIN"
 cat >"$STUB_BIN/codexbar" <<'STUB'
@@ -33,14 +34,14 @@ ln -s "$REAL_JQ" "$STUB_BIN/jq"
 
 TOOL_BIN="$TMP_DIR/tool-bin"
 mkdir -p "$TOOL_BIN"
-for tool in claude grok codex copilot; do
+for tool in claude grok codex copilot cursor-agent agent; do
   printf '#!/usr/bin/env bash\nexit 0\n' >"$TOOL_BIN/$tool"
   chmod +x "$TOOL_BIN/$tool"
 done
 
 # Runs the host configurator with only the named stub tools (plus codexbar/jq) on PATH.
-# Pass no tool names to simulate none of claude/grok/codex/copilot being
-# installed.
+# Pass no tool names to simulate none of claude/grok/codex/copilot/cursor-agent
+# being installed.
 # Extra args after the tool list are forwarded to the helper.
 run_install() {
   local fake_home="$1"
@@ -100,11 +101,30 @@ ACTUAL="$(configured_providers "$COPILOT_ONLY_HOME")"
 [ ! -e "$COPILOT_ONLY_HOME/.grok/hooks/codexbar-quota-handoff.json" ] \
   || fail "setup wrote a Grok global hook when only copilot was on PATH"
 
-# --- all four tools on PATH: all four providers get a CodexBar rule ---
+# --- only cursor-agent on PATH: only cursor gets a CodexBar rule; no Grok hooks ---
+CURSOR_ONLY_HOME="$TMP_DIR/cursor-only"
+mkdir -p "$CURSOR_ONLY_HOME"
+run_install "$CURSOR_ONLY_HOME" cursor-agent >/dev/null
+ACTUAL="$(configured_providers "$CURSOR_ONLY_HOME")"
+[ "$ACTUAL" = "cursor" ] || fail "with only cursor-agent on PATH, expected only 'cursor' configured, got: $ACTUAL"
+[ ! -e "$CURSOR_ONLY_HOME/.grok/hooks/codexbar-quota-handoff.json" ] \
+  || fail "setup wrote a Grok global hook when only cursor-agent was on PATH"
+[ ! -e "$CURSOR_ONLY_HOME/.grok/hooks/codexbar-quota-reminder.sh" ] \
+  || fail "setup wrote a Grok reminder script when only cursor-agent was on PATH"
+
+# --- a bare `agent` stub without cursor-agent must not configure cursor
+#     (Grok and Cursor both ship `agent`; that name collides) ---
+AGENT_ONLY_HOME="$TMP_DIR/agent-only"
+mkdir -p "$AGENT_ONLY_HOME"
+run_install "$AGENT_ONLY_HOME" agent >/dev/null
+ACTUAL="$(configured_providers "$AGENT_ONLY_HOME")"
+[ -z "$ACTUAL" ] || fail "with only a bare agent on PATH, expected no providers configured, got: $ACTUAL"
+
+# --- all five tools on PATH: all five providers get a CodexBar rule ---
 ALL_TOOLS_HOME="$TMP_DIR/all-tools"
-run_install "$ALL_TOOLS_HOME" claude grok codex copilot >/dev/null
+run_install "$ALL_TOOLS_HOME" claude grok codex copilot cursor-agent >/dev/null
 ACTUAL="$(configured_providers "$ALL_TOOLS_HOME")"
-[ "$ACTUAL" = "claude,codex,copilot,grok" ] || fail "with all four tools on PATH, expected all four providers configured, got: $ACTUAL"
+[ "$ACTUAL" = "claude,codex,copilot,cursor,grok" ] || fail "with all five tools on PATH, expected all five providers configured, got: $ACTUAL"
 
 RUNTIME_DIR="$ALL_TOOLS_HOME/xdg-data/codexbar-quota-handoff/scripts"
 helper="codexbar-quota-flag.sh"
@@ -169,7 +189,7 @@ run_install "$NO_GROK_HOME" claude >/dev/null
 [ ! -e "$NO_GROK_HOME/.grok/hooks/codexbar-quota-reminder.sh" ] \
   || fail "setup wrote a Grok reminder script when grok was not on PATH"
 
-# --- none of the four tools on PATH: CodexBar's config is left untouched
+# --- none of the five tools on PATH: CodexBar's config is left untouched
 #     (no backup file, no rules merged in) ---
 NO_TOOLS_HOME="$TMP_DIR/no-tools"
 mkdir -p "$NO_TOOLS_HOME"

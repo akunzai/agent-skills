@@ -153,9 +153,18 @@ else
   echo "  copilot CLI not found on PATH; no CodexBar rule will be added."
 fi
 
+# Detect cursor-agent only — never a bare `agent` binary. Grok and Cursor
+# both ship `agent`, so that name collides and cannot identify Cursor.
+echo "== Cursor CLI =="
+if command -v cursor-agent >/dev/null 2>&1; then
+  providers+=(cursor)
+else
+  echo "  cursor-agent CLI not found on PATH; no CodexBar rule will be added."
+fi
+
 echo "== CodexBar =="
 if [[ ${#providers[@]} -eq 0 ]]; then
-  echo "  none of claude/grok/codex/copilot were found on PATH; nothing to configure."
+  echo "  none of claude/grok/codex/copilot/cursor-agent were found on PATH; nothing to configure."
   exit 0
 fi
 if ! command -v codexbar >/dev/null 2>&1; then

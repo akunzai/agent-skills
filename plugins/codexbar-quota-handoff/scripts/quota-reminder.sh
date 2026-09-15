@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Quota-reminder hook shared by every consuming tool (Claude Code, Grok
-# Build, Codex CLI, GitHub Copilot CLI), registered on both Stop and
-# PostToolUse through each tool's native hook location. A no-op unless
+# Build, Codex CLI, GitHub Copilot CLI, Cursor CLI), registered on both Stop
+# and PostToolUse through each tool's native hook location. A no-op unless
 # codexbar-quota-flag.sh has written a flag, for this tool's provider, since
 # the last time this fired.
 #
@@ -15,11 +15,16 @@
 # reminder ever needed — it was never meant to force a stop, just to relay a
 # short message once the model reads it. Grok is Stop-only: its PostToolUse
 # treats exit 2 as fail-open and would claim the flag before Stop can surface
-# the reminder.
+# the reminder. Cursor CLI is different again: a PostToolUse exit 2 does not
+# inject stderr into the model (it silently claims the flag), so when the
+# provider is cursor this script prints JSON with additional_context on
+# stdout and exits 0 instead.
 #
 # Which tool is running is inferred from environment variables each hook
 # runner sets natively — not the shared CLAUDE_PLUGIN_ROOT compatibility
-# alias, which all four tools set and can't disambiguate anything:
+# alias, which all of these tools set and can't disambiguate anything:
+#   - Cursor CLI sets CURSOR_INVOKED_AS (e.g. cursor-agent). Checked first
+#     because a Cursor session launched from a Grok pane inherits GROK_*.
 #   - Grok Build sets GROK_SESSION_ID (its own hook-runner variable, per its
 #     locally-installed user-guide docs, ~/.grok/docs/user-guide/10-hooks.md).
 #   - GitHub Copilot CLI sets COPILOT_CLI=1 (observed by dumping the hook
@@ -33,19 +38,23 @@
 #     installed plugin root" (OpenAI's official Codex hooks reference,
 #     learn.chatgpt.com/docs/hooks.md).
 #   - None of these is set under Claude Code itself, which is the fallback.
-# This keeps hooks/hooks.json identical across all four tools — no per-tool
+# This keeps hooks/hooks.json identical across tools — no per-tool
 # arguments, and no risk of a tool's own shell reinterpreting a reminder
 # argument (a path, or a leftover command string like "$handoff").
 #
-# When a flag is present, this exits 2 with a wrap-up procedure on stderr so
-# the model surfaces the quota, asks before writing a handoff document if the
-# session has unfinished work a later session cannot reconstruct, then
-# deletes the flag so the same crossing doesn't surface again on the next
-# tool call or turn. It fires again only after CodexBar detects a fresh
-# threshold crossing for this provider and writes a new flag.
+# When a flag is present, non-Cursor hosts exit 2 with a wrap-up procedure on
+# stderr so the model surfaces the quota, asks before writing a handoff
+# document if the session has unfinished work a later session cannot
+# reconstruct, then deletes the flag so the same crossing doesn't surface
+# again on the next tool call or turn. Cursor prints the same procedure as
+# {"additional_context":"..."} on stdout and exits 0. It fires again only
+# after CodexBar detects a fresh threshold crossing for this provider and
+# writes a new flag.
 set -euo pipefail
 
-if [[ -n "${GROK_SESSION_ID:-}" ]]; then
+if [[ -n "${CURSOR_INVOKED_AS:-}" ]]; then
+  provider="cursor"
+elif [[ -n "${GROK_SESSION_ID:-}" ]]; then
   provider="grok"
 elif [[ -n "${COPILOT_CLI:-}" ]]; then
   provider="copilot"
@@ -135,12 +144,22 @@ resolve_handoff_dest() {
 
 dest_spec="$(resolve_handoff_dest)"
 
-{
+# Trailing sentinel keeps the final newline that command substitution would
+# otherwise strip before we print or embed the message.
+message="$(
   printf 'CodexBar detected your %s quota is at %s%% used (resets around %s). Tell the user. Once per crossing.\n' \
     "$window" "$pct_display" "$reset_at"
   printf 'Finish in-flight tools. Then, from this conversation only (no extra tools), before your next user-facing reply: if unfinished work a later session could not reconstruct from git/issues/PRs/docs, ask whether to write a handoff document (one-line summary; would go to %s); if none, do not ask or write. That reply is only the quota facts plus that question if any. Then stop.\n' \
     "$dest_spec"
   printf 'If they agree: create a new file at that path (replace <topic> if present; pick a non-colliding name; do not overwrite). Redact secrets; no transcript; reference artifacts; include goal, done, next, suggested skills if any, and this quota reset. Do not invoke to-memory. Reply with the path. If they decline, do not write.\n'
-} >&2
+  printf x
+)"
+message="${message%x}"
 
+if [[ "$provider" == "cursor" ]]; then
+  jq -n --arg additional_context "$message" '{additional_context: $additional_context}'
+  exit 0
+fi
+
+printf '%s' "$message" >&2
 exit 2

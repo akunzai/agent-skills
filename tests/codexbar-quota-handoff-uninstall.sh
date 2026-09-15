@@ -29,6 +29,7 @@ cat >"$FAKE_HOME/.codexbar/config.json" <<'EOF'
   {"id":"agent-skills-codexbar-quota-handoff-grok","provider":"grok"},
   {"id":"agent-skills-codexbar-quota-handoff-codex","provider":"codex"},
   {"id":"agent-skills-codexbar-quota-handoff-copilot","provider":"copilot"},
+  {"id":"agent-skills-codexbar-quota-handoff-cursor","provider":"cursor"},
   {"id":"someone-elses-rule","provider":"claude"}
 ]}}
 EOF
