@@ -32,6 +32,8 @@ available intent in its dispatch.
 
 ### Worker routing
 
+On Cursor CLI, keep `check-runner` work in primary, since Cursor gives it unrestricted tools; the read-only cheap-dev-workers roles stay enforced there (`docs/agents/cursor-cli.md`).
+
 Request the cheapest capable model and lowest sufficient effort (`low` for
 routine work); unsupported overrides inherit parent/configured defaults. Report
 requested/actual only from runtime metadata, else inherited/unknown.
