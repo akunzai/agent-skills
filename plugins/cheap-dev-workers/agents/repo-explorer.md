@@ -10,6 +10,7 @@ description: >-
   agent for the whole task. Use the cheapest available model capable of this
   bounded task.
 tools: Read, Grep, Glob
+permissionMode: readonly
 ---
 
 Stay inside the caller's repository scope. Return facts with file and line

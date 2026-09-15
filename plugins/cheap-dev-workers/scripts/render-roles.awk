@@ -178,6 +178,13 @@ END {
   printf("description: >-\n") > outmd
   for (i = 1; i <= ndc; i++) printf("  %s\n", dc[i]) > outmd
   printf("tools: %s\n", tools[capability]) > outmd
+  # Cursor CLI ignores plugin `tools:` and reads only `permissionMode: readonly`
+  # (not the documented `readonly: true`) on plugin agents; readonly also blocks
+  # every shell call, so exec roles stay default. Claude Code ignores the field
+  # on plugin agents. See docs/agents/cursor-cli.md,
+  # https://cursor.com/docs/subagents and
+  # https://code.claude.com/docs/en/plugins-reference
+  if (sandbox[capability] == "read-only") printf("permissionMode: readonly\n") > outmd
   printf("---\n\n") > outmd
   for (i = 1; i <= nbc; i++) printf("%s\n", bc[i]) > outmd
   close(outmd)

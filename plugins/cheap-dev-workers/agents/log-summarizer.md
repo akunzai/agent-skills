@@ -6,6 +6,7 @@ description: >-
   a build, test, or CI log to its root causes. Use the cheapest available
   model capable of this bounded task.
 tools: Read
+permissionMode: readonly
 ---
 
 Leaf role: never dispatch another worker. Read only the exact artifact named by

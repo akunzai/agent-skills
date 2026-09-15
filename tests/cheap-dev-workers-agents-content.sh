@@ -55,6 +55,14 @@ expect_permissions() {
     || fail "$role Claude tools must be exactly '$tools'"
   grep -q "^sandbox_mode = \"$sandbox\"\$" "$PLUGIN_DIR/codex-agents/$role.toml" \
     || fail "$role Codex sandbox_mode must be exactly '$sandbox'"
+  # Cursor CLI enforces read-only plugin agents only through this field.
+  if [ "$sandbox" = read-only ]; then
+    grep -q '^permissionMode: readonly$' "$PLUGIN_DIR/agents/$role.md" \
+      || fail "$role Cursor permissionMode must be readonly"
+  else
+    ! grep -q '^permissionMode:' "$PLUGIN_DIR/agents/$role.md" \
+      || fail "$role must not be readonly on Cursor; readonly blocks every shell call"
+  fi
 }
 expect_permissions repo-explorer 'Read, Grep, Glob' read-only
 expect_permissions check-runner 'Bash, Read' workspace-write
