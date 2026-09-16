@@ -93,7 +93,7 @@ test type instead.
 
 ## Worker routing
 
-On Cursor CLI, keep `check-runner` work in primary, since Cursor gives it unrestricted tools; the read-only cheap-dev-workers roles stay enforced there (`docs/agents/cursor-cli.md`).
+On Cursor CLI, keep `check-runner` work in primary, since Cursor gives it unrestricted tools; the read-only cheap-dev-workers roles stay enforced there.
 
 Request the cheapest capable model and lowest sufficient effort (`low` for
 routine work); unsupported overrides inherit parent/configured defaults. Report
