@@ -181,7 +181,7 @@ END {
   # Cursor CLI ignores plugin `tools:` and reads only `permissionMode: readonly`
   # (not the documented `readonly: true`) on plugin agents; readonly also blocks
   # every shell call, so exec roles stay default. Claude Code ignores the field
-  # on plugin agents. See docs/agents/cursor-cli.md,
+  # on plugin agents. See docs/agents/harnesses.md,
   # https://cursor.com/docs/subagents and
   # https://code.claude.com/docs/en/plugins-reference
   if (sandbox[capability] == "read-only") printf("permissionMode: readonly\n") > outmd

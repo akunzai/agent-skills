@@ -77,17 +77,16 @@ Also add `./skills/<name>` to the `skills` array in
 ### Manual-only skills
 
 A skill with side effects, or one only the user should trigger by name
-(never inferred from conversation), needs both:
+(never inferred from conversation), needs both (runtimes differ in which
+one they honour; see `docs/agents/harnesses.md`):
 
-- `disable-model-invocation: true` in `SKILL.md` frontmatter — Claude
-  Code honors this directly. Keep the `description` human-facing (a
-  one-line summary) and drop trigger-phrase lists ("Use when the user
-  says…"), since the model no longer auto-matches on it.
+- `disable-model-invocation: true` in `SKILL.md` frontmatter. Keep the
+  `description` human-facing (a one-line summary) and drop trigger-phrase
+  lists ("Use when the user says…"), since the model no longer auto-matches
+  on it.
 - `agents/openai.yaml` beside `SKILL.md`, with
-  `policy.allow_implicit_invocation: false` — Codex does not yet honor
-  `disable-model-invocation` on its own ([openai/codex#29989](https://github.com/openai/codex/issues/29989)).
-  `interface.display_name`/`short_description` in the same file feed
-  Codex's skill picker.
+  `policy.allow_implicit_invocation: false` and
+  `interface.display_name`/`short_description`.
 
 ```yaml
 # agents/openai.yaml
@@ -97,10 +96,6 @@ interface:
 policy:
   allow_implicit_invocation: false
 ```
-
-GitHub Copilot CLI has no per-skill invocation control as of this
-writing — only a global `/skills` enable/disable — so it still
-auto-invokes a manual-only skill there.
 
 ### Adding Tests
 
@@ -120,26 +115,23 @@ Register the test in `.github/workflows/tests.yml` under an appropriate job.
 
 ## Plugin versions
 
-Claude Code pins marketplace plugins on the `version` string in
-`plugins/<name>/.claude-plugin/plugin.json`.
-[`claude plugin update`](https://code.claude.com/docs/en/plugins-reference#version-management)
-skips when that string is unchanged, even if git SHA moved. When shipped files
-under `plugins/<name>/` change, bump `version` in both
+Installed plugins update only when the manifest `version` string changes;
+which runtime keys updates on which manifest is in `docs/agents/harnesses.md`.
+When shipped files under `plugins/<name>/` change, bump `version` in both
 `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json` and keep them
 equal. Patch for text or script fixes, minor for new roles or contracts, major
 for breaking role names or permission boundaries. `tests/plugin-version-bump.sh`
 enforces the bump. The repository-root lifecycle manager copies Codex personal
-agents as a plugin post-action; they are not updated by the version string, so
-run root `scripts/upgrade.sh` after a release.
+agents as a plugin post-action, so run root `scripts/upgrade.sh` after a
+release.
 
-The same cache-key mechanism gates the root **charley-skills** plugin (source
-`./` in `.claude-plugin/marketplace.json`), which ships `skills/**` directly —
-there is no `plugins/charley-skills/` wrapper. Any change under `skills/`
-(a new skill, an edited `SKILL.md`, added scripts/references/examples) bumps
-`version` in the root `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json`,
-kept equal, same semver rule as above. `tests/plugin-version-bump.sh` enforces
-this bump too. Codex resolves plugins only from
-`.agents/plugins/marketplace.json`, so every plugin also needs an entry there.
+The root **charley-skills** plugin (source `./` in
+`.claude-plugin/marketplace.json`) ships `skills/**` directly — there is no
+`plugins/charley-skills/` wrapper. Any change under `skills/` (a new skill, an
+edited `SKILL.md`, added scripts/references/examples) bumps `version` in the
+root `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json`, kept equal,
+same semver rule as above. `tests/plugin-version-bump.sh` enforces this bump
+too. Every plugin also needs an entry in `.agents/plugins/marketplace.json`.
 
 ## Code Style
 

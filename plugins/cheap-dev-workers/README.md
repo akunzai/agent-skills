@@ -18,7 +18,7 @@ request, and the plugin does not bypass them.
 Cursor CLI loads plugin `agents/*.md` from the Claude Code install. It ignores
 `tools:` but enforces `permissionMode: readonly` on the three read-only roles,
 so caller skills delegate those there and keep `check-runner` in primary. See
-`../../docs/agents/cursor-cli.md`.
+`../../docs/agents/harnesses.md`.
 
 When these named profiles are unavailable, current caller skills may try one
 generic subagent with a compact copy of the role's task and permission boundary.

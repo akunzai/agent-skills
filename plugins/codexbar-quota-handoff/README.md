@@ -1,8 +1,8 @@
 # codexbar-quota-handoff
 
-Reminds Claude Code, Grok Build, Codex CLI, GitHub Copilot CLI, or Cursor CLI
-to wrap up when [CodexBar](https://github.com/steipete/CodexBar) reports that
-agent's own quota is nearly exhausted.
+Reminds the agent to wrap up when [CodexBar](https://github.com/steipete/CodexBar)
+reports that agent's own quota is nearly exhausted — installed as a plugin on
+every plugin runtime, plus a Grok Build hook.
 
 - Tells the agent to surface the quota window and wrap up.
 - If the session has unfinished work a later session cannot reconstruct, the
@@ -12,7 +12,7 @@ agent's own quota is nearly exhausted.
   short-term directory; otherwise the file goes in the current working
   directory, never a temp dir.
 - Each agent consumes only its own provider flag.
-- Claude Code, Codex, Copilot, and Cursor register `Stop` and `PostToolUse`
+- Every supported runtime except Grok registers `Stop` and `PostToolUse`
   hooks that race safely, so each crossing is reported once. Grok uses a
   Stop-only global hook (see below).
 - The default threshold is 90% used and can be changed during setup.
