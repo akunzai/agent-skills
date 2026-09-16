@@ -26,11 +26,9 @@ Selenium suite stays; confirm before adding Playwright beside it.
    absent: a JS package manifest and its package manager; `@playwright/test`
    and `playwright.config`; the webwright skill; a qualifying run; another
    e2e stack (Cypress, Selenium); existing CI files; webwright artifact
-   paths git still tracks. Webwright is present when
-   `~/.agents/skills/webwright/SKILL.md` or
-   `<repo>/.agents/skills/webwright/SKILL.md` exists (follow
-   symlinks). The session's loaded-skill list is not evidence. Leave
-   this step when every item is marked. No package manifest — stop and
+   paths git still tracks. Webwright is present when the session's
+   skill list names `webwright`, bare or plugin-prefixed. Leave this
+   step when every item is marked. No package manifest — stop and
    report.
 
 2. **Toolchain.** If Playwright, browsers, or webwright are missing, confirm
@@ -44,8 +42,8 @@ Selenium suite stays; confirm before adding Playwright beside it.
    unless the user asks to re-run. Otherwise go to *explore*.
 
 4. **Explore.** Confirm on its own before driving the real site. If the
-   user has not named the flow, ask. Load webwright's `SKILL.md` and run
-   it to Done. Leave this step when webwright reports Done and a
+   user has not named the flow, ask. Invoke the `webwright` skill and
+   run it to Done. Leave this step when webwright reports Done and a
    qualifying run from step 3 is on disk. Reading source is not
    Explore. Convert is the next step. Exploration stays in webwright.
 

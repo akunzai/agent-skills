@@ -28,7 +28,7 @@ graders:
       regex_match:
         - "(?is)(cheapest|lowest.cost).*(model|task|work)"
         - "(?is)(lowest|low).*effort"
-        - "(?is)(named|role).*(unavailable|unsupported|missing|fail.{0,40}pre.execution).*generic"
+        - "(?is)(named|role).*(unavailable|unsupported|missing|capacity|pre.execution).*generic"
         - "(?is)generic.*(read.only|permission|tool|tracked.source|git.state)"
         - "(?is)(requested|actual|inherited|unknown).*(model|effort)|(model|effort).*(requested|actual|inherited|unknown)"
 

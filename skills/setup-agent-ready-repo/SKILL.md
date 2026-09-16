@@ -41,9 +41,8 @@ differently gets a section, not a second file.
 
 The pointers go under `AGENTS.md`'s existing Pointers section, one line
 each. Repo wording may vary; the shape may not: occasion, then `read`,
-then a backtick path. `@path` expands every turn on Copilot CLI and
-Claude Code and is inert on VS Code Copilot Chat and opencode. Markdown
-links in `AGENTS.md` can auto-include on VS Code. Neither belongs here.
+then a backtick path — never `@path` or a Markdown link; the `agents-md`
+skill says why.
 
 ```markdown
 - When filing or triaging an issue, read `docs/agents/issue-tracker.md`

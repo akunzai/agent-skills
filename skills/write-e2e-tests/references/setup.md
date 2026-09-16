@@ -52,10 +52,13 @@ Firefox; the converted spec uses the browser chosen in *toolchain*.
 
 ## Webwright skill
 
-Install the way this environment already installs skills — typically
-`npx skills add microsoft/webwright`
-(https://github.com/microsoft/Webwright). The skill file is
+Install with [Skills Manager](https://github.com/akunzai/skills-manager)
+when its `skills` binary is on `PATH`:
+`skills add microsoft/webwright --skill webwright --yes` (add `-p` for
+project scope). Otherwise `npx skills add microsoft/webwright`
+(https://github.com/microsoft/Webwright). Either lands the skill at
 `~/.agents/skills/webwright/SKILL.md` (user) or
-`.agents/skills/webwright/SKILL.md` at the git root (project).
-Workspace paths live in that `SKILL.md`. Node `@playwright/test` does
+`.agents/skills/webwright/SKILL.md` at the git root (project); when the
+harness does not list a skill installed mid-session, read that file
+directly. Workspace paths live in that `SKILL.md`. Node `@playwright/test` does
 not satisfy webwright's browser runtime.

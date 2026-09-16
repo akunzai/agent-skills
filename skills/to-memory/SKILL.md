@@ -6,7 +6,6 @@ description: Explicitly record something worth remembering, deciding scope (glob
 # to-memory — Explicit Memory Capture
 
 Records one thing the user explicitly asked to remember.
-It never runs an autonomous capture loop — that belongs to `agents-md`'s Prevent Recurrence.
 
 ## Scope and tier
 
@@ -23,7 +22,7 @@ inference from the request, or by asking when genuinely ambiguous:
 Write directly into the durable target — no intermediate staging or batch review:
 
 - Global: `~/.agents/AGENTS.md`
-- Project: `<repo>/AGENTS.md` (fallback `<repo>/CLAUDE.md` if `AGENTS.md` is absent)
+- Project: `<repo>/AGENTS.md`
 
 Before writing, hold the note to this bar:
 
@@ -31,9 +30,9 @@ Before writing, hold the note to this bar:
 - **Reusable** — likely useful again, not one-off task progress.
 - **Stable** — a lasting convention, not a temporary hack.
 - Strip time-of-day stamps (e.g. `[HH:MM]`) — durable files are timeless.
-- Keep durable files lean (aim under 100 lines). If this note would push a file
-  well past that, say so and offer to fold or replace an older entry instead of
-  just appending.
+
+Placement — a root line or a topic doc behind a pointer — the size budget,
+and `CLAUDE.md` handling follow the `agents-md` skill.
 
 Always show the exact addition and get explicit confirmation before writing to a
 durable file.
