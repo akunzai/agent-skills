@@ -44,6 +44,12 @@ On CE, `::` carries no native exclusivity, but conventions track hierarchy:
 glab issue create --title "OAuth2 Client" --label "epic::user-auth,parent::100"
 ```
 
+Offer the label; do not assume it. A project may have a deliberate
+no-new-labels discipline written into its own docs, and creating one as part
+of a CE fallback breaks that repo's rule to save a conversation. Where the
+label is refused, the epic issue says in its body that it is the aggregator
+and the emulation works unchanged.
+
 Audit the existing taxonomy first and narrow a near-duplicate rather than
 adding a second name for one role. A pre-existing `tracking` label described as
 "tracking issue or external dependency" conflates the aggregating role with the

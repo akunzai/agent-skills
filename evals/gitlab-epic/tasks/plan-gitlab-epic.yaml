@@ -16,7 +16,9 @@ inputs:
 
     This project has no native group epics. Use the Free/CE strategy:
     markdown checklists on the tracking issue, scoped labels, and
-    `Part of` / relation text on children. PRs and child issues
+    `Part of` / relation text on children. The checklist must name
+    every child issue from BRIEF.txt by number, one line each, so
+    none of them is left out of the plan. PRs and child issues
     that only track the epic should say `Part of #100`. In the
     whole reply, the only `#100` next to English prose must be
     that `Part of #100` phrase — no counterexamples. Show the

@@ -131,32 +131,17 @@ both places has two owners and one of them goes stale on the next rename.
 
 ## Epic issues
 
-<!-- Delete this whole section when nothing here rolls up into a body of
-     work tracked as a unit. Keep it when it does: an agent told to "open
-     an epic" otherwise reaches for whichever mechanism its skill assumes,
-     and on a forge that has no epics that means a command that fails. -->
+<!-- Delete this section when nothing here rolls up into a body of work
+     tracked as a unit. The forge's own epic skill owns the mechanics; this
+     file only records which surface this repo uses. -->
 
-`placeholder:forge` <has native epics | has no native epics>, so the
-aggregating item here is `placeholder:what plays that role`.
+`placeholder:what aggregates a body of work here` is the aggregating item,
+and it is the single source of truth for that work rather than something an
+implementer picks up.
 
-<!-- GitLab Free/CE has no epics at all: they are Premium and group-level,
-     and the API answers 403 or 404. GitHub has sub-issues rather than
-     epics. On either, the shape that works is an ordinary issue that
-     aggregates others, labelled so it can be found, with the children
-     linked by the forge's own relation — `relates_to` through
-     `glab api projects/:id/issues/:iid/links` on GitLab, sub-issues on
-     GitHub. Name the label here and let the labels document own what it
-     means, so it has one owner. -->
-
-An epic aggregates related issues and is the single source of truth for a
-body of work, rather than something an implementer picks up directly.
-
-**When an epic records numbers** — test counts, coverage, burn-down — say
-in the epic itself where each number comes from and when a new row may be
-added: the source command or pipeline, and the point in time it is valid.
-Without that the next agent fills the next row from whatever it has to
-hand, the rows stop being comparable, and the table loses the only reason
-it exists.
+**When it records numbers**, say where each came from and when a row may be
+added; otherwise the next agent fills the table from whatever is at hand and
+the rows stop being comparable.
 
 ## When a skill says "publish to the issue tracker"
 
