@@ -22,6 +22,7 @@ Consult the installed `glab` skill for:
 - Threaded discussions and diff comments
 - File and image uploads via multipart form data (`--form`)
 - Non-interactive pitfalls (avoiding editor hangs, `--input` HTTP 415 errors)
+- Posting descriptions or notes whose body contains backticks or starts with `@`
 
 ## 2. Gitea / Forgejo (`tea`)
 
