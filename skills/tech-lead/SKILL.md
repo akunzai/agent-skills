@@ -15,9 +15,11 @@ Stay in the primary session for a few-line or single-file mechanical edit, and f
 
 ## 1. Slice
 
-Split the work into units that can finish without each other's uncommitted files. For every pair that shares a path, record whether the overlap is semantic (same meaning) or mechanical (lockfile regeneration).
+Check scope/durability with the user unless settled.
 
-**Done** when each slice has a name, the files it may touch, and a parallel or serial mark. Parallel only when no pair shares semantic files.
+Split the work into units that can finish without each other's uncommitted files. For every pair that shares a path (in-review included), record whether the overlap is semantic (same meaning) or mechanical (lockfile regeneration).
+
+**Done** when each slice has a name, the files it may touch, a parallel/serial mark and durability answer.
 
 ## 2. Live capability
 
@@ -42,7 +44,7 @@ Put absolute `SKILL.md` paths in the brief. That list is the full set the implem
 
 Prefer the harness native worktree or cwd isolation. If the harness has none, `git worktree add` beside the repo or in the harness default directory, named after the slice.
 
-You create, collect, and remove worktrees. Each implementer receives one existing path.
+You create, collect, and remove worktrees. Each implementer receives one existing path. An overlapping slice branches off the other's, not default.
 
 **Done** when each in-flight slice has a worktree path and a branch.
 
@@ -50,9 +52,11 @@ You create, collect, and remove worktrees. Each implementer receives one existin
 
 One implementer per slice. Launch parallel only for slices marked parallel in step 1.
 
-The brief is the slice: scope, allowed files, constraints, acceptance, skill paths from step 3, worktree and branch, and when to stop and return. The implementer may commit in its worktree.
+The brief is the slice: scope, allowed files, constraints, acceptance, skill paths from step 3, worktree and branch, and when to stop and return. Named: **Facts vs assumptions**, **Defect-report shape** (test/audit) — `references/brief-elements.md`.
 
-**Done** when each dispatched slice has a live handle and its brief travelled with that dispatch.
+The implementer may commit in its worktree.
+
+**Done** when each dispatched slice has a live handle, its brief split facts/assumptions and (test/audit) held defect-report shape.
 
 ## 6. Accept
 
@@ -61,6 +65,7 @@ On return, record every item:
 - brief constraints held
 - claimed verification actually ran
 - ship, ask the user, or resume the same implementer with findings
+- a defect report: verify; ticket only with user agreement
 
 When the slice is high-risk, you invoke an installed review skill (code review, over-engineering review, security) as coordinator, after the implementer returns.
 
@@ -70,6 +75,6 @@ When a review artifact exists, read its findings and summary. Open the diff only
 
 ## 7. Integrate
 
-You push, open the MR/PR, merge, and remove the worktree. Confirm with the user first when the project requires it.
+You push, open the MR/PR, merge, and remove the worktree, branch, and slice-only resources; rebase after merge. Confirm with the user first when the project requires it.
 
 **Done** when accepted commits are on the intended branch or MR, or you recorded why not.
