@@ -84,8 +84,8 @@ actually exercised.
 
 ## Version bumps ship the change
 
-Claude Code pins marketplace plugins on the `version` string, so a shipped file
-that changes without a bump never reaches an installed user. Any change under
+A shipped file that changes without a `version` bump never reaches an
+installed user (`docs/agents/harnesses.md` has each runtime's update key). Any change under
 `skills/` bumps the root manifests; any change under `plugins/<name>/` bumps
 that plugin's. Either way `.claude-plugin/plugin.json` and
 `.codex-plugin/plugin.json` move together, kept equal. `tests/plugin-version-bump.sh` enforces

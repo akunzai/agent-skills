@@ -3,7 +3,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://github.com/akunzai/agent-skills/actions/workflows/tests.yml/badge.svg)](https://github.com/akunzai/agent-skills/actions/workflows/tests.yml)
 
-Reusable agent skills — compatible with Antigravity, Claude Code, Codex, and more.
+Reusable agent skills — compatible with Antigravity, Claude Code, Codex,
+GitHub Copilot CLI, Cursor CLI, and more.
 Those runtimes can load the skills; **effectiveness is measured only on
 GitHub Copilot** via [Waza](https://github.com/microsoft/waza). See
 [docs/evals/waza.md](docs/evals/waza.md).
@@ -156,7 +157,8 @@ marketplace manifest.
 ### Install
 
 Install a single plugin directly — no local clone needed. The skills
-catalog above ships as the `charley-skills` plugin:
+catalog above ships as the `charley-skills` plugin for four plugin runtimes:
+Claude Code, Codex CLI, GitHub Copilot CLI, and Cursor CLI.
 
 ```bash
 claude plugin marketplace add akunzai/agent-skills
@@ -214,11 +216,11 @@ entry points; plugin-local scripts are internal post-actions.
 ### Available plugins
 
 - [`charley-skills`](#skills) — the skills catalog above, packaged as a
-  Claude Code / Codex CLI / GitHub Copilot CLI / Cursor CLI plugin. Prefer
-  `skills add` when the runtime supports it.
+  plugin for every plugin runtime. Prefer `skills add` when the runtime
+  supports it.
 - [`codexbar-quota-handoff`](plugins/codexbar-quota-handoff/README.md) — a
-  Claude Code / Codex CLI / GitHub Copilot CLI plugin and Grok Build hook that
-  reminds the agent to wrap up when
+  plugin for every plugin runtime, plus a Grok Build hook, that reminds the
+  agent to wrap up when
   [CodexBar](https://github.com/steipete/CodexBar) detects that tool's
   own quota is nearly exhausted, and to ask before writing a handoff
   document if the session has unfinished work a later session cannot
@@ -227,8 +229,8 @@ entry points; plugin-local scripts are internal post-actions.
   directly.
 - [`cheap-dev-workers`](plugins/cheap-dev-workers/README.md) — four narrow,
   cheap-model workers for repository evidence, verification, safe-log
-  summaries, and caller-scoped commit or PR drafting on Claude Code, Codex,
-  and GitHub Copilot CLI.
+  summaries, and caller-scoped commit or PR drafting across every plugin
+  runtime.
 
 ## Contributing
 

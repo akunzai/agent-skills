@@ -29,15 +29,16 @@ for test in tests/codexbar-quota-handoff-*.sh; do bash "$test"; done
 mise run lint
 ```
 
-The three marketplace manifests must continue to resolve to this shared plugin
-root. Grok's reminder path is the Stop-only global hook
-`~/.grok/hooks/codexbar-quota-handoff.json` written by the root setup (plugin
-marketplace hooks are not registered by Grok Build 1.0.x).
+The three marketplace manifests (`.claude-plugin/`, `.agents/plugins/`,
+`.grok-plugin/`) must continue to resolve to this shared plugin root; Copilot
+and Cursor reuse the Claude one, so there is no fourth. Grok does not register
+marketplace hooks, so its reminder path is the Stop-only global hook
+`~/.grok/hooks/codexbar-quota-handoff.json` written by the root setup.
 
-Copilot needs no fourth manifest: it reads `.claude-plugin/marketplace.json`
-and `.claude-plugin/plugin.json`, and registers the bundled `hooks/hooks.json`
-in its Claude-shaped nested form. See `../../docs/agents/copilot-cli.md` for the
-host-detection order the reminder depends on.
+The reminder's host detection depends on each runtime's hook identity variables
+and the order they are tested in (`../../docs/agents/harnesses.md`). Reminder
+env cases: `CURSOR_INVOKED_AS=cursor-agent` must select
+`quota-low-cursor.json`, not `quota-low-claude.json`.
 
 ## Prevent Recurrence
 

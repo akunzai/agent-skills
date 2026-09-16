@@ -2,36 +2,20 @@
 
 ## Local setup
 
-Claude Code auto-discovers `agents/` once the plugin is installed; no setup
-script needed on that side.
-
-GitHub Copilot CLI also auto-discovers `agents/` from the installed plugin,
-reading the same `.claude-plugin` manifests — no Copilot-specific copy of the
-role definitions exists. From the repository root, install it without touching
-Codex agents with:
+How each runtime loads these roles is in `../../docs/agents/harnesses.md`.
+Claude Code and GitHub Copilot CLI read `agents/` straight from the installed
+plugin, so no runtime-specific copy of the role definitions exists; Cursor CLI
+reads the Claude Code install, so there is no Cursor runtime to select. Codex
+CLI needs copies. From the repository root:
 
 ```bash
 bash scripts/setup.sh --plugin cheap-dev-workers
 ```
 
-Select GitHub Copilot CLI in the interactive installer. Scripts and CI may use
-`--runtime copilot --yes`. See `../../docs/agents/copilot-cli.md`.
-
-Cursor CLI loads these `agents/*.md` from the Claude Code install; there is no
-Cursor runtime to select. It ignores `tools:` but enforces the rendered
-`permissionMode: readonly`, so skills delegate the read-only roles there and
-keep `check-runner` in primary. See `../../docs/agents/cursor-cli.md`.
-
-Codex CLI has no plugin-bundled agent mechanism, so its subagents must be
-copied into a personal or trusted-project agents directory:
-
-```bash
-bash scripts/setup.sh --plugin cheap-dev-workers
-```
-
-Select Codex CLI in the interactive installer. This copies
-`codex-agents/*.toml` into `~/.codex/agents/` (personal scope only — this
-plugin does not install into a project's `.codex/agents/`).
+Select the runtime in the interactive installer; scripts and CI may use
+`--runtime copilot --yes`. Selecting Copilot leaves Codex agents untouched.
+Selecting Codex copies `codex-agents/*.toml` into `~/.codex/agents/` (personal
+scope only — this plugin does not install into a project's `.codex/agents/`).
 
 ## Worker Role sources
 
@@ -56,8 +40,8 @@ id, which roles carry it, and a `class`:
 
 - `shared` — same meaning in both runtimes; the wording still differs, which is
   unfinished normalization rather than design
-- `runtime` — deliberately different because the runtimes differ (Claude plugin
-  subagents cannot nest; Codex allows one hop)
+- `runtime` — deliberately different because the runtimes differ (e.g. nesting
+  depth; see `../../docs/agents/harnesses.md`)
 - `drift` — differs with no runtime justification
 
 Per-role, per-runtime prose lives in `roles/<role>.role`, because the same
@@ -96,12 +80,10 @@ mise run lint
 ## Releases
 
 Bump `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json` together
-whenever shipped files under this plugin directory change. Claude Code uses
-that string as the update cache key, so `claude plugin update` is a no-op
-until it changes. See [version management](https://code.claude.com/docs/en/plugins-reference#version-management).
-Copilot uses the same `.claude-plugin/plugin.json` version string as its
-update key. Codex personal agents are copies in `~/.codex/agents/`; after a
-release run root `scripts/upgrade.sh --plugin cheap-dev-workers`.
+whenever shipped files under this plugin directory change; plugin updates are
+a no-op until the string changes (`../../docs/agents/harnesses.md`). Codex
+personal agents are copies in `~/.codex/agents/`; after a release run root
+`scripts/upgrade.sh --plugin cheap-dev-workers`.
 
 The repository-root setup, upgrade, and uninstall scripts are the only public
 lifecycle entry points. They detect installed plugin state before acting;
@@ -112,9 +94,9 @@ plugin-local scripts are internal post-action helpers.
 - Skills request roles, never plugin identities or provider models. Runtime
   adapters resolve them: Claude Code and Copilot CLI dispatch
   `cheap-dev-workers:<role>`; Codex requests the installed role name.
-  Cursor CLI loads the same plugin agents and dispatches the read-only roles;
-  `check-runner` work stays in primary there because Cursor ignores its
-  `tools:` (`../../docs/agents/cursor-cli.md`).
+  Cursor CLI loads the same plugin agents and dispatches only the read-only
+  roles; `check-runner` work stays in primary there because its `tools:`
+  boundary is not enforced (`../../docs/agents/harnesses.md`).
 - Choose the role before the model. Prefer an available named worker for
   bounded, context-heavy work. If the role is unavailable or unsupported,
   callers may use one generic worker only when they can reproduce its
@@ -133,7 +115,7 @@ plugin-local scripts are internal post-action helpers.
 - Keep architecture, implementation, scope, test selection, Git mutation, and
   remote-state decisions in primary.
 - Limit a root task to four concurrent workers and one nested hop. No same-role
-  recursion. Claude plugin subagents cannot nest, so primary relays
+  recursion. Where plugin subagents cannot nest (Claude Code), primary relays
   `repo-explorer` → `check-runner` and `check-runner` → `log-summarizer`. Other
   runtimes may use the same paths only when supported.
 - Pass minimum caller-scoped context. Potentially sensitive logs cross a model
@@ -148,32 +130,24 @@ runtime supports per-dispatch selection. Otherwise the runtime inherits its
 parent or configured defaults. Skills name no provider or model, so targets can
 change without coupling workflow instructions.
 
-The `agents/*.md` (Claude Code, Copilot CLI, and Cursor CLI) and
-`codex-agents/*.toml` (Codex CLI) definitions carry the same hard rules and
-instructions in each tool's native format. Both are rendered from `roles/`, so
-they cannot be kept in sync by hand — edit the source and re-render. A role's
-single `capability` becomes the `tools:` frontmatter and the `sandbox_mode`
-together; Copilot maps that `tools:` list onto its own tool names, so the
-permission boundary survives without a Copilot-specific list. Cursor CLI
-ignores plugin `tools:`, so a `read-only` sandbox also renders
-`permissionMode: readonly`, the only field Cursor enforces on plugin agents.
-Readonly blocks every shell call, so `read+exec` renders no such field. Claude
-Code ignores it on plugin agents and logs a debug-level warning per file.
+The `agents/*.md` and `codex-agents/*.toml` definitions carry the same hard
+rules and instructions in each runtime's native format. Both are rendered from
+`roles/`, so they cannot be kept in sync by hand — edit the source and
+re-render. A role's single `capability` becomes the `tools:` frontmatter and
+the `sandbox_mode` together, with no runtime-specific tool list. A `read-only`
+sandbox also renders `permissionMode: readonly`, the field Cursor CLI enforces
+on plugin agents; `read+exec` renders none, since readonly blocks every shell
+call. Read-only roles carry `permissionMode: readonly`, never `readonly: true`,
+and `check-runner` carries neither; `tests/cheap-dev-workers-agents-content.sh`
+enforces both.
 
 Claude plugin subagents do not support `hooks` or `permissionMode`, so the
-check-runner's Bash mutation boundary is prompt-enforced. The primary supplies
-exact commands and treats an unexpected tracked-source change as failure.
+check-runner's Bash mutation boundary is prompt-enforced. The primary
+supplies exact commands and treats an unexpected tracked-source change as
+failure.
 
-## Codex CLI dispatch gotchas
-
-- [codex-cli] A prompt that both names an `agent_type` and asks the
-  orchestrator to fully inherit conversation history gets rejected by
-  Codex's collaboration layer. Dispatch these agents without full history
-  inheritance (e.g. `fork_turns: none`) instead.
-- [codex-cli] The root session relays whatever the subagent's final message
-  claims (counts, exit codes) without independently checking raw output.
-  Ask explicitly for the subagent's raw output when the claim matters,
-  rather than trusting the root session's summary of it.
+When dispatching these roles on Codex CLI, mind its dispatch gotchas (history
+inheritance, relayed claims) in `../../docs/agents/harnesses.md`.
 
 ## Prevent Recurrence
 

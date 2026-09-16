@@ -14,8 +14,7 @@ This project uses mise for the toolchain and task runner.
 - Before running or reporting verification, read `docs/agents/verification.md`
 - When applying a triage role, read `docs/agents/triage-labels.md`
 - Before exploring, read `docs/agents/domain.md`
-- When changing Copilot CLI plugin loading, read `docs/agents/copilot-cli.md`
-- When changing Cursor CLI plugin loading, read `docs/agents/cursor-cli.md`
+- When changing how a plugin loads or behaves under a specific runtime, read `docs/agents/harnesses.md`
 - When changing a covered skill, read `docs/evals/waza.md`
 
 ## Prevent Recurrence
