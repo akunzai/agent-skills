@@ -48,6 +48,14 @@ Audit the existing taxonomy first and narrow a near-duplicate rather than
 adding a second name for one role. A pre-existing `tracking` label described as
 "tracking issue or external dependency" conflates the aggregating role with the
 waiting-on-something role; leave both in place and neither gets applied
-consistently. `glab label list` pages at 30 and prints that page's count as
-though it were the total ("Showing label 30 of 30"), so an existing label reads
-as missing — pass `-P 100`.
+consistently.
+
+Read the set with `-P 100`. `glab label list` prints the count of the page it
+fetched, not of the set ("Showing label 30 of 30" at 30 labels and at 34
+alike), so a label past the first page reads as absent. The trap is invisible
+until a project crosses 30, which is when people have stopped watching for it.
+
+The stronger rule survives the pagination fix: **never write a label count into
+a document.** A hardcoded total reads as authoritative, so nobody re-derives
+it, and it is wrong from the next label onward. Say which command to run
+instead.
