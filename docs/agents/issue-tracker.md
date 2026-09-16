@@ -26,7 +26,9 @@ that shape when the issue already names its target skill.
    or the request, in plain language. Skip file paths and function names unless
    the reader cannot otherwise locate the issue.
 2. Add a visual the forge renders inline — a Mermaid diagram for a flow or a
-   decision tree, a terminal recording for a CLI or hook behaviour. Skip formats
+   decision tree, a terminal recording for a CLI or hook behaviour. In a
+   Mermaid label, write a path parameter as `:id`, not `{id}`, and break
+   lines with `<br/>`, not `\n`. Skip formats
    the description editor cannot render, such as a link to an external artifact
    or a raw HTML or SVG file. Attachments must not contain personally
    identifiable information; use test data, masking, or cropping. Upload with the
