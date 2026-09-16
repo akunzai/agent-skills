@@ -114,7 +114,10 @@ so in the issue rather than letting an agent guess.
 This repo's own labels, read from
 `<gh label list --limit 100 | glab label list --per-page 100>`. Both CLIs
 default to 30 and report that page as the whole set, so a label past the
-first page reads as absent. Nothing here invents a vocabulary; when a
+first page reads as absent. Do not write a label count into this file
+either: the count a CLI prints is the page it fetched, a total copied out
+of it reads as authoritative so nobody re-derives it, and it is wrong from
+the next label onward. Nothing here invents a vocabulary; when a
 label really is missing, that is a conversation with the maintainer, not
 a label to create.
 
@@ -125,6 +128,20 @@ both places has two owners and one of them goes stale on the next rename.
 
 - **Required on every issue**: `placeholder:labels, or "none"`
 - **Applied when it applies**: `placeholder:labels and what each one means`
+
+## Epic issues
+
+<!-- Delete this section when nothing here rolls up into a body of work
+     tracked as a unit. The forge's own epic skill owns the mechanics; this
+     file only records which surface this repo uses. -->
+
+`placeholder:what aggregates a body of work here` is the aggregating item,
+and it is the single source of truth for that work rather than something an
+implementer picks up.
+
+**When it records numbers**, say where each came from and when a row may be
+added; otherwise the next agent fills the table from whatever is at hand and
+the rows stop being comparable.
 
 ## When a skill says "publish to the issue tracker"
 
