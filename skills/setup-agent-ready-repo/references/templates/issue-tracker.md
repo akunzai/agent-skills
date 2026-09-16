@@ -114,7 +114,10 @@ so in the issue rather than letting an agent guess.
 This repo's own labels, read from
 `<gh label list --limit 100 | glab label list --per-page 100>`. Both CLIs
 default to 30 and report that page as the whole set, so a label past the
-first page reads as absent. Nothing here invents a vocabulary; when a
+first page reads as absent. Do not write a label count into this file
+either: the count a CLI prints is the page it fetched, a total copied out
+of it reads as authoritative so nobody re-derives it, and it is wrong from
+the next label onward. Nothing here invents a vocabulary; when a
 label really is missing, that is a conversation with the maintainer, not
 a label to create.
 
@@ -125,6 +128,35 @@ both places has two owners and one of them goes stale on the next rename.
 
 - **Required on every issue**: `placeholder:labels, or "none"`
 - **Applied when it applies**: `placeholder:labels and what each one means`
+
+## Epic issues
+
+<!-- Delete this whole section when nothing here rolls up into a body of
+     work tracked as a unit. Keep it when it does: an agent told to "open
+     an epic" otherwise reaches for whichever mechanism its skill assumes,
+     and on a forge that has no epics that means a command that fails. -->
+
+`placeholder:forge` <has native epics | has no native epics>, so the
+aggregating item here is `placeholder:what plays that role`.
+
+<!-- GitLab Free/CE has no epics at all: they are Premium and group-level,
+     and the API answers 403 or 404. GitHub has sub-issues rather than
+     epics. On either, the shape that works is an ordinary issue that
+     aggregates others, labelled so it can be found, with the children
+     linked by the forge's own relation — `relates_to` through
+     `glab api projects/:id/issues/:iid/links` on GitLab, sub-issues on
+     GitHub. Name the label here and let the labels document own what it
+     means, so it has one owner. -->
+
+An epic aggregates related issues and is the single source of truth for a
+body of work, rather than something an implementer picks up directly.
+
+**When an epic records numbers** — test counts, coverage, burn-down — say
+in the epic itself where each number comes from and when a new row may be
+added: the source command or pipeline, and the point in time it is valid.
+Without that the next agent fills the next row from whatever it has to
+hand, the rows stop being comparable, and the table loses the only reason
+it exists.
 
 ## When a skill says "publish to the issue tracker"
 
