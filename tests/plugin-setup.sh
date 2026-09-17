@@ -40,6 +40,41 @@ if bash "$ROOT_DIR/scripts/setup.sh" --threshold invalid >/dev/null 2>&1; then
   fail "setup accepted an invalid CodexBar threshold"
 fi
 
+# --- an empty ${compatible_plugins[@]} (no marketplace plugin supported by
+# the selected runtime) crashed macOS's stock /bin/bash 3.2 under `set -u`
+# at `plugins=("${compatible_plugins[@]}")`; exercise that path explicitly
+# under it with a fixture repo root whose Codex marketplace lists none of
+# the plugins the Claude-side manifest carries. ---
+mp_fixture="$tmp_dir/mp-fixture"
+mkdir -p "$mp_fixture/scripts" "$mp_fixture/.claude-plugin" "$mp_fixture/.agents/plugins" \
+  "$mp_fixture/bin"
+cp "$ROOT_DIR/scripts/manage-plugins.sh" "$mp_fixture/scripts/manage-plugins.sh"
+cat >"$mp_fixture/.claude-plugin/marketplace.json" <<'JSON'
+{"plugins":[{"name":"only-plugin","source":"./plugins/only-plugin"}]}
+JSON
+cat >"$mp_fixture/.agents/plugins/marketplace.json" <<'JSON'
+{"plugins":[]}
+JSON
+cat >"$mp_fixture/bin/codex" <<'STUB'
+#!/usr/bin/env bash
+case "$*" in
+  "plugin marketplace list --json") echo '{"marketplaces":[]}' ;;
+  "plugin list --json") echo '{"installed":[]}' ;;
+esac
+STUB
+chmod +x "$mp_fixture/bin/codex"
+set +e
+mp_out=$(PATH="$mp_fixture/bin:/usr/bin:/bin" \
+  /bin/bash "$mp_fixture/scripts/manage-plugins.sh" uninstall --runtime codex --yes 2>&1)
+mp_status=$?
+set -e
+[ "$mp_status" -eq 0 ] \
+  || fail "/bin/bash manage-plugins.sh should not crash with zero compatible plugins: $mp_out"
+case "$mp_out" in
+  *"Nothing to uninstall"*) ;;
+  *) fail "unexpected output with zero compatible plugins: $mp_out" ;;
+esac
+
 fake_home="$tmp_dir/home"
 stub_bin="$tmp_dir/bin"
 copilot_log="$tmp_dir/copilot.log"
@@ -128,6 +163,25 @@ PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" COPILOT_LOG="$copilot_log" \
   || fail "CodexBar uninstall with --keep-state failed"
 [ -f "$codexbar_state/quota-low-copilot.json" ] \
   || fail "root uninstall did not forward --keep-state to the CodexBar host helper"
+
+# Without --keep-state, cleanup_args stays an empty array. Expanding
+# "${cleanup_args[@]}" as a command's trailing arguments crashed macOS's
+# stock /bin/bash 3.2 under `set -u` ("cleanup_args[@]: unbound variable"),
+# so the CodexBar uninstall never reached remove-host.sh. Pin the
+# interpreter explicitly so this does not silently pass by picking up a
+# newer `bash` from PATH.
+touch "$codexbar_state/quota-low-copilot.json"
+set +e
+sysbash_out=$(PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" COPILOT_LOG="$copilot_log" \
+  COPILOT_PLUGIN_LIST="$copilot_codexbar" \
+  /bin/bash "$ROOT_DIR/scripts/uninstall.sh" --runtime copilot \
+    --plugin codexbar-quota-handoff --yes 2>&1)
+sysbash_status=$?
+set -e
+[ "$sysbash_status" -eq 0 ] \
+  || fail "/bin/bash CodexBar uninstall without --keep-state failed ($sysbash_status): $sysbash_out"
+[ ! -f "$codexbar_state/quota-low-copilot.json" ] \
+  || fail "uninstall without --keep-state left CodexBar state behind"
 
 # Claude Code uses JSON status output. Existing plugins are skipped and the
 # root charley-skills marketplace entry remains installable.

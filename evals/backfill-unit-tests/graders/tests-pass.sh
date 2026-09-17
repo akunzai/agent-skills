@@ -10,7 +10,12 @@ if [[ ! -d tests ]]; then
   exit 1
 fi
 
-mapfile -t tests < <(find tests -name 'test_*.py' -type f)
+# mapfile is bash 4+; macOS ships /bin/bash 3.2, so read filenames one at a
+# time instead.
+tests=()
+while IFS= read -r f; do
+  [[ -n $f ]] && tests+=("$f")
+done < <(find tests -name 'test_*.py' -type f)
 if ((${#tests[@]} == 0)); then
   echo "no tests/test_*.py files in the workspace" >&2
   exit 1

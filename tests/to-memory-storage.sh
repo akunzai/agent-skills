@@ -72,4 +72,33 @@ if "$SCRIPT" --bogus "$NON_GIT_DIR" >/dev/null 2>&1; then
   fail "Unknown option should fail"
 fi
 
+# Test 7: repo path containing a space, resolved both from the repo root and
+# from a subdirectory and a linked worktree beneath it. The unquoted
+# `$GIT_CMD rev-parse ...` word-splits a space in the path, so git silently
+# fails (2>/dev/null || true) and MAIN_REPO_ROOT falls back to the target
+# directory itself instead of the real repo root -- giving the subdirectory
+# and the worktree a different slug than the main repo root.
+SPACE_REPO_DIR="$TMP_DIR/repo with space"
+mkdir -p "$SPACE_REPO_DIR/sub dir"
+git -C "$SPACE_REPO_DIR" init -b main >/dev/null
+git -C "$SPACE_REPO_DIR" config user.email "test@example.com"
+git -C "$SPACE_REPO_DIR" config user.name "Test User"
+touch "$SPACE_REPO_DIR/README.md"
+git -C "$SPACE_REPO_DIR" add README.md
+git -C "$SPACE_REPO_DIR" commit -m "initial commit" >/dev/null
+
+SPACE_MAIN_MEM_PATH="$("$SCRIPT" "$SPACE_REPO_DIR")"
+SPACE_SUBDIR_MEM_PATH="$("$SCRIPT" "$SPACE_REPO_DIR/sub dir")"
+if [ "$SPACE_MAIN_MEM_PATH" != "$SPACE_SUBDIR_MEM_PATH" ]; then
+  fail "Space-in-path subdirectory memory path ($SPACE_SUBDIR_MEM_PATH) does not match main repo memory path ($SPACE_MAIN_MEM_PATH)"
+fi
+
+SPACE_WORKTREE_DIR="$TMP_DIR/work tree with space"
+git -C "$SPACE_REPO_DIR" worktree add -b feat-space-test "$SPACE_WORKTREE_DIR" >/dev/null 2>&1
+
+SPACE_WORKTREE_MEM_PATH="$("$SCRIPT" "$SPACE_WORKTREE_DIR")"
+if [ "$SPACE_MAIN_MEM_PATH" != "$SPACE_WORKTREE_MEM_PATH" ]; then
+  fail "Space-in-path worktree memory path ($SPACE_WORKTREE_MEM_PATH) does not match main repo memory path ($SPACE_MAIN_MEM_PATH)"
+fi
+
 echo "to-memory-storage tests passed"

@@ -1,3 +1,8 @@
+# Force LF on checkout for text files. Git for Windows defaults to
+# core.autocrlf=true, which checks .sh/.awk scripts out with CRLF and breaks
+# `set -o pipefail` and awk patterns like `$0 == "END"`.
+* text=auto eol=lf
+
 # Rendered from plugins/cheap-dev-workers/roles/ by scripts/render-roles.sh.
 # Collapsed by default on GitHub, but deliberately NOT marked -diff: these are
 # prompts, and a reviewer must be able to read every wording change.

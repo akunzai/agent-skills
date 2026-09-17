@@ -94,6 +94,9 @@ jobs:
       - name: Run waza run-suites checks
         run: bash tests/waza-run-suites.sh
 
+      - name: Run backfill-unit-tests tests-pass grader checks
+        run: bash tests/backfill-unit-tests-tests-pass-grader.sh
+
   agentsview-cli-contract:
     runs-on: ubuntu-latest
     steps:
@@ -140,6 +143,33 @@ jobs:
 
       - name: Run plugin version-bump checks
         run: bash tests/plugin-version-bump.sh
+
+  bash32-compat:
+    # Confirms the shipped/dev shell scripts still work on macOS's stock
+    # /bin/bash (3.2, pre-GPLv3), not just the Bash 4+ this repo's own dev
+    # shell and the other ubuntu-latest jobs use. No mise setup: jq and
+    # python3 are already on the macos-latest image, and the point is to
+    # exercise the system bash rather than a tool this repo's own toolchain
+    # provides.
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Confirm the system bash is the pre-4.0 version these tests target
+        run: /bin/bash --version
+
+      - name: Run plugin setup checks under /bin/bash
+        run: /bin/bash tests/plugin-setup.sh
+
+      - name: Run setup-agent-ready-repo template install checks under /bin/bash
+        run: /bin/bash tests/setup-agent-ready-repo-install-templates.sh
+
+      - name: Run waza run-suites checks under /bin/bash
+        run: /bin/bash tests/waza-run-suites.sh
+
+      - name: Run backfill-unit-tests tests-pass grader checks under /bin/bash
+        run: /bin/bash tests/backfill-unit-tests-tests-pass-grader.sh
 
   cheap-dev-workers:
     runs-on: ubuntu-latest

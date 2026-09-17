@@ -72,6 +72,20 @@ if [[ ! -f "$flag_path" ]]; then
   exit 0
 fi
 
+# Confirm jq is available *before* claiming the flag. Under `set -e`, a
+# missing jq on the hook's own PATH would otherwise crash mid-parse (exit
+# 127) after the flag was already renamed away by the `mv` below, silently
+# losing the reminder for good -- a fresh crossing is the only thing that
+# writes a new flag. Exit 1 (not 2): there is no parsed payload to relay,
+# so surfacing a "wrap up" procedure to the model would be wrong; this is a
+# local environment problem for a human to fix (install jq or extend
+# PATH), so it goes to the user via stderr the way Claude Code's hook
+# protocol treats exit 1, not to the model the way exit 2 does.
+if ! command -v jq >/dev/null 2>&1; then
+  printf 'codexbar-quota-handoff: jq not found on PATH; leaving quota flag in place\n' >&2
+  exit 1
+fi
+
 # Claim the flag with an atomic rename rather than read-then-delete: Stop and
 # PostToolUse are both registered on the same script, and PostToolUse fires
 # once per tool call, so multiple tool calls finishing in the same parallel

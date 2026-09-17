@@ -51,6 +51,16 @@ node "$TMP_DIR/skill-link/scripts/record.mjs" --help >"$TMP_DIR/symlink-help" \
 grep -q -- "--scenario" "$TMP_DIR/symlink-help" \
   || fail "record.mjs through a symlink printed nothing: main() did not run"
 
+node "$TMP_DIR/skill-link/scripts/suggest-zooms.mjs" --help >"$TMP_DIR/suggest-symlink-help" \
+  || fail "suggest-zooms.mjs through a symlink should exit 0"
+grep -q -- "--clicks" "$TMP_DIR/suggest-symlink-help" \
+  || fail "suggest-zooms.mjs through a symlink printed nothing: main() did not run"
+
+node "$TMP_DIR/skill-link/scripts/render-auto-zoom.mjs" --help >"$TMP_DIR/render-symlink-help" \
+  || fail "render-auto-zoom.mjs through a symlink should exit 0"
+grep -q -- "--video" "$TMP_DIR/render-symlink-help" \
+  || fail "render-auto-zoom.mjs through a symlink printed nothing: main() did not run"
+
 node "$RECORD" --help >"$TMP_DIR/record-help"
 grep -q -- "--width" "$TMP_DIR/record-help" || fail "record --help missing --width"
 grep -q -- "--pause-ms" "$TMP_DIR/record-help" || fail "record --help missing --pause-ms"

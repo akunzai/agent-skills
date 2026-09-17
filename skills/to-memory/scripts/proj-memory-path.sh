@@ -50,15 +50,25 @@ fi
 # Resolve canonical absolute path of target dir
 CANONICAL_TARGET="$(cd "$TARGET_DIR" && pwd -P)"
 
-GIT_CMD="env -u GIT_DIR -u GIT_WORK_TREE -u GIT_PREFIX git -C $CANONICAL_TARGET"
+# Wraps `git -C "$CANONICAL_TARGET"` as a function rather than an unquoted
+# string: a string command word-splits a space in CANONICAL_TARGET, sending
+# git a truncated -C path plus stray positional args, which makes it fail
+# silently (2>/dev/null || true below) and lets MAIN_REPO_ROOT wrongly fall
+# back to the target dir itself. bash 3.2 compatible (macOS /bin/bash): no
+# arrays-of-arrays, no mapfile.
+git_cmd() {
+  env -u GIT_DIR -u GIT_WORK_TREE -u GIT_PREFIX git -C "$CANONICAL_TARGET" "$@"
+}
 
 # Resolve Git Main Repo Root (supports Git worktrees)
 MAIN_REPO_ROOT=""
-if $GIT_CMD rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  COMMON_DIR="$($GIT_CMD rev-parse --git-common-dir 2>/dev/null || true)"
+if git_cmd rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  COMMON_DIR="$(git_cmd rev-parse --git-common-dir 2>/dev/null || true)"
   if [ -n "$COMMON_DIR" ]; then
-    # Make COMMON_DIR absolute if relative
-    if [[ "$COMMON_DIR" != /* ]]; then
+    # Make COMMON_DIR absolute if relative. Besides a leading `/`, also
+    # accept a drive-letter prefix (`C:/...` or `C:\...`): Git for Windows
+    # (Git Bash) can return one from --git-common-dir in linked worktrees.
+    if [[ "$COMMON_DIR" != /* && ! "$COMMON_DIR" =~ ^[A-Za-z]:[/\\] ]]; then
       COMMON_DIR="$CANONICAL_TARGET/$COMMON_DIR"
     fi
     ABS_COMMON_DIR="$(cd "$COMMON_DIR" 2>/dev/null && pwd -P || true)"
@@ -68,7 +78,7 @@ if $GIT_CMD rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   fi
 
   if [ -z "$MAIN_REPO_ROOT" ]; then
-    MAIN_REPO_ROOT="$($GIT_CMD rev-parse --show-toplevel 2>/dev/null || true)"
+    MAIN_REPO_ROOT="$(git_cmd rev-parse --show-toplevel 2>/dev/null || true)"
   fi
 fi
 
