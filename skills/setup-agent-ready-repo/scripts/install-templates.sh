@@ -135,21 +135,23 @@ is_at_file_ref() {
 }
 
 check_at_path_refs() {
-  local file=$1 rel=${1#"$DIR"/} found=0 lineno=0 line raw path
-  while IFS= read -r line || [ -n "$line" ]; do
-    lineno=$((lineno + 1))
-    [ -n "$line" ] || continue
-    while IFS= read -r raw; do
-      [ -n "$raw" ] || continue
-      path="${raw#*@}"
-      path="${path%.}"
-      path="${path%,}"
-      if is_at_file_ref "$path"; then
-        printf 'ATPATH      %s:%s @%s\n' "$rel" "$lineno" "$path"
-        found=1
-      fi
-    done < <(printf ' %s\n' "$line" | grep -oE '[^A-Za-z0-9]@[A-Za-z0-9._/-]+' || true)
-  done < "$file"
+  # A per-line `< <(...)` process substitution crashes bash 3.2 (exit
+  # 133/139, no output) after a few hundred lines: each iteration leaks a
+  # subshell/fd that the interpreter never reclaims. Prefixing every line
+  # with a space (so a line-leading @ref still matches the "non-alnum
+  # before @" rule) and running grep -n once over the whole file keeps the
+  # same match set and line numbers in a single process substitution.
+  local file=$1 rel=${1#"$DIR"/} found=0 lineno raw path
+  while IFS=: read -r lineno raw; do
+    [ -n "$raw" ] || continue
+    path="${raw#*@}"
+    path="${path%.}"
+    path="${path%,}"
+    if is_at_file_ref "$path"; then
+      printf 'ATPATH      %s:%s @%s\n' "$rel" "$lineno" "$path"
+      found=1
+    fi
+  done < <(sed 's/^/ /' "$file" | grep -noE '[^A-Za-z0-9]@[A-Za-z0-9._/-]+' || true)
   return "$found"
 }
 

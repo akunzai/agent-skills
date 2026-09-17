@@ -128,9 +128,15 @@ if ((${#requested[@]} > 0)); then
     selected+=("$name")
   done
 elif ((changed)); then
-  mapfile -t selected < <(suites_from_diff)
+  # mapfile is bash 4+; macOS ships /bin/bash 3.2, so read the suite names
+  # one at a time instead.
+  while IFS= read -r name; do
+    [[ -n $name ]] && selected+=("$name")
+  done < <(suites_from_diff)
 else
-  mapfile -t selected < <(all_suites)
+  while IFS= read -r name; do
+    [[ -n $name ]] && selected+=("$name")
+  done < <(all_suites)
 fi
 
 if ((${#selected[@]} == 0)); then
@@ -154,7 +160,7 @@ for name in "${selected[@]}"; do
   printf '==> %s\n' "$name"
   result_file="waza-results/${name}.json"
   if ! waza run "evals/${name}/eval.yaml" \
-    --output "$result_file" "${extra[@]}"; then
+    --output "$result_file" ${extra[@]+"${extra[@]}"}; then
     if ((failed == 0)) && copilot_unavailable_result "$result_file"; then
       message="Copilot quota or subscription is unavailable; skipping remaining Waza suites."
       if [[ ${GITHUB_ACTIONS:-} == true ]]; then

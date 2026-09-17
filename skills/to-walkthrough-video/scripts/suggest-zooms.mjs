@@ -272,8 +272,21 @@ export async function main(argv = process.argv.slice(2), io = process) {
   return 0;
 }
 
-const invoked = process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
-if (invoked) {
+// Skills are installed as symlinks, so argv[1] is the link while import.meta.url
+// is always the real path. Comparing them unresolved makes main() never run, and
+// the command exits 0 having done nothing.
+function isMainModule(arg) {
+  if (!arg) {
+    return false;
+  }
+  try {
+    return import.meta.url === pathToFileURL(fs.realpathSync(path.resolve(arg))).href;
+  } catch {
+    return false;
+  }
+}
+
+if (isMainModule(process.argv[1])) {
   main().then((code) => {
     process.exit(code);
   });

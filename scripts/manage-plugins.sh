@@ -307,7 +307,7 @@ for name in "${plugins[@]}"; do
     compatible_plugins+=("$name")
   fi
 done
-plugins=("${compatible_plugins[@]}")
+plugins=(${compatible_plugins[@]+"${compatible_plugins[@]}"})
 
 runtime_call load_status
 
@@ -318,7 +318,7 @@ is_installed() {
 selected_plugins=()
 if [[ -n "$plugin_filter" && "$plugin_filter" != "all" ]]; then
   found=false
-  for name in "${plugins[@]}"; do
+  for name in ${plugins[@]+"${plugins[@]}"}; do
     if [[ "$name" == "$plugin_filter" ]]; then
       found=true
       selected_plugins+=("$name")
@@ -333,7 +333,7 @@ elif [[ "$interactive" == true || ( -t 0 && -t 1 ) ]]; then
   echo ""
   echo "Plugins available for $(runtime_label "$runtime"):"
   index=1
-  for name in "${plugins[@]}"; do
+  for name in ${plugins[@]+"${plugins[@]}"}; do
     state="not installed"
     if is_installed "$name"; then
       state="installed"
@@ -344,7 +344,7 @@ elif [[ "$interactive" == true || ( -t 0 && -t 1 ) ]]; then
   printf 'Select plugins (numbers separated by commas, or all): '
   read -r reply
   if [[ "$reply" == "all" || -z "$reply" ]]; then
-    selected_plugins=("${plugins[@]}")
+    selected_plugins=(${plugins[@]+"${plugins[@]}"})
   else
     IFS=',' read -r -a selections <<<"$reply"
     for selection in "${selections[@]}"; do
@@ -358,11 +358,11 @@ elif [[ "$interactive" == true || ( -t 0 && -t 1 ) ]]; then
     done
   fi
 else
-  selected_plugins=("${plugins[@]}")
+  selected_plugins=(${plugins[@]+"${plugins[@]}"})
 fi
 
 target_plugins=()
-for name in "${selected_plugins[@]}"; do
+for name in ${selected_plugins[@]+"${selected_plugins[@]}"}; do
   installed=false
   if is_installed "$name"; then
     installed=true
@@ -468,7 +468,7 @@ for name in "${target_plugins[@]}"; do
           cleanup_args+=(--keep-state)
         fi
         bash "$repo_root/plugins/codexbar-quota-handoff/scripts/remove-host.sh" \
-          "${cleanup_args[@]}"
+          ${cleanup_args[@]+"${cleanup_args[@]}"}
         ;;
     esac
     break

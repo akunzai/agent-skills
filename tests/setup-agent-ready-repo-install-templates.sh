@@ -300,6 +300,48 @@ case "$OUT" in
   *) fail "--check did not name an extensionless path that exists: $OUT" ;;
 esac
 
+# --- check_at_path_refs scans a large file without crashing macOS's stock
+# /bin/bash 3.2 ---
+# The old implementation opened one `< <(... grep ...)` process substitution
+# per line. On bash 3.2 that pattern leaks resources across iterations and
+# the interpreter eventually aborts with SIGTRAP (exit 133) or SIGPIPE (exit
+# 141), printing nothing -- silently skipping the whole --check run. The
+# crash is a resource race (heap corruption from bash 3.2's own process-
+# substitution bookkeeping), so its exact threshold is not deterministic;
+# this fixture is sized well past the "a few hundred lines" the bug report
+# observed crashing on. The fix scans the file in one pass (sed+grep behind
+# a single process substitution), so this must still pass fast under both
+# bash 5 (this repo's dev shell) and, explicitly, /bin/bash.
+BIG_DIR="$TMP_DIR/bigcheck"
+mkdir -p "$BIG_DIR/docs/agents" "$BIG_DIR/scripts"
+touch "$BIG_DIR/scripts/dev-up.sh"
+{
+  echo "# Architecture"
+  echo ""
+  i=1
+  while [ "$i" -le 900 ]; do
+    echo "Paragraph $i explains a subsystem in plain prose with no file reference."
+    i=$((i + 1))
+  done
+  echo "Start the dev server with @scripts/dev-up.sh"
+  i=1
+  while [ "$i" -le 900 ]; do
+    echo "Paragraph $i explains another subsystem in plain prose with no file reference."
+    i=$((i + 1))
+  done
+} >"$BIG_DIR/docs/agents/architecture.md"
+[ "$(wc -l <"$BIG_DIR/docs/agents/architecture.md")" -gt 1500 ] \
+  || fail "big fixture is not large enough to exercise the scan at scale"
+
+for interpreter in bash /bin/bash; do
+  STATUS=0
+  OUT="$("$interpreter" "$SCRIPT" --check "$BIG_DIR" 2>&1)" || STATUS=$?
+  [ "$STATUS" -eq 1 ] \
+    || fail "$interpreter --check on the large fixture should exit 1, got $STATUS: $OUT"
+  [ "$OUT" = "ATPATH      docs/agents/architecture.md:903 @scripts/dev-up.sh" ] \
+    || fail "$interpreter --check on the large fixture printed unexpected output: $OUT"
+done
+
 # --- argument handling ---
 if "$SCRIPT" --forge bogus "$TMP_DIR" >/dev/null 2>&1; then
   fail "an unknown forge should fail"

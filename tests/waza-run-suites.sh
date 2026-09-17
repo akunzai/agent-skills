@@ -17,6 +17,13 @@ listed=$("$RUN" --print)
 printf '%s\n' "$listed" | grep -qx 'pr-workflow' \
   || fail "expected pr-workflow in the full suite list"
 
+# evals/run-suites.sh used `mapfile`, a bash 4+ builtin absent from macOS's
+# stock /bin/bash 3.2; pin the interpreter explicitly so this does not
+# silently pass by picking up a newer `bash` from PATH.
+listed_sysbash=$(/bin/bash "$RUN" --print)
+[ "$listed_sysbash" = "$listed" ] \
+  || fail "/bin/bash --print produced different suites than bash: $listed_sysbash"
+
 set +e
 "$RUN" --print nosuch-suite >/dev/null 2>/dev/null
 status=$?
@@ -177,5 +184,26 @@ status=$?
 set -e
 [ "$status" -eq 1 ] \
   || fail "a later quota error must not hide an earlier grader failure"
+
+# --- the empty `${extra[@]}` expansion (only populated by --baseline)
+# crashed /bin/bash 3.2 under `set -u`; run both the empty and populated
+# paths explicitly under it. ---
+rm -rf "$fixture_root/waza-results"
+set +e
+sysbash_out=$(FAKE_WAZA_MODE=pass PATH="$fake_bin:$PATH" \
+  /bin/bash "$fixture_root/evals/run-suites.sh" pr-workflow 2>&1)
+sysbash_status=$?
+set -e
+[ "$sysbash_status" -eq 0 ] \
+  || fail "/bin/bash run with no --extra flags should exit 0, got $sysbash_status: $sysbash_out"
+
+rm -rf "$fixture_root/waza-results"
+set +e
+sysbash_baseline_out=$(FAKE_WAZA_MODE=pass PATH="$fake_bin:$PATH" \
+  /bin/bash "$fixture_root/evals/run-suites.sh" --baseline pr-workflow 2>&1)
+sysbash_baseline_status=$?
+set -e
+[ "$sysbash_baseline_status" -eq 0 ] \
+  || fail "/bin/bash --baseline run should exit 0, got $sysbash_baseline_status: $sysbash_baseline_out"
 
 echo "waza run-suites checks passed"

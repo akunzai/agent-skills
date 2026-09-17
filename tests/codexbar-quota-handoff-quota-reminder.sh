@@ -76,7 +76,7 @@ run_reminder() {
   # may run under Grok/Copilot/Codex) so the default case is Claude unless
   # extra_env puts them back.
   (cd "$work" && env -u CURSOR_INVOKED_AS -u GROK_SESSION_ID -u COPILOT_CLI -u PLUGIN_ROOT \
-    "${extra_env[@]}" HOME="$home" CODEXBAR_QUOTA_FLAG_PATH="$flag_path" "$SCRIPT")
+    "${extra_env[@]+"${extra_env[@]}"}" HOME="$home" CODEXBAR_QUOTA_FLAG_PATH="$flag_path" "$SCRIPT")
 }
 
 # Each case: provider label and extra env assignments (as an array, one
@@ -96,7 +96,7 @@ run_case() {
 
   # --- no flag file present: must be a silent no-op (exit 0) ---
   local rc=0
-  run_reminder "$EMPTY_HOME" "$WORK_DIR" "$flag_path" "${extra_env[@]}" \
+  run_reminder "$EMPTY_HOME" "$WORK_DIR" "$flag_path" "${extra_env[@]+"${extra_env[@]}"}" \
     >/dev/null 2>&1 || rc=$?
   [ "$rc" -eq 0 ] || fail "[$provider] expected exit 0 with no flag file, got $rc"
 
@@ -106,7 +106,7 @@ run_case() {
 
   rc=0
   local stderr_output
-  stderr_output="$(run_reminder "$EMPTY_HOME" "$WORK_DIR" "$flag_path" "${extra_env[@]}" \
+  stderr_output="$(run_reminder "$EMPTY_HOME" "$WORK_DIR" "$flag_path" "${extra_env[@]+"${extra_env[@]}"}" \
     2>&1 1>/dev/null)" || rc=$?
   [ "$rc" -eq 2 ] || fail "[$provider] expected exit 2 with a flag file present, got $rc"
 
@@ -126,7 +126,7 @@ run_case() {
 
   # --- a second run with the flag gone must go back to being a no-op ---
   rc=0
-  run_reminder "$EMPTY_HOME" "$WORK_DIR" "$flag_path" "${extra_env[@]}" \
+  run_reminder "$EMPTY_HOME" "$WORK_DIR" "$flag_path" "${extra_env[@]+"${extra_env[@]}"}" \
     >/dev/null 2>&1 || rc=$?
   [ "$rc" -eq 0 ] || fail "[$provider] expected exit 0 after the flag was already cleared, got $rc"
 }
@@ -334,5 +334,32 @@ UNPARSABLE_STDERR="$(run_reminder "$EMPTY_HOME" "$WORK_DIR" "$UNPARSABLE_FLAG" \
   2>&1 1>/dev/null)" || RC=$?
 [ "$RC" -eq 2 ] || fail "expected exit 2 (fail open) for an unparsable resetAt, got $RC"
 assert_procedure "$UNPARSABLE_STDERR" "unparsable"
+
+# --- jq missing from PATH: the flag must be claimed only after jq is
+#     confirmed available, so a host whose hook PATH lacks jq doesn't
+#     silently consume (and lose) the reminder under `set -e`. A PATH dir
+#     with only a bash symlink (no jq) is enough: the jq check must happen
+#     before the flag is claimed or any other external tool (date, awk, mv)
+#     is invoked. ---
+NOJQ_BIN="$TMP_DIR/no-jq-bin"
+mkdir -p "$NOJQ_BIN"
+for tool in bash mv cat rm awk date printf env; do
+  tool_path="$(command -v "$tool" 2>/dev/null || true)"
+  [ -n "$tool_path" ] && ln -s "$tool_path" "$NOJQ_BIN/$tool"
+done
+
+NOJQ_FLAG="$TMP_DIR/nojq/quota-low.json"
+mkdir -p "$(dirname "$NOJQ_FLAG")"
+printf '%s' "$FIXTURE" >"$NOJQ_FLAG"
+
+RC=0
+NOJQ_STDERR="$(cd "$WORK_DIR" && env -i PATH="$NOJQ_BIN" HOME="$EMPTY_HOME" \
+  CODEXBAR_QUOTA_FLAG_PATH="$NOJQ_FLAG" "$SCRIPT" 2>&1 1>/dev/null)" || RC=$?
+[ "$RC" -eq 1 ] || fail "missing jq: expected exit 1, got $RC"
+[ -f "$NOJQ_FLAG" ] || fail "missing jq: flag file should remain in place, not be consumed"
+case "$NOJQ_STDERR" in
+  *jq*) ;;
+  *) fail "missing jq: stderr should mention jq (got: $NOJQ_STDERR)" ;;
+esac
 
 echo "codexbar-quota-handoff quota-reminder checks passed"
