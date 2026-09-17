@@ -14,8 +14,8 @@ Scripts live in `scripts/` next to this file.
 
 ## Prerequisites
 
-- Node.js
-- Playwright 1.59+ with Chromium (global, cwd, or `PLAYWRIGHT_DIR`)
+- Node.js or Bun (`bun scripts/record.mjs` works too; under Yarn PnP, run `yarn node scripts/record.mjs`)
+- Playwright 1.59+ with Chromium (global npm/pnpm/Yarn Classic/Bun, cwd, or `PLAYWRIGHT_DIR`)
 - `ffmpeg` on PATH for auto-zoom (both `.webm` and `.mp4`), and whenever `.mp4` output is requested
 
 Check first with `node scripts/record.mjs --check-prereqs`. If satisfied (exit 0), skip installation.

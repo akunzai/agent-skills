@@ -92,6 +92,19 @@ if (!Array.isArray(getGlobalNodeDirs())) {
   fail("getGlobalNodeDirs should return an array");
 }
 
+const fakeRoots = { npm: "/g/npm", pnpm: "/g/pnpm", yarn: "/g/yarn" };
+const fakeRun = (cmd) => (fakeRoots[cmd] ? { status: 0, stdout: fakeRoots[cmd] + "\n" } : { status: 1, stdout: "" });
+same(
+  getGlobalNodeDirs({ env: { NODE_PATH: "/g/node-path", BUN_INSTALL: "/g/bun" }, run: fakeRun }),
+  ["/g/node-path", "/g/npm", "/g/pnpm", path.join("/g/yarn", "node_modules"), path.join("/g/bun", "install", "global", "node_modules")],
+  "getGlobalNodeDirs probes npm, pnpm, Yarn Classic and Bun global roots",
+);
+same(
+  getGlobalNodeDirs({ env: { BUN_INSTALL_GLOBAL_DIR: "/g/bun-global" }, run: () => { throw new Error("ENOENT"); } }),
+  [path.join("/g/bun-global", "node_modules")],
+  "getGlobalNodeDirs honours BUN_INSTALL_GLOBAL_DIR and survives a missing package manager",
+);
+
 const mockGlobalDir = "${TMP_DIR}/global-modules";
 const mockPwDir = path.join(mockGlobalDir, "playwright");
 fs.mkdirSync(mockPwDir, { recursive: true });

@@ -240,40 +240,45 @@ function asPlaywright(mod) {
   return null;
 }
 
-export function getGlobalNodeDirs() {
-  const dirs = [];
-  if (process.env.NODE_PATH) {
-    dirs.push(...process.env.NODE_PATH.split(path.delimiter).filter(Boolean));
-  }
-  const isWin = process.platform === "win32";
+// Where each package manager's global install puts playwright. Bun's global
+// root is a fixed path, not something `bun pm` prints; `yarn global dir` exists
+// only in Yarn Classic and fails harmlessly under Berry.
+export function getGlobalNodeDirs(options = {}) {
+  const env = options.env ?? process.env;
   const spawnOpts = {
     encoding: "utf8",
     timeout: 3000,
     stdio: ["ignore", "pipe", "ignore"],
-    shell: isWin,
+    shell: process.platform === "win32",
   };
-  try {
-    const res = spawnSync("npm", ["root", "-g"], spawnOpts);
-    if (res.status === 0 && res.stdout) {
-      const p = res.stdout.trim();
-      if (p && !dirs.includes(p)) {
-        dirs.push(p);
-      }
+  const run = options.run ?? ((cmd, argv) => spawnSync(cmd, argv, spawnOpts));
+  const dirs = [];
+  const add = (p) => {
+    if (p && !dirs.includes(p)) {
+      dirs.push(p);
     }
-  } catch {
-    // npm not on PATH or failed
+  };
+  if (env.NODE_PATH) {
+    env.NODE_PATH.split(path.delimiter).filter(Boolean).forEach(add);
   }
-  try {
-    const res = spawnSync("pnpm", ["root", "-g"], spawnOpts);
-    if (res.status === 0 && res.stdout) {
-      const p = res.stdout.trim();
-      if (p && !dirs.includes(p)) {
-        dirs.push(p);
+  const probes = [
+    ["npm", ["root", "-g"], ""],
+    ["pnpm", ["root", "-g"], ""],
+    ["yarn", ["global", "dir"], "node_modules"],
+  ];
+  for (const [cmd, argv, suffix] of probes) {
+    try {
+      const res = run(cmd, argv);
+      const out = res?.status === 0 && typeof res.stdout === "string" ? res.stdout.trim() : "";
+      if (out) {
+        add(path.join(out, suffix));
       }
+    } catch {
+      // package manager not on PATH or failed
     }
-  } catch {
-    // pnpm not on PATH or failed
   }
+  const bunRoot = env.BUN_INSTALL_GLOBAL_DIR ?? path.join(env.BUN_INSTALL ?? path.join(os.homedir(), ".bun"), "install", "global");
+  add(path.join(bunRoot, "node_modules"));
   return dirs;
 }
 
