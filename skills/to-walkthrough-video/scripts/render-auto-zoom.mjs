@@ -258,7 +258,23 @@ export async function renderAutoZoom(options) {
   const webm = outPath.toLowerCase().endsWith(".webm");
   ffmpegArgs.push("-i", videoPath, "-filter_complex", filter, "-map", map, "-an");
   if (webm) {
-    ffmpegArgs.push("-c:v", "libvpx", "-b:v", "1.5M", "-pix_fmt", "yuv420p", "-deadline", "realtime");
+    // Constant quality, not a fixed bitrate: mostly static screen frames need little.
+    ffmpegArgs.push(
+      "-c:v",
+      "libvpx-vp9",
+      "-crf",
+      "32",
+      "-b:v",
+      "0",
+      "-pix_fmt",
+      "yuv420p",
+      "-deadline",
+      "good",
+      "-cpu-used",
+      "4",
+      "-row-mt",
+      "1",
+    );
   } else {
     ffmpegArgs.push(
       "-c:v",

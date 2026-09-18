@@ -1104,4 +1104,9 @@ DUR="$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$TM
 node -e "const d=Number(process.argv[1]); if (!(d>=2.5 && d<=3.5)) process.exit(1)" "$DUR" \
   || fail "rendered duration $DUR not ~3s"
 
+node "$RENDER" --video "$TMP_DIR/src.mp4" --clicks "$TMP_DIR/render.clicks.jsonl" --out "$TMP_DIR/out.webm" \
+  >/dev/null || fail "render-auto-zoom to webm failed"
+CODEC="$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of csv=p=0 "$TMP_DIR/out.webm")"
+[ "$CODEC" = "vp9" ] || fail "webm output should be VP9 (constant quality), got $CODEC"
+
 echo "to-walkthrough-video tests passed"
