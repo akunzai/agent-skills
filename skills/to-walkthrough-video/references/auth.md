@@ -95,7 +95,7 @@ walkthrough of the login page and nobody notices until playback.
 ## 4. Record
 
 ```bash
-node scripts/record.mjs --scenario scenario.json --out demo.webm \
+node scripts/record.mjs --scenario scenario.json --out demo.mp4 \
   --storage-state auth.json
 ```
 
@@ -109,7 +109,7 @@ not on any clock this skill can read.
 ## Signing in by hand instead
 
 ```bash
-node scripts/record.mjs --scenario scenario.json --out demo.webm --sign-in
+node scripts/record.mjs --scenario scenario.json --out demo.mp4 --sign-in
 ```
 
 A browser window opens on `scenario.url`, which the system will bounce to its
@@ -126,10 +126,10 @@ To check it end to end against the fixture:
 
 ```bash
 node examples/site/serve.mjs
-node scripts/record.mjs --scenario examples/scenario-auth.json --out demo.webm --sign-in
+node scripts/record.mjs --scenario examples/scenario-auth.json --out demo.mp4 --sign-in
 ```
 
-Sign in with anything, and confirm the first frame of `demo.webm` is already
+Sign in with anything, and confirm the first frame of `demo.mp4` is already
 the dashboard.
 
 ## Limits
@@ -158,7 +158,7 @@ anything, and a cookie-gated page:
 node examples/site/serve.mjs                 # http://localhost:4173/
 npx playwright open --save-storage=auth.json http://localhost:4173/login
 node scripts/record.mjs --scenario examples/scenario-auth.json \
-  --out demo.webm --storage-state auth.json
+  --out demo.mp4 --storage-state auth.json
 ```
 
 `examples/scenario.json` records the public page, for the mode that needs no

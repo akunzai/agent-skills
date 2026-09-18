@@ -34,7 +34,8 @@ function printUsage(stream) {
                   [--check-prereqs]
 
 Drive a Playwright walkthrough with a pointer, click echo, and auto-zoom.
-Auto-zoom works on both WebM and MP4, but requires ffmpeg.
+Prefer --out *.mp4 (smallest output). Auto-zoom works on both WebM and MP4,
+but requires ffmpeg.
 Without ffmpeg, output is raw WebM without zoom (pointer & click echo only).
 `);
 }

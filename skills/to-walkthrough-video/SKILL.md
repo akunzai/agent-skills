@@ -75,8 +75,12 @@ otherwise starts in `en-US`, so set it whenever the site is localized.
 2. **Record.** From a directory that can `import('playwright')`:
 
 ```bash
-node scripts/record.mjs --scenario scenario.json --out demo.webm
+node scripts/record.mjs --scenario scenario.json --out demo.mp4
 ```
+
+The `--out` extension picks the container. Default to `.mp4` (smallest, and
+plays in every browser and PR preview); use `.webm` only without ffmpeg or
+when the user asks for it.
 
 Leave this step when the video, `demo.clicks.jsonl`, and `demo.zooms.json`
 exist and the zoom file has `"status": "ok"` with one region per click
