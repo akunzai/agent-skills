@@ -159,8 +159,3 @@ inheritance, relayed claims) in `../../docs/agents/harnesses.md`.
   and one sentence on why the tiers above cannot hold it.
 - When adding to a file, audit the rest of it in the same pass; drop entries
   once tests or current documentation make them redundant.
-
-## Claude Code Compatibility
-
-`CLAUDE.md` is a symbolic link pointing to `AGENTS.md`. Edit `AGENTS.md`
-directly.
