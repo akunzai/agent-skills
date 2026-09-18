@@ -31,8 +31,8 @@ Before writing, hold the note to this bar:
 - **Stable** — a lasting convention, not a temporary hack.
 - Strip time-of-day stamps (e.g. `[HH:MM]`) — durable files are timeless.
 
-Placement — a root line or a topic doc behind a pointer — the size budget,
-and `CLAUDE.md` handling follow the `agents-md` skill.
+Placement — a root line or a topic doc behind a pointer — and the size budget
+follow the `agents-md` skill.
 
 Always show the exact addition and get explicit confirmation before writing to a
 durable file.

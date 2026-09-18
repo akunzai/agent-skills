@@ -4,7 +4,7 @@ This file documents example flows and mock transcripts for executing the `agents
 
 ---
 
-## Example 1: Creating a brand new AGENTS.md with Claude compatibility
+## Example 1: Creating a brand new AGENTS.md
 
 ### Scenario
 The codebase does not contain an `AGENTS.md` or `CLAUDE.md`. The agent discovers this and guides the user.
@@ -19,20 +19,8 @@ The codebase does not contain an `AGENTS.md` or `CLAUDE.md`. The agent discovers
    No files are found. The agent reports:
    > **AGENTS.md Quality Report**: Score: F (No AGENTS.md file found).
 
-2. **Compatibility Query**
-   The agent prompts the user to determine if they want to maintain Claude Code compatibility:
-   
-   > **Interactive Prompt**:
-   > "Would you like to maintain compatibility with Claude Code by symlinking CLAUDE.md to AGENTS.md?"
-   > - **Option 1 (Recommended)**: Yes, create CLAUDE.md as a symlink and explain it in AGENTS.md
-   > - **Option 2**: No, only create AGENTS.md
-
-3. **Symlink and File Setup**
-   If the user selects "Yes...", the agent runs:
-   ```bash
-   ln -s AGENTS.md CLAUDE.md
-   ```
-   And writes `AGENTS.md` from repo evidence — one-sentence description, non-default package manager, non-standard commands, pointers — plus the compatibility explanation block:
+2. **File Setup**
+   The agent writes `AGENTS.md` from repo evidence — one-sentence description, non-default package manager, non-standard commands, pointers — and creates no `CLAUDE.md`:
 
    ```markdown
    # Project Developer Guidelines
@@ -41,11 +29,10 @@ The codebase does not contain an `AGENTS.md` or `CLAUDE.md`. The agent discovers
 
    ## Commands
    - Test one file: npm test -- <filepath>
-
-   ## Claude Code Compatibility
-
-   `CLAUDE.md` is a symbolic link pointing to `AGENTS.md`. Edit `AGENTS.md` directly.
    ```
+
+3. **Claude Code Note**
+   The agent gives the version note from step 2 of the skill.
 
 ---
 
@@ -99,15 +86,15 @@ An `AGENTS.md` exists and `CLAUDE.md` is already a symbolic link pointing to `AG
 
 1. **Discovery & Symlink Verification**
    The agent scans the workspace root and finds `./CLAUDE.md` is already a symbolic link to `./AGENTS.md` (e.g., using `ls -la` or checking file properties).
-   
+
 2. **Quality Assessment Report**
    The agent evaluates the file and outputs the Quality Report.
 
-3. **No Prompt Confirmation**
-   The agent skips the interactive query entirely since compatibility is already active.
+3. **Leave the Symlink**
+   The agent does not touch the symlink. It mentions the link is optional on Claude Code 2.1.277+ and the user may delete it.
 
 4. **Apply Improvements**
-   The agent updates `AGENTS.md` directly while preserving or standardizing the Claude Code Compatibility section.
+   The agent updates `AGENTS.md` directly.
 
 ---
 
@@ -119,19 +106,16 @@ A repository has `AGENTS.md` and a regular `CLAUDE.md` file with separate instru
 ### Flow
 
 1. **Discovery & Safety Check**
-   The agent detects that `CLAUDE.md` exists and is not the intended symlink to `AGENTS.md`.
+   The agent detects that `CLAUDE.md` exists and is not a symlink to `AGENTS.md`, so it shadows `AGENTS.md` in Claude Code.
 
 2. **Preserve Before Replacing**
-   The agent reads `CLAUDE.md`, compares it with `AGENTS.md`, and summarizes unique instructions that would be lost if the file were replaced.
+   The agent reads `CLAUDE.md`, compares it with `AGENTS.md`, and summarizes unique instructions that would be lost if the file were removed.
 
 3. **Explicit Migration Proposal**
-   The agent asks the user whether to migrate the unique instructions into `AGENTS.md` and replace `CLAUDE.md` with a symlink.
+   The agent asks the user whether to migrate the unique instructions into `AGENTS.md` and remove `CLAUDE.md`.
 
 4. **Apply Only After Approval**
-   After approval, the agent updates `AGENTS.md`, moves or removes the old `CLAUDE.md` according to the agreed plan, and creates the symlink with:
-   ```bash
-   ln -s AGENTS.md CLAUDE.md
-   ```
+   After approval, the agent updates `AGENTS.md` and moves or removes the old `CLAUDE.md` according to the agreed plan.
 
 ---
 

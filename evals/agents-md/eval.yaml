@@ -50,8 +50,7 @@ graders:
           (('always write comments' in output.lower())
           + ('syntax error' in output.lower())
           + ('package.json' in output.lower())
-          + ('clean function' in output.lower())
-          + ('claude.md' in output.lower())) >= 2
+          + ('clean function' in output.lower())) >= 2
         - >-
           'because' in output.lower()
           or 'micromanag' in output.lower()

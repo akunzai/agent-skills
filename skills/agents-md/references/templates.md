@@ -80,29 +80,10 @@ A subtree gets a deeper `AGENTS.md` only for a durable local decision (for
 example, generated code or a security boundary). A package that can be cloned
 or assigned independently needs a standalone root `AGENTS.md`.
 
-## 3. Claude Code compatibility
-
-Claude Code reads `CLAUDE.md`, not `AGENTS.md`. For every `AGENTS.md` whose
-rules Claude Code should use, create a sibling `CLAUDE.md`: the repository root
-and every nested package with local `AGENTS.md` rules. Use a symlink when no
-Claude-specific instruction is needed. Document that convention once in the
-root `AGENTS.md`:
-
-```markdown
-## Claude Code Compatibility
-
-`CLAUDE.md` is a symbolic link pointing to `AGENTS.md`. Edit `AGENTS.md` directly.
-```
-
-Create the sibling symlink only when `CLAUDE.md` is absent or already points to
-`AGENTS.md`:
-
-```bash
-ln -s AGENTS.md CLAUDE.md
-```
+## 3. Claude Code
 
 For Claude-specific local instructions, use a regular sibling `CLAUDE.md` that
-imports the local file instead:
+imports the local file (compatibility rules: SKILL.md step 2):
 
 ```markdown
 @AGENTS.md
@@ -111,12 +92,8 @@ imports the local file instead:
 - <a Claude-specific local instruction>
 ```
 
-Do not import a parent `AGENTS.md` from a nested `CLAUDE.md`: Claude Code loads
-the `CLAUDE.md` hierarchy, so that repeats root instructions.
-
-If `CLAUDE.md` already exists and is not the intended symlink, do not replace it
-blindly. Read it, summarize any unique instructions, propose a migration into
-`AGENTS.md`, and ask for explicit approval before moving or replacing the file.
+Import only the sibling `AGENTS.md` from a nested `CLAUDE.md`: Claude Code
+loads the `CLAUDE.md` hierarchy, so a parent import repeats root instructions.
 
 ## 4. Pointers
 

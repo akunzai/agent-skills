@@ -1,10 +1,9 @@
 ---
 name: agents-md
 description: >-
-  AGENTS.md: create, audit, or maintain the file; keep Claude Code CLAUDE.md
-  symlink compatibility. Use when the user mentions AGENTS.md, CLAUDE.md,
-  project memory, instruction budget, or progressive disclosure of agent
-  instructions.
+  AGENTS.md: create, audit, or maintain the file. Use when the user mentions
+  AGENTS.md, project memory, instruction budget, or progressive disclosure of
+  agent instructions.
 ---
 
 # AGENTS.md
@@ -103,20 +102,19 @@ Quality Report before any edit.
 
 Done when the report is in the conversation and no edit has started.
 
-### 2. Interactive Compatibility Check
+### 2. Claude Code Check
 
-Before writing:
+Claude Code 2.1.277+ reads a project's `AGENTS.md` when it has no `CLAUDE.md`,
+so leave `CLAUDE.md` absent: no file, no symlink.
 
-- For each `AGENTS.md` that needs Claude Code compatibility, **check its sibling
-  `CLAUDE.md`** is a symbolic link to `AGENTS.md`.
-- **If already a symbolic link**: Skip the confirmation prompt entirely and
-  automatically proceed under the assumption that compatibility is desired.
-- **If a regular `CLAUDE.md` imports its local `AGENTS.md` and adds only
-  Claude-specific rules**: Preserve it as the compatible configuration.
-- **Otherwise, if `CLAUDE.md` exists**: Read it, summarize unique instructions,
-  propose migration, and ask approval before replacing it.
-- **Otherwise**: Prompt the user:
-  "Do you want Claude Code compatibility for this directory? (This will symlink its CLAUDE.md to AGENTS.md.)"
+- **Sibling `CLAUDE.md` is a symlink to `AGENTS.md`**: leave it; mention it is
+  optional on 2.1.277+ and the user may delete it.
+- **Regular `CLAUDE.md` that imports its local `AGENTS.md` and adds only
+  Claude-specific rules**: preserve it.
+- **Any other regular `CLAUDE.md`**: it shadows `AGENTS.md`. Read it, summarize
+  unique instructions, propose migration, and ask approval before replacing it.
+- **Older Claude Code**: tell the user they can run
+  `ln -s AGENTS.md CLAUDE.md` themselves.
 
 Done when the next action is known and a regular `CLAUDE.md` is still intact
 unless the user approved replacement.
@@ -133,12 +131,6 @@ Load [references/templates.md](references/templates.md) for this branch.
 - On a bloated existing file, group leftovers by domain, ask which of any
   contradictory pair to keep, and flag no-ops / vague / obvious lines for
   deletion.
-- If compatibility is active or selected:
-  - Create a sibling symlink only when `CLAUDE.md` is absent. Preserve a
-    regular file that imports local `AGENTS.md`; put Claude-specific rules there.
-  - Preserve any other regular `CLAUDE.md` until the user approves migration.
-  - Document the convention in root `AGENTS.md`; nested files need no duplicate
-    explanation.
 - Include the `Prevent Recurrence` section rules in `AGENTS.md` so all future
   agents follow them.
 

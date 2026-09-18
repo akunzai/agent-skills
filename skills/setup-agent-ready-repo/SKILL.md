@@ -199,8 +199,7 @@ document already states: [capture.md](references/capture.md).
 the entrypoint has run clean or
 its failure is recorded as a named gap,
 and `AGENTS.md` carries the pointers. Where `AGENTS.md` does not exist, hand that off to the
-`agents-md` skill, which owns the quality bar and the `CLAUDE.md`
-symlink. Where that skill is not installed, write a minimal `AGENTS.md`
+`agents-md` skill, which owns the quality bar. Where that skill is not installed, write a minimal `AGENTS.md`
 holding a one-line project description and the three pointers, and say
 in the hand-back that `agents-md` should audit it.
 
