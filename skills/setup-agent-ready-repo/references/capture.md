@@ -22,6 +22,34 @@ The iOS, Android, and macOS rows are untested here. Propose them as
 candidates and confirm with the developer before writing one into a
 project.
 
+## UI locale
+
+Browser automation starts in `en-US` whatever the developer's own browser
+says, so a localized app is captured in English unless the capture sets
+a locale. Look for evidence the UI ships more than one language: a
+locale or resource directory holding several languages (`locales/`,
+`i18n/`, `*.resx` per culture, `messages_*.properties`), an i18n library
+(`i18next`, `next-intl`, `vue-i18n`, `react-intl`), or code reading
+`Accept-Language`, a `?locale=` parameter or a locale cookie.
+
+Found: propose the language requests are written in as the UI locale
+when the UI ships it, else the UI's default, and let the developer
+confirm. Then read how the app picks its locale and write down what
+overrides the browser language. A leftover cookie or local-storage value
+that outranks it turns a correctly configured capture back into English,
+and nothing in the capture command shows why.
+
+Not found: record that the UI has one language and ask nothing.
+
+## Capture rules already written elsewhere
+
+A request or issue document the repo already had may name its own
+capture tool — "use Playwright's built-in video", say — written before
+`verification.md` existed. Two rules in two files disagree, and an agent
+follows whichever it read last. Replace that passage with one line
+pointing at `verification.md`'s Capturing evidence, show the diff, and
+wait for confirmation like any other edit.
+
 ## When nothing fits
 
 Write "this project has no automated visual evidence path" into

@@ -102,6 +102,12 @@ language='chinese|繁體中文|繁体中文|traditional chinese'
 require "$issues" "$language" "$issues does not record the ticket language"
 require "$pr" "$language" "$pr does not record the request language"
 
+# --- the capture locale: the fixture ships en and zh-TW, and the request
+# language this task gave is one the UI ships, so that is the default the
+# skill proposes and the follow-up keeps ---
+require "$verification" 'ui locale[^.]*(zh-tw|zh-hant)' \
+  "$verification does not record zh-TW as the UI locale for captures"
+
 # --- this task's stack, which the list cannot know either ---
 require "$verification" 'docker|compose|stack' \
   "$verification does not mention the stack it could not start"

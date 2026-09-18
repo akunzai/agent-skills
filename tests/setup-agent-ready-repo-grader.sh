@@ -136,6 +136,8 @@ npm test
 
 This document is where the capture rules live.
 
+- UI locale: **`zh-TW`**. Browser automation defaults to `en-US`, so set it on every capture.
+
 ## Not verified
 
 - The Docker Compose stack: Docker is unavailable here, so it was not verified.
@@ -168,6 +170,17 @@ if WAZA_WORKSPACE_DIR="$WS_AT" bash "$GRADER" 2>"$TMP_DIR/at.err"; then
 fi
 grep -q "still has an @docs/agents/issue-tracker.md pointer" "$TMP_DIR/at.err" \
   || fail "@path pointer was rejected without naming the pointer: $(cat "$TMP_DIR/at.err")"
+
+# --- a localized UI captured in the automation's default en-US is named ---
+WS_LOCALE="$TMP_DIR/locale"
+cp -R "$WS" "$WS_LOCALE"
+sed -i.bak 's/^- UI locale: .*/- UI locale: not applicable, the UI has one language./' \
+  "$WS_LOCALE/docs/agents/verification.md"
+if WAZA_WORKSPACE_DIR="$WS_LOCALE" bash "$GRADER" 2>"$TMP_DIR/locale.err"; then
+  fail "a verification.md with no capture locale for a localized UI was accepted"
+fi
+grep -q "does not record zh-TW as the UI locale" "$TMP_DIR/locale.err" \
+  || fail "missing capture locale was rejected without naming it: $(cat "$TMP_DIR/locale.err")"
 
 # --- a document translated out of English is named as such ---
 WS_ZH="$TMP_DIR/translated"

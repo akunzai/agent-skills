@@ -36,6 +36,8 @@ inputs:
     - path: package.json
     - path: compose.yml
     - path: README.md
+    - path: locales/en.json
+    - path: locales/zh-TW.json
 
 expected:
   outcomes:
