@@ -2,8 +2,8 @@
 name: to-walkthrough-video
 description: >-
   Record a website walkthrough video with auto-zoom on clicks.
-  Use when the user asks to record a walkthrough, or invokes
-  /to-walkthrough-video.
+  Use when the user asks for a walkthrough, when a PR, MR, or issue
+  needs a recording of a web flow, or on /to-walkthrough-video.
 ---
 
 # to-walkthrough-video
@@ -58,7 +58,8 @@ When missing, ask the user for confirmation before installing:
 
 Pointer, captions and auto-zoom are on; `effects` turns any off. Set
 `captionLocale` to the language of the conversation asking for the
-recording. See `references/effects.md`.
+recording, or, for evidence on an issue or request, to the language the
+repo writes those in. See `references/effects.md`.
 
 For mobile/tablet, set `scenario.device` to `"phone"` (newest iPhone Pro) or
 `"tablet"` (iPad Mini, narrower than iPad Pro so a collapsed nav still shows
@@ -67,7 +68,8 @@ For mobile/tablet, set `scenario.device` to `"phone"` (newest iPhone Pro) or
 taps `click`/`type`/`select` targets, so touch-only handlers fire;
 `dblclick` and a non-left `button` still use the mouse.
 `scenario.viewport`/`--width`/`--height` still override it.
-`scenario.locale` (e.g. `"zh-TW"`) sets the browser language, and
+`scenario.locale` (e.g. `"zh-TW"`) sets the browser language; Playwright
+otherwise starts in `en-US`, so set it whenever the site is localized.
 `"ignoreHTTPSErrors": true` accepts a self-signed local certificate.
 
 2. **Record.** From a directory that can `import('playwright')`:
