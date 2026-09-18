@@ -44,7 +44,9 @@ From skills this session can already see (harness skill list, or `skills ls --js
 
 Put absolute `SKILL.md` paths in the brief. That list is the full set the implementer reads.
 
-**Done** when the brief lists those paths, or lists none.
+A slice whose acceptance includes screenshots or a recording also gets its capture skills and settings. Named: **Evidence capture** — `references/brief-elements.md`.
+
+**Done** when the brief lists those paths, or lists none, and a slice with visual evidence carries each **Evidence capture** item.
 
 ## 5. Isolate
 
