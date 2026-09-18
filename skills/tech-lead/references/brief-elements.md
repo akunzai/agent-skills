@@ -37,6 +37,26 @@ that slice's branch instead of the default branch. Basing on default
 guarantees a conflict in exactly the files the brief allows the new slice to
 touch — the overlap step 1 already recorded is not hypothetical.
 
+## Evidence capture (step 4)
+
+The step 4 filter keeps implementation skills, so capture falls through
+it: a brief listing only a screenshot CLI produced English screenshots of
+a zh-TW app, in a repo whose rules preferred a walkthrough recorder.
+
+For a slice whose acceptance includes visual evidence:
+
+- Find the project's capture rules wherever it keeps them — a
+  verification or contributing doc, a request template, `AGENTS.md` — and
+  name the file in the brief. Where none exist, say so; the next item
+  still applies.
+- Add the capture skills from the visible list whose descriptions match
+  the platform (a web walkthrough recorder, a terminal recorder), in
+  preference to the tool the rules call a fallback.
+- Where the UI is localized, state the UI locale as a setting the
+  capture applies (browser automation starts in `en-US`, whatever the
+  developer's own browser says), plus anything known to override it, such
+  as a locale cookie.
+
 ## Wave dispatch (step 6)
 
 Launch one wave's dispatches together, then wait for that whole wave to

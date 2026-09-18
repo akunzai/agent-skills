@@ -192,7 +192,8 @@ included.
 
 Entrypoint detection, port strategy, local and deployed verification:
 [verification.md](references/verification.md). Capture tooling per
-platform: [capture.md](references/capture.md).
+platform, the UI locale to capture in, and capture rules an existing
+document already states: [capture.md](references/capture.md).
 
 **Done when** `verification.md` exists and carries its `drift:` markers,
 the entrypoint has run clean or

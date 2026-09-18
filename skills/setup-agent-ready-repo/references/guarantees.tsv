@@ -43,3 +43,4 @@ verification	the proof that the entrypoint came up	[*][*]proof	verification.md, 
 verification	what could not be verified, and why	not verified|unverified|could not be verified	verification.md, Not verified
 verification	that a gap you could have closed is not a gap	could have closed|already seen running	verification.md, Not verified
 verification	the capture rules the request document points at	capture rules|capturing evidence	verification.md, Capturing evidence
+verification	the UI locale captures are taken in	ui locale	verification.md, Capturing evidence
