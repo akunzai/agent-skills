@@ -72,10 +72,8 @@ follows the conversation's language; copying bytes does not.
 nobody replaced, for any guarantee in
 [guarantees.tsv](references/guarantees.tsv) the document no longer
 carries, and for `@path` file references in any `docs/agents/*.md`. Run
-it before asking for confirmation. On any finding, fix the file and run
-it again — do not pause to judge whether this finding applies given the
-language answer below; loop on fix-then-rerun until it exits 0, the same
-mechanical step regardless of which language issues or requests use.
+it before asking for confirmation. On any finding, fix the file and rerun
+until it exits 0; do not judge whether the finding applies.
 
 A repo set up by an earlier version reaches the current one through that
 last check. It reports the guarantee and where in the template to read
@@ -145,9 +143,8 @@ land with tests, which of the repo's existing labels an agent should
 apply, the request-title convention, read from merged requests
 (`gh pr list --state merged --limit 30 --json title`,
 `glab mr list --merged`), and where issues are tracked. Read
-the labels with the page size raised
-(`gh label list --limit 100`, `glab label list --per-page 100`): both
-default to 30 and present that page as the whole set, so a label further
+the labels with the page size raised (`gh label list --limit 100`,
+`glab label list --per-page 100`): both default to 30, so a label further
 down reads as missing. Inventing a label vocabulary, or importing one
 from another project, produces labels nobody uses; a missing label is a
 conversation with the maintainer.
@@ -195,11 +192,13 @@ Entrypoint detection, port strategy, local and deployed verification:
 platform, the UI locale to capture in, and capture rules an existing
 document already states: [capture.md](references/capture.md).
 
-**Done when** `verification.md` exists and carries its `drift:` markers,
-the entrypoint has run clean or
-its failure is recorded as a named gap,
-and `AGENTS.md` carries the pointers. Where `AGENTS.md` does not exist, hand that off to the
-`agents-md` skill, which owns the quality bar. Where that skill is not installed, write a minimal `AGENTS.md`
+**Done when** `verification.md` exists, carries its `drift:` markers and a
+`UI locale:` line (the language requests are written in when the UI ships
+it, else the UI default), the entrypoint has run clean or
+its failure is recorded as a named gap, all three documents are English
+prose (other languages only inside backticks), and `AGENTS.md` carries
+the pointers. Where `AGENTS.md` does not exist, hand that off to the
+`agents-md` skill. Where it is not installed, write a minimal `AGENTS.md`
 holding a one-line project description and the three pointers, and say
 in the hand-back that `agents-md` should audit it.
 
