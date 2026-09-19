@@ -32,12 +32,17 @@ while IFS= read -r slug; do
     || fail "README references skill '$slug' but skills/$slug/SKILL.md not found"
 done <<< "$README_SKILLS"
 
-# --- Claude plugin: name kebab-cases to "Charley Skills" in skills-manager / `npx skills add` ---
+# --- catalog manifest: name kebab-cases to "Charley Skills" in skills-manager / `npx skills add` ---
 PLUGIN_JSON="$ROOT_DIR/.claude-plugin/plugin.json"
 MARKETPLACE_JSON="$ROOT_DIR/.claude-plugin/marketplace.json"
+CODEX_MARKETPLACE_JSON="$ROOT_DIR/.agents/plugins/marketplace.json"
 
 [ -f "$PLUGIN_JSON" ] || fail ".claude-plugin/plugin.json is missing"
 jq empty "$PLUGIN_JSON" 2>/dev/null || fail ".claude-plugin/plugin.json is not valid JSON"
+
+if jq -e 'has("version")' "$PLUGIN_JSON" >/dev/null; then
+  fail ".claude-plugin/plugin.json must not have version (catalog only, not a plugin)"
+fi
 
 PLUGIN_NAME="$(jq -r '.name // empty' "$PLUGIN_JSON")"
 [ "$PLUGIN_NAME" = "charley-skills" ] \
@@ -51,8 +56,30 @@ EXPECTED_PLUGIN_SKILLS="$(printf '%s\n' "$ON_DISK_SKILLS" | sed 's|^|./skills/|'
 [ -f "$MARKETPLACE_JSON" ] || fail ".claude-plugin/marketplace.json is missing"
 jq empty "$MARKETPLACE_JSON" 2>/dev/null || fail ".claude-plugin/marketplace.json is not valid JSON"
 
-MARKETPLACE_ENTRY="$(jq -r '.plugins[] | select(.name == "charley-skills") | .source' "$MARKETPLACE_JSON")"
-[ "$MARKETPLACE_ENTRY" = "./" ] \
-  || fail "Claude marketplace is missing charley-skills with source './' (got: '$MARKETPLACE_ENTRY')"
+[ -f "$CODEX_MARKETPLACE_JSON" ] || fail ".agents/plugins/marketplace.json is missing"
+jq empty "$CODEX_MARKETPLACE_JSON" 2>/dev/null || fail ".agents/plugins/marketplace.json is not valid JSON"
+
+if jq -e '.plugins[] | select(.name == "charley-skills")' "$MARKETPLACE_JSON" >/dev/null; then
+  fail "Claude marketplace must not list charley-skills (catalog skills are not plugins)"
+fi
+if jq -e '.plugins[] | select(.name == "charley-skills")' "$CODEX_MARKETPLACE_JSON" >/dev/null; then
+  fail "Codex marketplace must not list charley-skills (catalog skills are not plugins)"
+fi
+
+while IFS= read -r source; do
+  [ -n "$source" ] || continue
+  case "$source" in
+    ./plugins/*) ;;
+    *) fail "Claude marketplace source '$source' must be under ./plugins/" ;;
+  esac
+done < <(jq -r '.plugins[].source' "$MARKETPLACE_JSON")
+
+while IFS= read -r source; do
+  [ -n "$source" ] || continue
+  case "$source" in
+    ./plugins/*) ;;
+    *) fail "Codex marketplace path '$source' must be under ./plugins/" ;;
+  esac
+done < <(jq -r '.plugins[].source.path // empty' "$CODEX_MARKETPLACE_JSON")
 
 echo "skill-catalog-sync checks passed"

@@ -72,7 +72,9 @@ the file; English is the shared language across harnesses.
 
 Also add `./skills/<name>` to the `skills` array in
 `.claude-plugin/plugin.json` so `skills add` / `npx skills add` groups it under
-**Charley Skills**.
+**Charley Skills**. Do not add a catalog skill to the marketplace: plugin
+install prefixes the name (`charley-skills:to-memory`) and named lookup
+misses it.
 
 ### Manual-only skills
 
@@ -118,20 +120,20 @@ Register the test in `.github/workflows/tests.yml` under an appropriate job.
 Installed plugins update only when the manifest `version` string changes;
 which runtime keys updates on which manifest is in `docs/agents/harnesses.md`.
 When shipped files under `plugins/<name>/` change, bump `version` in both
-`.claude-plugin/plugin.json` and `.codex-plugin/plugin.json` and keep them
-equal. Patch for text or script fixes, minor for new roles or contracts, major
-for breaking role names or permission boundaries. `tests/plugin-version-bump.sh`
+`plugins/<name>/.claude-plugin/plugin.json` and
+`plugins/<name>/.codex-plugin/plugin.json` and keep them equal. Patch for
+text or script fixes, minor for new roles or contracts, major for breaking
+role names or permission boundaries. `tests/plugin-version-bump.sh`
 enforces the bump. The repository-root lifecycle manager copies Codex personal
 agents as a plugin post-action, so run root `scripts/upgrade.sh` after a
 release.
 
-The root **charley-skills** plugin (source `./` in
-`.claude-plugin/marketplace.json`) ships `skills/**` directly — there is no
-`plugins/charley-skills/` wrapper. Any change under `skills/` (a new skill, an
-edited `SKILL.md`, added scripts/references/examples) bumps `version` in the
-root `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json`, kept equal,
-same semver rule as above. `tests/plugin-version-bump.sh` enforces this bump
-too. Every plugin also needs an entry in `.agents/plugins/marketplace.json`.
+Catalog skills under `skills/` are not plugins. Do not add them to
+`.claude-plugin/marketplace.json` or `.agents/plugins/marketplace.json`.
+Every marketplace plugin lives under `plugins/<name>/` and needs an entry in
+both marketplace files. Root `.claude-plugin/plugin.json` is only the
+`skills add` / `npx skills add` catalog (name kebab-cases to **Charley
+Skills**); it has no `version` and is not installable as a plugin.
 
 ## Code Style
 

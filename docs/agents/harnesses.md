@@ -7,11 +7,10 @@ section per harness. Plugin-specific consequences live in that plugin's
 ## Claude Code
 
 - **Update key**: marketplace plugins are pinned on the `version` string in
-  `.claude-plugin/plugin.json`.
+  that plugin's `.claude-plugin/plugin.json`.
   [`claude plugin update`](https://code.claude.com/docs/en/plugins-reference#version-management)
-  skips when that string is unchanged, even if the git SHA moved. The root
-  **charley-skills** plugin (source `./` in `.claude-plugin/marketplace.json`)
-  ships `skills/**` directly under the same key.
+  skips when that string is unchanged, even if the git SHA moved. Root
+  `.claude-plugin/plugin.json` is the `skills add` catalog, not a plugin.
 - **Manual-only skills**: `disable-model-invocation: true` in `SKILL.md`
   frontmatter is honoured directly.
 - **Plugin subagents** cannot nest, and do not support `hooks` or
@@ -47,8 +46,8 @@ Verified against Copilot CLI 1.0.82 on macOS.
 ### Manifests
 
 Copilot's plugin loader accepts `.claude-plugin/marketplace.json` and
-`.claude-plugin/plugin.json` as-is, so no Copilot-specific manifest exists in
-this repository. Copilot uses that `.claude-plugin/plugin.json` `version` as
+each plugin's `.claude-plugin/plugin.json` as-is, so no Copilot-specific
+manifest exists in this repository. Copilot uses that plugin `version` as
 its update key.
 
 ```bash

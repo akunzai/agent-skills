@@ -12,10 +12,6 @@
     {
       "name": "spoken-tts",
       "source": { "source": "local", "path": "./plugins/spoken-tts" }
-    },
-    {
-      "name": "charley-skills",
-      "source": { "source": "local", "path": "./" }
     }
   ]
 }

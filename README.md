@@ -36,6 +36,10 @@ npx skills add akunzai/agent-skills
 
 The interactive picker groups the catalog as **Charley Skills**.
 
+If you previously installed the `charley-skills` plugin, uninstall it from
+the runtime and run `skills add` instead. Plugin-installed skills are
+prefixed (`charley-skills:to-memory`) and named lookup misses them.
+
 ### Engineering
 
 #### [`setup-agent-ready-repo`](skills/setup-agent-ready-repo/SKILL.md)
@@ -155,31 +159,9 @@ marketplace manifest.
 
 ### Install
 
-Install a single plugin directly — no local clone needed. The skills
-catalog above ships as the `charley-skills` plugin for four plugin runtimes:
-Claude Code, Codex CLI, GitHub Copilot CLI, and Cursor CLI.
-
-```bash
-claude plugin marketplace add akunzai/agent-skills
-claude plugin install charley-skills@akunzai-agent-skills --scope user
-```
-
-```bash
-codex plugin marketplace add akunzai/agent-skills
-codex plugin add charley-skills@akunzai-agent-skills
-```
-
-GitHub Copilot CLI reads the same marketplace manifest:
-
-```bash
-copilot plugin marketplace add akunzai/agent-skills
-copilot plugin install charley-skills@akunzai-agent-skills
-```
-
 Cursor CLI needs no install of its own: `cursor-agent` loads the plugins
 enabled in Claude Code. Without Claude Code, add the marketplace and enable
-plugins in the session with `/plugin`. Unlike the commands above, it needs the
-`github.com/` prefix:
+plugins in the session with `/plugin`. It needs the `github.com/` prefix:
 
 ```bash
 cursor-agent plugin marketplace add github.com/akunzai/agent-skills
@@ -189,8 +171,8 @@ Codex upgrades its marketplace snapshot as a unit (`codex plugin
 marketplace upgrade akunzai-agent-skills`) because its CLI does not expose a
 per-plugin update command.
 
-The other plugins need extra setup that the native commands skip — host
-integration for `codexbar-quota-handoff`, Codex personal-agent sync for
+The plugins need extra setup that native commands skip — host integration
+for `codexbar-quota-handoff`, Codex personal-agent sync for
 `cheap-dev-workers` — so install them from a clone of this repository:
 
 ```bash
@@ -214,9 +196,6 @@ entry points; plugin-local scripts are internal post-actions.
 
 ### Available plugins
 
-- [`charley-skills`](#skills) — the skills catalog above, packaged as a
-  plugin for every plugin runtime. Prefer `skills add` when the runtime
-  supports it.
 - [`codexbar-quota-handoff`](plugins/codexbar-quota-handoff/README.md) — a
   plugin for every plugin runtime that reminds the
   agent to wrap up when
