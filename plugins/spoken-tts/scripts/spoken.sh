@@ -573,7 +573,6 @@ synth_edge_tts() {
   local voice="$1" text="$2"
   local tmp media
   if ! audio_player >/dev/null; then
-    print_missing_player
     return 1
   fi
   tmp="$(make_temp)"
@@ -613,11 +612,12 @@ speak_text() {
     if run_synth "$PROVIDER" "$VOICE" "$text"; then
       return 0
     fi
-    if [[ "$PROVIDER" == edge-tts ]] && ! audio_player >/dev/null; then
-      return 1
-    fi
     fallback_provider="$(native_provider)"
     if [[ -z "$fallback_provider" || "$fallback_provider" == "$PROVIDER" ]]; then
+      if [[ "$PROVIDER" == edge-tts ]] && ! audio_player >/dev/null; then
+        print_missing_player
+        return 1
+      fi
       printf 'spoken: %s failed\n' "$PROVIDER" >&2
       return 1
     fi

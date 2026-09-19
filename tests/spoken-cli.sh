@@ -249,11 +249,21 @@ rm -f "$XDG_STATE_HOME/spoken-tts/player.pid"
 [ ! -f "$XDG_STATE_HOME/spoken-tts/player.pid" ] \
   || fail "CLI speak should wait inline, not leave a background player.pid"
 
+# Isolated PATH: Linux CI has no afplay/mpv; macOS /usr/bin/afplay must not hide that.
+NO_PLAYER="$TMP_DIR/no-player"
+mkdir -p "$NO_PLAYER"
+for bin in bash jq mktemp uname awk mkdir rm cat kill; do
+  src="$(command -v "$bin")" || fail "missing $bin for no-player PATH"
+  ln -s "$src" "$NO_PLAYER/$bin"
+done
+
 # --- edge-tts failure falls back to native say ---
 run config-write --provider edge-tts --locale zh-TW --voice zh-TW-HsiaoChenNeural >/dev/null
 rm -f "$SAY_LOG" "$EDGE_LOG"
 set +e
-printf 'hello fallback' | EDGE_TTS_FAIL=1 run speak >/dev/null 2>"$TMP_DIR/fallback.err"
+printf 'hello fallback' | env PATH="$NO_PLAYER:$STUB_BIN" \
+  SPOKEN_SYNC=1 SPOKEN_NATIVE_PROVIDER=say EDGE_TTS_FAIL=1 \
+  bash "$SCRIPT" speak >/dev/null 2>"$TMP_DIR/fallback.err"
 set -e
 [ -f "$SAY_LOG" ] || fail "fallback should invoke say: $(cat "$TMP_DIR/fallback.err")"
 grep -q 'hello fallback' "$SAY_LOG" || fail "fallback say log missing text: $(cat "$SAY_LOG")"
@@ -261,12 +271,6 @@ grep -qi 'edge-tts failed' "$TMP_DIR/fallback.err" \
   || fail "fallback should log on stderr: $(cat "$TMP_DIR/fallback.err")"
 
 # --- edge-tts without an audio player explains how to install one ---
-NO_PLAYER="$TMP_DIR/no-player"
-mkdir -p "$NO_PLAYER"
-for bin in bash jq mktemp uname awk mkdir rm cat kill; do
-  src="$(command -v "$bin")" || fail "missing $bin for no-player PATH"
-  ln -s "$src" "$NO_PLAYER/$bin"
-done
 set +e
 printf 'silent' | env PATH="$NO_PLAYER:$STUB_BIN" SPOKEN_NATIVE_PROVIDER='' \
   bash "$SCRIPT" speak >"$TMP_DIR/player.out" 2>"$TMP_DIR/player.err"
