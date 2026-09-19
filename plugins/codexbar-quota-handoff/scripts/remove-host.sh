@@ -5,7 +5,7 @@ usage() {
   cat <<'EOF'
 Usage: remove-host.sh [options]
 
-Remove the shared runtime helpers, Grok global hook, and CodexBar rules.
+Remove the shared runtime helpers, leftover Grok global hook, and CodexBar rules.
 
 Options:
   --keep-state       Preserve quota flag files

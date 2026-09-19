@@ -3,7 +3,8 @@ set -euo pipefail
 
 dest="$HOME/.codex/agents"
 plugin_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-agents=(repo-explorer.toml check-runner.toml log-summarizer.toml commit-writer.toml)
+agents=(repo-explorer.toml check-runner.toml log-summarizer.toml)
+leftovers=(commit-writer.toml)
 removed=false
 
 for name in "${agents[@]}"; do
@@ -17,7 +18,7 @@ for name in "${agents[@]}"; do
   fi
 done
 
-for name in "${agents[@]}"; do
+for name in "${agents[@]}" "${leftovers[@]}"; do
   target="$dest/$name"
   if [[ -f "$target" ]]; then
     rm -f "$target"

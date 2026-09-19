@@ -19,7 +19,7 @@ printf '{}' | "$SCRIPT" >/dev/null 2>&1 || RC=$?
 
 # --- each provider writes to its own path, from the same CodexBar hook rule
 #     pattern (one rule per provider, all calling this same script) ---
-for provider in claude grok codex; do
+for provider in claude copilot codex; do
   FIXTURE="{\"account\":null,\"event\":\"quota_low\",\"limit\":null,\"provider\":\"$provider\",\"resetAt\":\"2026-08-13T02:00:00Z\",\"status\":null,\"timestamp\":\"2026-08-12T15:32:00Z\",\"usagePercent\":0.93,\"used\":null,\"window\":\"session\"}"
   FLAG_PATH="$TMP_DIR/$provider/quota-low.json"
 
@@ -45,12 +45,12 @@ ACTUAL2="$(cat "$FLAG_PATH")"
 FAKE_HOME="$TMP_DIR/home"
 mkdir -p "$FAKE_HOME"
 env -u CODEXBAR_QUOTA_FLAG_PATH -u XDG_STATE_HOME HOME="$FAKE_HOME" bash -c "printf '{}' | '$SCRIPT' claude"
-env -u CODEXBAR_QUOTA_FLAG_PATH -u XDG_STATE_HOME HOME="$FAKE_HOME" bash -c "printf '{}' | '$SCRIPT' grok"
+env -u CODEXBAR_QUOTA_FLAG_PATH -u XDG_STATE_HOME HOME="$FAKE_HOME" bash -c "printf '{}' | '$SCRIPT' copilot"
 
 [ -f "$FAKE_HOME/.local/state/codexbar-quota-handoff/quota-low-claude.json" ] \
   || fail "default claude flag path was not written under \$HOME"
-[ -f "$FAKE_HOME/.local/state/codexbar-quota-handoff/quota-low-grok.json" ] \
-  || fail "default grok flag path was not written under \$HOME"
+[ -f "$FAKE_HOME/.local/state/codexbar-quota-handoff/quota-low-copilot.json" ] \
+  || fail "default copilot flag path was not written under \$HOME"
 
 XDG_STATE="$TMP_DIR/custom-state"
 printf '{}' | XDG_STATE_HOME="$XDG_STATE" "$SCRIPT" codex
@@ -60,8 +60,8 @@ printf '{}' | XDG_STATE_HOME="$XDG_STATE" "$SCRIPT" codex
 # CodexBar can pass the setup-resolved state directory explicitly because a
 # macOS GUI process may not inherit the terminal's XDG environment.
 EXPLICIT_STATE="$TMP_DIR/explicit-state"
-printf '{}' | "$SCRIPT" grok "$EXPLICIT_STATE"
-[ -f "$EXPLICIT_STATE/quota-low-grok.json" ] \
+printf '{}' | "$SCRIPT" cursor "$EXPLICIT_STATE"
+[ -f "$EXPLICIT_STATE/quota-low-cursor.json" ] \
   || fail "explicit state directory argument was not honored"
 
 echo "codexbar-quota-handoff flag-writer checks passed"

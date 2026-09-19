@@ -5,7 +5,7 @@ usage() {
   cat <<'EOF'
 Usage: install-codex-agents.sh
 
-Install this plugin's four Codex CLI development-worker definitions into the
+Install this plugin's three Codex CLI development-worker definitions into the
 personal Codex agents directory (~/.codex/agents/). Existing files that differ
 from the plugin definitions are preserved and reported as conflicts.
 
@@ -29,7 +29,7 @@ done
 
 dest="$HOME/.codex/agents"
 plugin_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-agents=(repo-explorer.toml check-runner.toml log-summarizer.toml commit-writer.toml)
+agents=(repo-explorer.toml check-runner.toml log-summarizer.toml)
 mkdir -p "$dest"
 for name in "${agents[@]}"; do
   source="$plugin_root/codex-agents/$name"
@@ -48,5 +48,11 @@ for name in "${agents[@]}"; do
   mv "$temporary" "$target"
   echo "  installed $name -> $target"
 done
+
+leftover="$dest/commit-writer.toml"
+if [[ -e "$leftover" ]]; then
+  rm -f "$leftover"
+  echo "  removed leftover $leftover"
+fi
 
 echo "Done. Start a new Codex CLI session to pick up the new agents."

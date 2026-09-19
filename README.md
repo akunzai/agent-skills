@@ -218,7 +218,7 @@ entry points; plugin-local scripts are internal post-actions.
   plugin for every plugin runtime. Prefer `skills add` when the runtime
   supports it.
 - [`codexbar-quota-handoff`](plugins/codexbar-quota-handoff/README.md) — a
-  plugin for every plugin runtime, plus a Grok Build hook, that reminds the
+  plugin for every plugin runtime that reminds the
   agent to wrap up when
   [CodexBar](https://github.com/steipete/CodexBar) detects that tool's
   own quota is nearly exhausted, and to ask before writing a handoff
@@ -226,10 +226,9 @@ entry points; plugin-local scripts are internal post-actions.
   reconstruct. Machine-specific (depends on your own CodexBar installation
   and account authorization) rather than something a visitor installs
   directly.
-- [`cheap-dev-workers`](plugins/cheap-dev-workers/README.md) — four narrow,
-  cheap-model workers for repository evidence, verification, safe-log
-  summaries, and caller-scoped commit or PR drafting across every plugin
-  runtime.
+- [`cheap-dev-workers`](plugins/cheap-dev-workers/README.md) — three narrow,
+  cheap-model workers for repository evidence, verification, and safe-log
+  summaries across every plugin runtime.
 
 ## Contributing
 

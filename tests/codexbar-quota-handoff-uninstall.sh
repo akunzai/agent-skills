@@ -50,10 +50,10 @@ KEEP_HOME="$TMP_DIR/keep-home"
 KEEP_DATA="$KEEP_HOME/data"
 KEEP_STATE="$KEEP_HOME/state/codexbar-quota-handoff"
 mkdir -p "$KEEP_DATA/codexbar-quota-handoff/scripts" "$KEEP_STATE"
-touch "$KEEP_DATA/codexbar-quota-handoff/scripts/codexbar-quota-flag.sh" "$KEEP_STATE/quota-low-grok.json"
+touch "$KEEP_DATA/codexbar-quota-handoff/scripts/codexbar-quota-flag.sh" "$KEEP_STATE/quota-low-claude.json"
 HOME="$KEEP_HOME" XDG_DATA_HOME="$KEEP_DATA" XDG_STATE_HOME="$KEEP_HOME/state" \
   bash "$SCRIPT" --keep-state >/dev/null
-[ -f "$KEEP_STATE/quota-low-grok.json" ] || fail "--keep-state removed quota state"
+[ -f "$KEEP_STATE/quota-low-claude.json" ] || fail "--keep-state removed quota state"
 [ ! -e "$KEEP_DATA/codexbar-quota-handoff" ] || fail "--keep-state preserved runtime helpers"
 
 # A symlinked CodexBar config keeps its link while the target is cleaned.

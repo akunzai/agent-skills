@@ -8,7 +8,6 @@ CODEX_PLUGIN_JSON="$PLUGIN_DIR/.codex-plugin/plugin.json"
 HOOKS_JSON="$PLUGIN_DIR/hooks/hooks.json"
 CLAUDE_MARKETPLACE_JSON="$ROOT_DIR/.claude-plugin/marketplace.json"
 CODEX_MARKETPLACE_JSON="$ROOT_DIR/.agents/plugins/marketplace.json"
-GROK_MARKETPLACE_JSON="$ROOT_DIR/.grok-plugin/marketplace.json"
 
 fail() {
   echo "codexbar-quota-handoff manifest check failed: $*" >&2
@@ -16,10 +15,13 @@ fail() {
 }
 
 for f in "$CLAUDE_PLUGIN_JSON" "$CODEX_PLUGIN_JSON" "$HOOKS_JSON" \
-  "$CLAUDE_MARKETPLACE_JSON" "$GROK_MARKETPLACE_JSON" "$CODEX_MARKETPLACE_JSON"; do
+  "$CLAUDE_MARKETPLACE_JSON" "$CODEX_MARKETPLACE_JSON"; do
   [ -f "$f" ] || fail "$f is missing"
   jq empty "$f" 2>/dev/null || fail "$f is not valid JSON"
 done
+
+[ ! -e "$ROOT_DIR/.grok-plugin" ] \
+  || fail ".grok-plugin must not exist; Grok Build is not a supported plugin runtime"
 
 CLAUDE_NAME="$(jq -r '.name' "$CLAUDE_PLUGIN_JSON")"
 [ "$CLAUDE_NAME" = "codexbar-quota-handoff" ] || fail ".claude-plugin/plugin.json name is '$CLAUDE_NAME', expected 'codexbar-quota-handoff'"
@@ -55,16 +57,14 @@ for event in Stop PostToolUse; do
 done
 
 # --- marketplace.json must actually list this plugin, by the same name ---
-for marketplace in "$CLAUDE_MARKETPLACE_JSON" "$GROK_MARKETPLACE_JSON" "$CODEX_MARKETPLACE_JSON"; do
-  MARKETPLACE_PLUGIN_NAME="$(jq -r '.plugins[0].name' "$marketplace")"
-  [ "$MARKETPLACE_PLUGIN_NAME" = "codexbar-quota-handoff" ] \
-    || fail "$marketplace first plugin is '$MARKETPLACE_PLUGIN_NAME', expected 'codexbar-quota-handoff'"
-  MARKETPLACE_PLUGIN_PATH="$(jq -r '.plugins[0].source | if type == "object" then .path else . end' "$marketplace")"
-  [ "$MARKETPLACE_PLUGIN_PATH" = "./plugins/codexbar-quota-handoff" ] \
-    || fail "$marketplace source is '$MARKETPLACE_PLUGIN_PATH', expected './plugins/codexbar-quota-handoff'"
-done
+CLAUDE_MARKETPLACE_ENTRY="$(jq -r '.plugins[] | select(.name == "codexbar-quota-handoff") | .source' "$CLAUDE_MARKETPLACE_JSON")"
+[ "$CLAUDE_MARKETPLACE_ENTRY" = "./plugins/codexbar-quota-handoff" ] \
+  || fail "Claude marketplace entry is missing"
+CODEX_MARKETPLACE_PATH="$(jq -r '.plugins[] | select(.name == "codexbar-quota-handoff") | .source.path' "$CODEX_MARKETPLACE_JSON")"
+[ "$CODEX_MARKETPLACE_PATH" = "./plugins/codexbar-quota-handoff" ] \
+  || fail "Codex marketplace entry is missing"
 
-for script in codexbar-quota-flag.sh quota-reminder.sh configure-host.sh remove-host.sh; do
+for script in codexbar-quota-flag.sh quota-reminder.sh configure-host.sh remove-host.sh remove-grok.sh; do
   path="$PLUGIN_DIR/scripts/$script"
   [ -f "$path" ] || fail "scripts/$script is missing"
   [ -x "$path" ] || fail "scripts/$script is not executable"

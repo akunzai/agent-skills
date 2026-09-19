@@ -5,8 +5,7 @@ usage() {
   cat <<'EOF'
 Usage: configure-host.sh [options]
 
-Install the shared runtime helpers, write the Grok global Stop hook when
-grok is on PATH, and configure CodexBar host integrations.
+Install the shared runtime helpers and configure CodexBar host integrations.
 
 Options:
   --threshold <0-1>  Quota usage threshold (default: 0.9)
@@ -85,58 +84,30 @@ install_helpers() {
   echo "  installed runtime helpers in $runtime_dir"
 }
 
-# Grok discovers plugin hooks but does not register them on the session
-# dispatcher (observed on Grok Build 1.0.x). Install a Stop-only global hook
-# alongside its reminder script in ~/.grok/hooks/. PostToolUse is omitted on
-# purpose: on Grok, exit 2 there is fail-open and would claim the flag before
-# Stop can surface the reminder to the model.
-install_grok_global_hook() {
-  local hooks_dir="$HOME/.grok/hooks"
-  local hook_path="$hooks_dir/codexbar-quota-handoff.json"
-  local reminder_script="$hooks_dir/codexbar-quota-reminder.sh"
-  local temporary
-  mkdir -p "$hooks_dir"
-  temporary="$(mktemp "$hooks_dir/.codexbar-quota-reminder.XXXXXX")"
-  cp "$plugin_root/scripts/quota-reminder.sh" "$temporary"
-  chmod 755 "$temporary"
-  mv "$temporary" "$reminder_script"
-
-  temporary="$(mktemp "$hooks_dir/.codexbar-quota-handoff.XXXXXX")"
-  jq -n --arg cmd "$reminder_script" '
-    {
-      hooks: {
-        Stop: [
-          {
-            hooks: [
-              { type: "command", command: $cmd }
-            ]
-          }
-        ]
-      }
-    }
-  ' >"$temporary"
-  chmod 644 "$temporary"
-  mv "$temporary" "$hook_path"
-  echo "  installed Grok global Stop hook at $hook_path"
-  echo "  installed Grok reminder script at $reminder_script"
+remove_leftover_grok_hooks() {
+  # Older installs wrote a Stop-only global hook because Grok Build 1.0.x
+  # never registered plugin marketplace hooks. Grok is not a supported
+  # runtime; those files would make this reminder claim the Claude flag.
+  local leftover
+  for leftover in \
+    "$HOME/.grok/hooks/codexbar-quota-handoff.json" \
+    "$HOME/.grok/hooks/codexbar-quota-reminder.sh"; do
+    if [[ -e "$leftover" ]]; then
+      rm -f "$leftover"
+      echo "  removed leftover $leftover"
+    fi
+  done
 }
 
 echo "== Shared runtime =="
 install_helpers
+remove_leftover_grok_hooks
 
 echo "== Claude Code =="
 if command -v claude >/dev/null 2>&1; then
   providers+=(claude)
 else
   echo "  claude CLI not found on PATH; no CodexBar rule will be added."
-fi
-
-echo "== Grok Build =="
-if command -v grok >/dev/null 2>&1; then
-  providers+=(grok)
-  install_grok_global_hook
-else
-  echo "  grok CLI not found on PATH; no CodexBar rule will be added."
 fi
 
 echo "== Codex CLI =="
@@ -164,7 +135,7 @@ fi
 
 echo "== CodexBar =="
 if [[ ${#providers[@]} -eq 0 ]]; then
-  echo "  none of claude/grok/codex/copilot/cursor-agent were found on PATH; nothing to configure."
+  echo "  none of claude/codex/copilot/cursor-agent were found on PATH; nothing to configure."
   exit 0
 fi
 if ! command -v codexbar >/dev/null 2>&1; then
@@ -198,7 +169,9 @@ for provider in "${providers[@]}"; do
     --argjson threshold "$threshold" \
     '
     .hooks.enabled = true
-    | .hooks.events = ((.hooks.events // []) | map(select(.id != $id))) + [{
+    | .hooks.events = ((.hooks.events // []) | map(
+      select(.id != $id and .id != "agent-skills-codexbar-quota-handoff-grok")
+    )) + [{
       id: $id,
       enabled: true,
       event: "quota_low",
@@ -226,5 +199,4 @@ for provider in "${providers[@]}"; do
   fi
 done
 
-echo "Host integration configured. For Grok, reload hooks (Hooks tab → r)"
-echo "or start a new session."
+echo "Host integration configured. Start a new session or reload plugins."

@@ -26,7 +26,7 @@ done
 
 # --- out-of-range and non-numeric values must be rejected before any tool
 #     or CodexBar detection runs, so this is safe to test without any of
-#     Claude Code, Grok Build, Codex CLI, or CodexBar present ---
+#     Claude Code, Codex CLI, or CodexBar present ---
 assert_rejected() {
   local value="$1"
   local rc=0

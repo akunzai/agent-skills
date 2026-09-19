@@ -14,7 +14,7 @@
 #            phase, which is blocked on the behavioural verification seam
 
 id role.description
-applies check-runner commit-writer log-summarizer repo-explorer
+applies check-runner log-summarizer repo-explorer
 class drift
 intent
 Names the role, its reserved decisions and its routing preference over a
@@ -24,12 +24,12 @@ that omission.
 END
 
 id git.no-mutation
-applies check-runner commit-writer log-summarizer repo-explorer
+applies check-runner log-summarizer repo-explorer
 class drift
 intent
 The role never mutates Git state: no staging, committing, pushing, rebasing,
-and no writes to the index, refs, commits or remotes. All four roles carry
-this, in four different wordings, for no reason other than history.
+and no writes to the index, refs, commits or remotes. All three roles carry
+this, in three different wordings, for no reason other than history.
 END
 
 id checks.caller-named
@@ -114,57 +114,10 @@ depends on a runtime command passing rather than on file content.
 END
 
 id role.leaf
-applies commit-writer log-summarizer
+applies log-summarizer
 class shared
 intent
 A leaf role never dispatches another worker.
-END
-
-id boundaries.caller-decided
-applies commit-writer
-class shared
-intent
-Commit and PR boundaries are the caller's decision; the role only drafts text
-for boundaries already fixed.
-END
-
-id input.caller-supplied
-applies commit-writer
-class shared
-intent
-The only inputs are the caller-supplied diff and the caller-supplied recent
-commit subjects.
-END
-
-id message.why-not-what
-applies commit-writer
-class shared
-intent
-The commit message explains why, stays short, and does not restate the diff.
-END
-
-id pr.shape
-applies commit-writer
-class shared
-intent
-A PR title stays under 70 characters and the description is a few bullets,
-not a file-by-file restatement.
-END
-
-id issue.linking
-applies commit-writer
-class shared
-intent
-The caller's issue-linking convention is followed, distinguishing an
-auto-closing link from an epic link.
-END
-
-id output.contract
-applies commit-writer
-class shared
-intent
-Only the drafted message is returned; an empty diff or unclear intent is
-reported instead of guessed.
 END
 
 id scope.exact-artifact

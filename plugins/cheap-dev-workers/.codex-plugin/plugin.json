@@ -1,21 +1,20 @@
 {
   "name": "cheap-dev-workers",
-  "description": "Cheap workers for exploration, verification, safe-log summaries, and drafting.",
-  "version": "1.2.6",
+  "description": "Cheap workers for exploration, verification, and safe-log summaries.",
+  "version": "2.0.0",
   "author": {
     "name": "Charley Wu"
   },
   "interface": {
     "displayName": "Cheap Development Workers",
     "shortDescription": "Delegate bounded development legwork",
-    "longDescription": "Workers for repository evidence, checks, safe-log summaries, and drafting.",
+    "longDescription": "Workers for repository evidence, checks, and safe-log summaries.",
     "developerName": "Charley Wu",
     "category": "Productivity",
     "capabilities": ["Read", "Execute"],
     "defaultPrompt": [
       "Explore this repository question with cited evidence.",
-      "Run these checks and return auditable results.",
-      "Draft text for these already-decided commit boundaries."
+      "Run these checks and return auditable results."
     ]
   }
 }
