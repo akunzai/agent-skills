@@ -23,7 +23,7 @@ done
 # The repository-level lifecycle scripts are the only public entry points.
 # Plugin directories may contain internal helpers, but no compatibility
 # setup/upgrade/uninstall wrappers.
-for plugin in cheap-dev-workers codexbar-quota-handoff; do
+for plugin in cheap-dev-workers codexbar-quota-handoff spoken-tts; do
   for script in setup.sh upgrade.sh uninstall.sh; do
     [ ! -e "$ROOT_DIR/plugins/$plugin/scripts/$script" ] \
       || fail "plugins/$plugin/scripts/$script must not be a public lifecycle entry point"
@@ -76,9 +76,14 @@ case "$mp_out" in
 esac
 
 fake_home="$tmp_dir/home"
+export HOME="$fake_home"
+export XDG_CONFIG_HOME="$fake_home/.config"
+export XDG_STATE_HOME="$fake_home/.local/state"
+export XDG_DATA_HOME="$fake_home/.local/share"
 stub_bin="$tmp_dir/bin"
 copilot_log="$tmp_dir/copilot.log"
-mkdir -p "$fake_home/.codex/agents" "$fake_home/.codexbar" "$stub_bin"
+mkdir -p "$fake_home/.codex/agents" "$fake_home/.codexbar" "$stub_bin" \
+  "$XDG_CONFIG_HOME" "$XDG_STATE_HOME" "$XDG_DATA_HOME"
 printf 'user-owned\n' >"$fake_home/.codex/agents/repo-explorer.toml"
 echo '{"hooks":{"enabled":false,"events":[]}}' >"$fake_home/.codexbar/config.json"
 

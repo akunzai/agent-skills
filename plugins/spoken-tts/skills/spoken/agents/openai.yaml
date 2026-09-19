@@ -1,0 +1,3 @@
+interface:
+  display_name: "Spoken"
+  short_description: "Speak a named passage, or summaries after /spoken on"

@@ -1,0 +1,10 @@
+{
+  "name": "spoken-tts",
+  "description": "Opt-in per-conversation spoken summaries via <spoken> tags, plus a CLI to speak a named passage. Providers: edge-tts (recommended) and macOS say.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Charley Wu"
+  },
+  "keywords": ["tts", "speech", "spoken", "accessibility"],
+  "skills": ["./skills/spoken"]
+}

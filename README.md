@@ -229,6 +229,9 @@ entry points; plugin-local scripts are internal post-actions.
 - [`cheap-dev-workers`](plugins/cheap-dev-workers/README.md) — three narrow,
   cheap-model workers for repository evidence, verification, and safe-log
   summaries across every plugin runtime.
+- [`spoken-tts`](plugins/spoken-tts/README.md) — opt-in per-conversation spoken
+  summaries (`<spoken>` tags) and a CLI to speak a named passage, using
+  `edge-tts` (recommended) or macOS `say`.
 
 ## Contributing
 
