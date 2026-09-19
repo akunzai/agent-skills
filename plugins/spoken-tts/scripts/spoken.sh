@@ -28,9 +28,11 @@ resolve_xdg() {
 config_home="$(resolve_xdg "${XDG_CONFIG_HOME:-$HOME/.config}" "$HOME/.config")"
 state_home="$(resolve_xdg "${XDG_STATE_HOME:-$HOME/.local/state}" "$HOME/.local/state")"
 
-CONFIG_DIR="$config_home/spoken"
-STATE_DIR="$state_home/spoken"
+CONFIG_DIR="$config_home/spoken-tts"
+STATE_DIR="$state_home/spoken-tts"
 CONFIG_FILE="$CONFIG_DIR/config.json"
+LEGACY_CONFIG_DIR="$config_home/spoken"
+LEGACY_CONFIG_FILE="$LEGACY_CONFIG_DIR/config.json"
 SESSIONS_DIR="$STATE_DIR/sessions"
 PENDING_FILE="$STATE_DIR/pending"
 PID_FILE="$STATE_DIR/player.pid"
@@ -168,10 +170,22 @@ print_voices_recommended_first() {
   fi
 }
 
+migrate_legacy_config() {
+  if [[ -f "$CONFIG_FILE" ]]; then
+    return
+  fi
+  [[ -f "$LEGACY_CONFIG_FILE" ]] || return 0
+  mkdir -p "$CONFIG_DIR"
+  cp "$LEGACY_CONFIG_FILE" "$CONFIG_FILE"
+  rm -f "$LEGACY_CONFIG_FILE"
+  rmdir "$LEGACY_CONFIG_DIR" 2>/dev/null || true
+}
+
 load_config() {
   PROVIDER=""
   LOCALE=""
   VOICE=""
+  migrate_legacy_config
   if [[ -f "$CONFIG_FILE" ]]; then
     PROVIDER="$(jq -r '.provider // empty' "$CONFIG_FILE")"
     LOCALE="$(jq -r '.locale // empty' "$CONFIG_FILE")"
@@ -232,10 +246,31 @@ locale_from_lang() {
   esac
 }
 
+# Cursor sets LANG=en_US; macOS UI may differ. LC_ALL is the explicit override.
+macos_ui_lang() {
+  [[ "$(detect_os)" == macos ]] || return 1
+  command -v defaults >/dev/null 2>&1 || return 1
+  local raw lang
+  raw="$(defaults read -g AppleLanguages 2>/dev/null || true)"
+  lang="$(printf '%s\n' "$raw" | awk -F'"' '/"/{print $2; exit}')"
+  if [[ -n "$lang" ]]; then
+    printf '%s\n' "$lang"
+    return 0
+  fi
+  raw="$(defaults read -g AppleLocale 2>/dev/null || true)"
+  [[ -n "$raw" ]] || return 1
+  printf '%s\n' "$raw"
+}
+
 cmd_locale_recommend() {
   local lang
-  lang="${LC_ALL:-${LANG:-}}"
-  if [[ -n "$lang" ]] && locale_from_lang "$lang"; then
+  if [[ -n "${LC_ALL:-}" ]] && locale_from_lang "$LC_ALL"; then
+    return
+  fi
+  if lang="$(macos_ui_lang)" && [[ -n "$lang" ]] && locale_from_lang "$lang"; then
+    return
+  fi
+  if [[ -n "${LANG:-}" ]] && locale_from_lang "$LANG"; then
     return
   fi
   printf 'en-US\n'
@@ -344,6 +379,7 @@ cmd_config_write() {
 }
 
 cmd_config_show() {
+  migrate_legacy_config
   if [[ ! -f "$CONFIG_FILE" ]]; then
     printf '{}\n'
     return

@@ -25,8 +25,10 @@ Codex uses `.agents/plugins/marketplace.json`.
 
 ## Config
 
-- Config: `${XDG_CONFIG_HOME:-$HOME/.config}/spoken/config.json`
-- Session flags: `${XDG_STATE_HOME:-$HOME/.local/state}/spoken/`
+- Config: `${XDG_CONFIG_HOME:-$HOME/.config}/spoken-tts/config.json`
+- Session flags: `${XDG_STATE_HOME:-$HOME/.local/state}/spoken-tts/`
+- Leftover `${XDG_CONFIG_HOME:-$HOME/.config}/spoken/config.json` is moved
+  once when the new path is missing.
 
 ## Checks
 
