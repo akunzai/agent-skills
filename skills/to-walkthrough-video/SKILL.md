@@ -61,7 +61,11 @@ When missing, ask the user for confirmation before installing:
 Prefer `role` + `name` over `selector`: a caption falls back to the raw
 selector text (`Click nav a[href…]`) when a step has no name, label or text, so
 give a `selector` step its own `caption`. A `click` waits up to 15 seconds for
-its target to be visible; there is no separate wait-for-element step. When the
+its target to be visible (`timeout` changes that per step). To wait for
+something without touching it, such as the row a submit just added, use
+`{ "action": "expect", "text": "Saved" }`; `state` may be `"hidden"`. When a
+step fails the error names it (`step 3 of 5 {...}`) and `<out>.failure.png` and
+`<out>.failure.aria.txt` show what the page looked like. When the
 flow creates data, do it once while exploring and note where it lands (a later
 page, a filter, below the fold) so the last step targets the right place.
 

@@ -480,6 +480,17 @@ if (validateScenario(signedIn, { sessionMode: "attached" }).length !== 0) {
   fail("--connect with auth.expect should pass");
 }
 
+// An expect step only waits, so its state and any step timeout are checked up front.
+if (validateScenario({ steps: [{ action: "expect", text: "x", state: "gone" }] })[0] !== 'steps[0].state must be "visible" or "hidden"') {
+  fail("expect state should be validated");
+}
+if (validateScenario({ steps: [{ action: "click", text: "x", timeout: -1 }] })[0] !== "steps[0].timeout must be a positive number of milliseconds") {
+  fail("step timeout should be validated");
+}
+if (validateScenario({ steps: [{ action: "expect", text: "x", state: "hidden", timeout: 500 }] }).length !== 0) {
+  fail("a well-formed expect step should pass");
+}
+
 // A headed launch with nowhere to draw is worth naming as such.
 if (!describeLaunchFailure(new Error("Missing X server or \$DISPLAY"), true).includes("no display")) {
   fail("a headed launch without a display should be explained");
@@ -780,6 +791,43 @@ try {
     fail("a click on a target below the fold should reach it");
   }
   await page.close();
+
+  // expect waits for an element to appear without touching the page, and a
+  // failing step names itself and leaves a screenshot and an aria snapshot.
+  const waited = await browser.newPage({ viewport: { width: 640, height: 480 } });
+  await waited.setContent(
+    '<button onclick="window.clicks = (window.clicks || 0) + 1">Add</button>' +
+    '<script>setTimeout(() => { document.body.insertAdjacentHTML("beforeend", "<p>Saved item</p>"); }, 600);</script>',
+  );
+  await runScenario(waited, { steps: [{ action: "expect", text: "Saved item" }] }, () => {}, stateFor({ width: 640, height: 480 }));
+  if (!(await waited.getByText("Saved item").isVisible())) {
+    fail("expect should wait until the element is visible");
+  }
+  if ((await waited.evaluate(() => window.clicks ?? 0)) !== 0) {
+    fail("expect must not click anything");
+  }
+  await runScenario(waited, { steps: [{ action: "expect", text: "Saved item", state: "hidden", timeout: 200 }] }, () => {}, stateFor({ width: 640, height: 480 }))
+    .then(() => fail("expect hidden on a visible element should time out"), () => {});
+  const failStem = "${TMP_DIR}/failing";
+  let failure = "";
+  try {
+    await runScenario(
+      waited,
+      { steps: [{ action: "expect", text: "Saved item" }, { action: "click", role: "button", name: "Missing", timeout: 300 }] },
+      () => {},
+      stateFor({ width: 640, height: 480 }, { failureStem: failStem }),
+    );
+  } catch (error) {
+    failure = error.message;
+  }
+  if (!failure.includes("step 2 of 2") || !failure.includes("Missing")) {
+    fail("a failing step should name itself: " + failure);
+  }
+  const fs = await import("node:fs");
+  if (!fs.existsSync(failStem + ".failure.png") || !fs.readFileSync(failStem + ".failure.aria.txt", "utf8").includes("Add")) {
+    fail("a failing step should leave a screenshot and an aria snapshot");
+  }
+  await waited.close();
 
   // A phone page without a viewport meta tag lays out 980px wide and zooms
   // out, so a target past the device's own width is still on screen.
