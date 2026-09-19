@@ -66,6 +66,7 @@ grep -q -- "--width" "$TMP_DIR/record-help" || fail "record --help missing --wid
 grep -q -- "--pause-ms" "$TMP_DIR/record-help" || fail "record --help missing --pause-ms"
 grep -q -- "--storage-state" "$TMP_DIR/record-help" || fail "record --help missing --storage-state"
 grep -q -- "--sign-in" "$TMP_DIR/record-help" || fail "record --help missing --sign-in"
+grep -q -- "--connect" "$TMP_DIR/record-help" || fail "record --help missing --connect"
 grep -q -- "--check-prereqs" "$TMP_DIR/record-help" || fail "record --help missing --check-prereqs"
 
 set +e
@@ -435,6 +436,9 @@ for (const [given, wanted] of [
   [{ storageState: "auth.json" }, "saved"],
   [{ signIn: true }, "interactive"],
   [{ storageState: "auth.json", signIn: true }, "conflict"],
+  [{ connect: "http://127.0.0.1:9222" }, "attached"],
+  [{ connect: "http://127.0.0.1:9222", signIn: true }, "conflict"],
+  [{ connect: "http://127.0.0.1:9222", storageState: "auth.json" }, "conflict"],
 ]) {
   const got = resolveSessionMode(given);
   if (got !== wanted) {
@@ -462,6 +466,18 @@ if (validateScenario(signedIn, { sessionMode: "interactive" }).length !== 0) {
 const bothModes = validateScenario(signedIn, { sessionMode: "conflict" });
 if (!bothModes.some((p) => p.includes("Pick one"))) {
   fail("--sign-in with --storage-state should be refused: " + JSON.stringify(bothModes));
+}
+
+// Attaching to a window somebody already signed in on still needs a locator
+// that proves the page is the signed-in one, and parses its endpoint.
+if (parseArgs(["--connect", "http://127.0.0.1:9222"]).connect !== "http://127.0.0.1:9222") {
+  fail("parseArgs --connect");
+}
+if (!validateScenario({ steps: [] }, { sessionMode: "attached" })[0].includes("--connect needs scenario.auth.expect")) {
+  fail("--connect should require auth.expect");
+}
+if (validateScenario(signedIn, { sessionMode: "attached" }).length !== 0) {
+  fail("--connect with auth.expect should pass");
 }
 
 // A headed launch with nowhere to draw is worth naming as such.

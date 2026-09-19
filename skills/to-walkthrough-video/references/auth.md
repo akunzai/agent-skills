@@ -132,6 +132,34 @@ node scripts/record.mjs --scenario examples/scenario-auth.json --out demo.mp4 --
 Sign in with anything, and confirm the first frame of `demo.mp4` is already
 the dashboard.
 
+## Recording the window you already signed in on
+
+`--connect` records a page you are already signed in on, so a site you know
+nothing about needs one sign-in for the whole job: exploring and recording share
+the same window, and a session held only in page memory or `sessionStorage`
+survives because the browser never closes.
+
+Start a Chromium-based browser with a debugging port and sign in there, then
+attach `playwright-cli` for the snapshots and point `record.mjs` at the same
+endpoint:
+
+```bash
+open -na "Google Chrome" --args --remote-debugging-port=9222 \
+  --user-data-dir="$(mktemp -d)" https://app.example.com
+playwright-cli attach --cdp http://127.0.0.1:9222
+node scripts/record.mjs --scenario scenario.json --out demo.mp4 \
+  --connect http://127.0.0.1:9222
+```
+
+`record.mjs` records the page that is open, at the window's own size, and
+never navigates, reloads or closes it. `scenario.url` is not opened, so the
+first step must be reachable from the screen you leave the window on, and
+`auth.expect` must already be visible there. Anything you clicked through while
+exploring is still in the window: data you added is on screen, and the start
+frame is wherever you stopped. Put the window on the screen you want as the
+first frame, by clicking, before recording. `--connect` cannot be combined
+with `--sign-in` or `--storage-state`.
+
 ## Limits
 
 - **sessionStorage is not covered by a saved state.** Playwright's storage
