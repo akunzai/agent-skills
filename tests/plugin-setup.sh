@@ -98,7 +98,7 @@ case "$*" in
     if [[ -n "${COPILOT_PLUGIN_LIST:-}" ]]; then
       printf '%s\n' "$COPILOT_PLUGIN_LIST"
     else
-      echo "  • charley-skills@akunzai-agent-skills (v1.0.0) (enabled)"
+      echo "  • spoken-tts@akunzai-agent-skills (v1.0.0) (enabled)"
     fi
     ;;
 esac
@@ -116,7 +116,7 @@ STUB
 chmod +x "$stub_bin/codexbar"
 
 # Select every plugin interactively for Copilot. The installer must detect the
-# existing charley-skills plugin, skip it, and install the other marketplace
+# existing spoken-tts plugin, skip it, and install the other marketplace
 # entries without inspecting or modifying Codex personal agents.
 printf '1\nall\ny\n' | PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" \
   COPILOT_LOG="$copilot_log" bash "$SCRIPT" --interactive \
@@ -127,8 +127,11 @@ grep -qx 'plugin install codexbar-quota-handoff@akunzai-agent-skills' "$copilot_
   || fail "interactive setup did not install codexbar-quota-handoff for Copilot"
 grep -qx 'plugin install cheap-dev-workers@akunzai-agent-skills' "$copilot_log" \
   || fail "interactive setup did not install cheap-dev-workers for Copilot"
-if grep -qx 'plugin install charley-skills@akunzai-agent-skills' "$copilot_log"; then
+if grep -qx 'plugin install spoken-tts@akunzai-agent-skills' "$copilot_log"; then
   fail "interactive setup reinstalled an existing Copilot plugin"
+fi
+if grep -qx 'plugin install charley-skills@akunzai-agent-skills' "$copilot_log"; then
+  fail "setup installed catalog skills as a plugin"
 fi
 grep -q 'user-owned' "$fake_home/.codex/agents/repo-explorer.toml" \
   || fail "Copilot setup modified a conflicting Codex personal agent"
@@ -188,8 +191,8 @@ set -e
 [ ! -f "$codexbar_state/quota-low-copilot.json" ] \
   || fail "uninstall without --keep-state left CodexBar state behind"
 
-# Claude Code uses JSON status output. Existing plugins are skipped and the
-# root charley-skills marketplace entry remains installable.
+# Claude Code uses JSON status output. Existing plugins are skipped and
+# catalog skills are not installed as a plugin.
 claude_log="$tmp_dir/claude.log"
 cat >"$stub_bin/claude" <<'STUB'
 #!/usr/bin/env bash
@@ -208,10 +211,13 @@ chmod +x "$stub_bin/claude"
 PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" CLAUDE_LOG="$claude_log" \
   bash "$SCRIPT" --runtime claude --plugin all --yes >/dev/null \
   || fail "non-interactive Claude Code setup failed"
-grep -qx 'plugin install charley-skills@akunzai-agent-skills --scope user --yes' "$claude_log" \
-  || fail "setup did not install charley-skills for Claude Code"
+grep -qx 'plugin install spoken-tts@akunzai-agent-skills --scope user --yes' "$claude_log" \
+  || fail "setup did not install spoken-tts for Claude Code"
 grep -qx 'plugin install codexbar-quota-handoff@akunzai-agent-skills --scope user --yes' "$claude_log" \
   || fail "setup did not install codexbar-quota-handoff for Claude Code"
+if grep -qx 'plugin install charley-skills@akunzai-agent-skills --scope user --yes' "$claude_log"; then
+  fail "setup installed catalog skills as a plugin"
+fi
 if grep -qx 'plugin install cheap-dev-workers@akunzai-agent-skills --scope user --yes' "$claude_log"; then
   fail "setup reinstalled an existing Claude Code plugin"
 fi
@@ -241,8 +247,8 @@ PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" CLAUDE_LOG="$claude_log" \
 grep -qx 'plugin uninstall cheap-dev-workers@akunzai-agent-skills --scope user --yes' "$claude_log" \
   || fail "uninstall did not remove cheap-dev-workers from Claude Code"
 
-# Codex also exposes JSON status. Every entry is listed in the Codex
-# marketplace, so charley-skills installs alongside the sub-plugins.
+# Codex also exposes JSON status. Catalog skills are not a marketplace
+# plugin; remaining entries install alongside each other.
 codex_log="$tmp_dir/codex.log"
 cat >"$stub_bin/codex" <<'STUB'
 #!/usr/bin/env bash
@@ -264,8 +270,11 @@ PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" CODEX_LOG="$codex_log" \
   || fail "non-interactive Codex setup failed"
 grep -qx 'plugin add codexbar-quota-handoff@akunzai-agent-skills' "$codex_log" \
   || fail "setup did not install codexbar-quota-handoff for Codex"
-grep -qx 'plugin add charley-skills@akunzai-agent-skills' "$codex_log" \
-  || fail "setup did not install charley-skills for Codex"
+grep -qx 'plugin add spoken-tts@akunzai-agent-skills' "$codex_log" \
+  || fail "setup did not install spoken-tts for Codex"
+if grep -qx 'plugin add charley-skills@akunzai-agent-skills' "$codex_log"; then
+  fail "setup installed catalog skills as a plugin"
+fi
 if grep -qx 'plugin add cheap-dev-workers@akunzai-agent-skills' "$codex_log"; then
   fail "setup reinstalled an existing Codex plugin"
 fi

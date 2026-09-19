@@ -85,14 +85,14 @@ actually exercised.
 ## Version bumps ship the change
 
 A shipped file that changes without a `version` bump never reaches an
-installed user (`docs/agents/harnesses.md` has each runtime's update key). Any change under
-`skills/` bumps the root manifests; any change under `plugins/<name>/` bumps
-that plugin's. Either way `.claude-plugin/plugin.json` and
-`.codex-plugin/plugin.json` move together, kept equal. `tests/plugin-version-bump.sh` enforces
-both, so the gate catches a miss. Semver rules are in `CONTRIBUTING.md`.
+installed user (`docs/agents/harnesses.md` has each runtime's update key). Any
+change under `plugins/<name>/` bumps that plugin's `.claude-plugin/plugin.json`
+and `.codex-plugin/plugin.json`, kept equal. `tests/plugin-version-bump.sh`
+enforces the bump. Semver rules are in `CONTRIBUTING.md`. Catalog skills under
+`skills/` are not marketplace plugins and do not bump a version.
 
 A new or renamed skill also updates `README.md` and the `skills` array in
-`.claude-plugin/plugin.json`; `tests/skill-catalog-sync.sh` enforces that.
+root `.claude-plugin/plugin.json`; `tests/skill-catalog-sync.sh` enforces that.
 
 ## Review readiness
 
