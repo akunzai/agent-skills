@@ -232,16 +232,56 @@ rm -f "$SAY_LOG"
 printf 'named passage' | run speak
 grep -q 'named passage' "$SAY_LOG" || fail "speak without session should still talk"
 
+set +e
+printf '' | run speak >/dev/null 2>"$TMP_DIR/speak-empty.err"
+empty_speak=$?
+set -e
+[ "$empty_speak" -ne 0 ] || fail "speak with empty stdin should fail"
+grep -q 'pipe text' "$TMP_DIR/speak-empty.err" \
+  || fail "empty speak should ask for piped text: $(cat "$TMP_DIR/speak-empty.err")"
+
+# CLI speak waits even when the test harness is not forcing SPOKEN_SYNC.
+rm -f "$XDG_STATE_HOME/spoken-tts/player.pid"
+(
+  unset SPOKEN_SYNC
+  printf 'cli waits' | run speak
+)
+[ ! -f "$XDG_STATE_HOME/spoken-tts/player.pid" ] \
+  || fail "CLI speak should wait inline, not leave a background player.pid"
+
+# Isolated PATH: Linux CI has no afplay/mpv; macOS /usr/bin/afplay must not hide that.
+NO_PLAYER="$TMP_DIR/no-player"
+mkdir -p "$NO_PLAYER"
+for bin in bash jq mktemp uname awk mkdir rm cat kill; do
+  src="$(command -v "$bin")" || fail "missing $bin for no-player PATH"
+  ln -s "$src" "$NO_PLAYER/$bin"
+done
+
 # --- edge-tts failure falls back to native say ---
 run config-write --provider edge-tts --locale zh-TW --voice zh-TW-HsiaoChenNeural >/dev/null
 rm -f "$SAY_LOG" "$EDGE_LOG"
 set +e
-printf 'hello fallback' | EDGE_TTS_FAIL=1 run speak >/dev/null 2>"$TMP_DIR/fallback.err"
+printf 'hello fallback' | env PATH="$NO_PLAYER:$STUB_BIN" \
+  SPOKEN_SYNC=1 SPOKEN_NATIVE_PROVIDER=say EDGE_TTS_FAIL=1 \
+  bash "$SCRIPT" speak >/dev/null 2>"$TMP_DIR/fallback.err"
 set -e
 [ -f "$SAY_LOG" ] || fail "fallback should invoke say: $(cat "$TMP_DIR/fallback.err")"
 grep -q 'hello fallback' "$SAY_LOG" || fail "fallback say log missing text: $(cat "$SAY_LOG")"
 grep -qi 'edge-tts failed' "$TMP_DIR/fallback.err" \
   || fail "fallback should log on stderr: $(cat "$TMP_DIR/fallback.err")"
+
+# --- edge-tts without an audio player explains how to install one ---
+set +e
+printf 'silent' | env PATH="$NO_PLAYER:$STUB_BIN" SPOKEN_NATIVE_PROVIDER='' \
+  bash "$SCRIPT" speak >"$TMP_DIR/player.out" 2>"$TMP_DIR/player.err"
+player_status=$?
+set -e
+player_err="$(cat "$TMP_DIR/player.err")"
+[ "$player_status" -ne 0 ] || fail "speak without a player should fail: $player_err"
+printf '%s' "$player_err" | grep -q 'no audio player' \
+  || fail "speak without a player should name the gap: $player_err"
+printf '%s' "$player_err" | grep -q 'mpv' \
+  || fail "speak without a player should mention mpv: $player_err"
 
 # --- Copilot additional_context shape ---
 run on --session-id sess-1 >/dev/null
@@ -295,6 +335,30 @@ STUB
   rm -f "$STUB_BIN/defaults"
   [ "$ui_out" = "zh-TW" ] || fail "macOS AppleLanguages should win over LANG"
 fi
+case "$(uname -s)" in
+  MINGW* | MSYS* | CYGWIN*)
+    cat >"$STUB_BIN/powershell.exe" <<'STUB'
+#!/usr/bin/env bash
+case "$*" in
+  *Get-WinUILanguageOverride*) exit 0 ;;
+  *Get-WinUserLanguageList*)
+    printf '%s\n' 'en-US' 'zh-Hant-TW'
+    exit 0
+    ;;
+esac
+exit 1
+STUB
+    chmod +x "$STUB_BIN/powershell.exe"
+    ui_out="$(
+      unset LC_ALL
+      LANG=en_US.UTF-8
+      run locale-recommend | tr -d '\r'
+    )"
+    rm -f "$STUB_BIN/powershell.exe"
+    [ "$ui_out" = "zh-TW" ] \
+      || fail "Windows language list should prefer zh-Hant-TW over leading en-US"
+    ;;
+esac
 
 # --- ensure-edge-tts prefers mise, then uv, then pipx ---
 ENSURE_BIN="$TMP_DIR/ensure-bin"

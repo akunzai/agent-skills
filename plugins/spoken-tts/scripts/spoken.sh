@@ -12,6 +12,13 @@ detect_os() {
   esac
 }
 
+is_windows() {
+  case "$(uname -s)" in
+    MINGW* | MSYS* | CYGWIN*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 is_absolute() {
   [[ "$1" == /* ]]
 }
@@ -246,7 +253,7 @@ locale_from_lang() {
   esac
 }
 
-# Cursor sets LANG=en_US; macOS UI may differ. LC_ALL is the explicit override.
+# Cursor and Git Bash often set LANG=en_US; OS UI may differ. LC_ALL wins.
 macos_ui_lang() {
   [[ "$(detect_os)" == macos ]] || return 1
   command -v defaults >/dev/null 2>&1 || return 1
@@ -262,12 +269,94 @@ macos_ui_lang() {
   printf '%s\n' "$raw"
 }
 
+trim_win_lang() {
+  printf '%s' "$1" | tr -d '\000\r' | awk 'NF{print; exit}'
+}
+
+# Prefer a mapped non-English tag. LanguageList[0] is preference/IME order,
+# not Windows display language (en-US then zh-Hant-TW is common).
+win_best_tag() {
+  local tag mapped first=""
+  while IFS= read -r tag || [[ -n "$tag" ]]; do
+    tag="$(trim_win_lang "$tag")"
+    [[ -n "$tag" ]] || continue
+    mapped="$(locale_from_lang "$tag")" || continue
+    case "$mapped" in
+      en-*)
+        [[ -n "$first" ]] || first="$tag"
+        ;;
+      *)
+        printf '%s\n' "$tag"
+        return 0
+        ;;
+    esac
+  done
+  [[ -n "$first" ]] || return 1
+  printf '%s\n' "$first"
+}
+
+win_tags_from_reg() {
+  awk '/REG_/ {
+    for (i = 1; i <= NF; i++)
+      if ($i ~ /^[A-Za-z][A-Za-z](-[A-Za-z0-9]+)+$/) print $i
+  }'
+}
+
+windows_ui_lang() {
+  is_windows || return 1
+  local raw lang ps=""
+  if command -v powershell.exe >/dev/null 2>&1; then
+    ps=powershell.exe
+  elif command -v powershell >/dev/null 2>&1; then
+    ps=powershell
+  fi
+  if [[ -n "$ps" ]]; then
+    raw="$("$ps" -NoProfile -NonInteractive -Command \
+      '(Get-WinUILanguageOverride).Name' 2>/dev/null || true)"
+    lang="$(trim_win_lang "$raw")"
+    if [[ -n "$lang" ]]; then
+      printf '%s\n' "$lang"
+      return 0
+    fi
+  fi
+  if command -v reg.exe >/dev/null 2>&1; then
+    raw="$(reg.exe query 'HKCU\Control Panel\Desktop' /v PreferredUILanguages 2>/dev/null || true)"
+    lang="$(printf '%s\n' "$raw" | win_tags_from_reg | win_best_tag)" || lang=""
+    if [[ -n "$lang" ]]; then
+      printf '%s\n' "$lang"
+      return 0
+    fi
+  fi
+  if [[ -n "$ps" ]]; then
+    raw="$("$ps" -NoProfile -NonInteractive -Command \
+      '(Get-WinUserLanguageList).LanguageTag' 2>/dev/null || true)"
+    lang="$(printf '%s\n' "$raw" | tr -d '\000' | win_best_tag)" || lang=""
+    if [[ -n "$lang" ]]; then
+      printf '%s\n' "$lang"
+      return 0
+    fi
+  fi
+  if command -v reg.exe >/dev/null 2>&1; then
+    raw="$(reg.exe query 'HKCU\Control Panel\International' /v LocaleName 2>/dev/null || true)"
+    lang="$(printf '%s\n' "$raw" | win_tags_from_reg | awk 'NF{print; exit}')"
+    lang="$(trim_win_lang "$lang")"
+    if [[ -n "$lang" ]]; then
+      printf '%s\n' "$lang"
+      return 0
+    fi
+  fi
+  return 1
+}
+
 cmd_locale_recommend() {
   local lang
   if [[ -n "${LC_ALL:-}" ]] && locale_from_lang "$LC_ALL"; then
     return
   fi
   if lang="$(macos_ui_lang)" && [[ -n "$lang" ]] && locale_from_lang "$lang"; then
+    return
+  fi
+  if lang="$(windows_ui_lang)" && [[ -n "$lang" ]] && locale_from_lang "$lang"; then
     return
   fi
   if [[ -n "${LANG:-}" ]] && locale_from_lang "$LANG"; then
@@ -439,29 +528,53 @@ synth_say() {
   fi
 }
 
-play_audio() {
-  local file="$1"
+audio_player() {
   if [[ "$(detect_os)" == macos ]]; then
     command -v afplay >/dev/null 2>&1 || return 1
-    afplay "$file"
-    return
+    printf 'afplay\n'
+    return 0
   fi
-  if command -v mpv >/dev/null 2>&1; then
-    mpv --really-quiet --no-terminal "$file"
-  elif command -v ffplay >/dev/null 2>&1; then
-    ffplay -autoexit -nodisp -loglevel quiet "$file"
-  elif command -v paplay >/dev/null 2>&1; then
-    paplay "$file"
-  elif command -v aplay >/dev/null 2>&1; then
-    aplay "$file"
+  local p
+  for p in mpv ffplay paplay aplay; do
+    if command -v "$p" >/dev/null 2>&1; then
+      printf '%s\n' "$p"
+      return 0
+    fi
+  done
+  return 1
+}
+
+print_missing_player() {
+  printf 'spoken: no audio player on PATH (need mpv or ffplay)\n' >&2
+  if is_windows; then
+    printf 'spoken: install with: scoop bucket add extras && scoop install mpv\n' >&2
   else
+    printf 'spoken: install mpv, or ffmpeg for ffplay\n' >&2
+  fi
+}
+
+play_audio() {
+  local file="$1" player
+  if ! player="$(audio_player)"; then
+    print_missing_player
     return 1
   fi
+  case "$player" in
+    afplay) afplay "$file" ;;
+    mpv) mpv --really-quiet --no-terminal "$file" ;;
+    ffplay) ffplay -autoexit -nodisp -loglevel quiet "$file" ;;
+    paplay) paplay "$file" ;;
+    aplay) aplay "$file" ;;
+    *) return 1 ;;
+  esac
 }
 
 synth_edge_tts() {
   local voice="$1" text="$2"
   local tmp media
+  if ! audio_player >/dev/null; then
+    return 1
+  fi
   tmp="$(make_temp)"
   media="${tmp}.mp3"
   edge-tts --voice "$voice" --text "$text" --write-media "$media" || return 1
@@ -501,6 +614,10 @@ speak_text() {
     fi
     fallback_provider="$(native_provider)"
     if [[ -z "$fallback_provider" || "$fallback_provider" == "$PROVIDER" ]]; then
+      if [[ "$PROVIDER" == edge-tts ]] && ! audio_player >/dev/null; then
+        print_missing_player
+        return 1
+      fi
       printf 'spoken: %s failed\n' "$PROVIDER" >&2
       return 1
     fi
@@ -528,7 +645,14 @@ speak_text() {
 cmd_speak() {
   local text
   text="$(cat)"
-  speak_text "$text" 5000
+  if [[ -z "$text" ]]; then
+    printf 'spoken: pipe text into speak\n' >&2
+    return 1
+  fi
+  # Git Bash `kill` does not stop Win32 mpv/edge-tts children, so a background
+  # speak looks one utterance behind. Wait here; the Stop hook stays async.
+  # https://github.com/git-for-windows/msys2-runtime/commit/15f209511985092588b171703e5046eba937b47b
+  SPOKEN_SYNC=1 speak_text "$text" 5000
 }
 
 cmd_test() {
