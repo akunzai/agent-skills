@@ -65,30 +65,30 @@ run() {
 
 # --- on without session id writes pending, does not enable a session ---
 out="$(run on 2>&1)" || fail "on without session id should write pending: $out"
-[ -f "$XDG_STATE_HOME/spoken/pending" ] || fail "pending flag was not written"
-sessions="$(find "$XDG_STATE_HOME/spoken/sessions" -type f 2>/dev/null | wc -l | tr -d ' \t\r')"
+[ -f "$XDG_STATE_HOME/spoken-tts/pending" ] || fail "pending flag was not written"
+sessions="$(find "$XDG_STATE_HOME/spoken-tts/sessions" -type f 2>/dev/null | wc -l | tr -d ' \t\r')"
 [ "$sessions" = "0" ] || fail "on without session id enabled a session"
 
 # --- hook-prompt claims pending and injects rules ---
 prompt_json='{"session_id":"sess-1","hook_event_name":"UserPromptSubmit"}'
 inject="$(printf '%s' "$prompt_json" | run hook-prompt)"
-[ ! -f "$XDG_STATE_HOME/spoken/pending" ] || fail "pending was not claimed"
-[ -f "$XDG_STATE_HOME/spoken/sessions/sess-1" ] || fail "session flag was not created"
+[ ! -f "$XDG_STATE_HOME/spoken-tts/pending" ] || fail "pending was not claimed"
+[ -f "$XDG_STATE_HOME/spoken-tts/sessions/sess-1" ] || fail "session flag was not created"
 printf '%s' "$inject" | grep -q '<spoken>' || fail "hook-prompt did not inject spoken rules: $inject"
 printf '%s' "$inject" | grep -q 'hookSpecificOutput' \
   || fail "Claude hook-prompt should use hookSpecificOutput: $inject"
 
 # --- on with session id enables that session ---
 run off --session-id sess-1 >/dev/null
-[ ! -f "$XDG_STATE_HOME/spoken/sessions/sess-1" ] || fail "off did not clear the session"
+[ ! -f "$XDG_STATE_HOME/spoken-tts/sessions/sess-1" ] || fail "off did not clear the session"
 run on --session-id sess-1 >/dev/null
-[ -f "$XDG_STATE_HOME/spoken/sessions/sess-1" ] || fail "on --session-id did not enable"
+[ -f "$XDG_STATE_HOME/spoken-tts/sessions/sess-1" ] || fail "on --session-id did not enable"
 
 # --- toggle ---
 run toggle --session-id sess-1 >/dev/null
-[ ! -f "$XDG_STATE_HOME/spoken/sessions/sess-1" ] || fail "toggle did not disable"
+[ ! -f "$XDG_STATE_HOME/spoken-tts/sessions/sess-1" ] || fail "toggle did not disable"
 run toggle --session-id sess-1 >/dev/null
-[ -f "$XDG_STATE_HOME/spoken/sessions/sess-1" ] || fail "toggle did not enable"
+[ -f "$XDG_STATE_HOME/spoken-tts/sessions/sess-1" ] || fail "toggle did not enable"
 
 # --- setup recommends edge-tts even when native say exists ---
 [ "$(run default-provider)" = "edge-tts" ] \
@@ -124,9 +124,34 @@ set -e
 
 # --- config-write + show ---
 run config-write --provider say --locale zh-TW --voice Meijia >/dev/null
+[ -f "$XDG_CONFIG_HOME/spoken-tts/config.json" ] \
+  || fail "config-write should land in spoken-tts"
 show="$(run config-show)"
 printf '%s' "$show" | jq -e '.provider == "say" and .locale == "zh-TW" and .voice == "Meijia"' >/dev/null \
   || fail "config-show mismatch: $show"
+
+# --- leftover spoken/config.json migrates once ---
+rm -rf "$XDG_CONFIG_HOME/spoken-tts" "$XDG_CONFIG_HOME/spoken"
+mkdir -p "$XDG_CONFIG_HOME/spoken"
+printf '%s\n' '{"provider":"edge-tts","locale":"zh-TW","voice":"zh-TW-HsiaoChenNeural"}' \
+  >"$XDG_CONFIG_HOME/spoken/config.json"
+migrated="$(run config-show)"
+printf '%s' "$migrated" | jq -e '.provider == "edge-tts" and .voice == "zh-TW-HsiaoChenNeural"' >/dev/null \
+  || fail "config-show should migrate leftover spoken config: $migrated"
+[ -f "$XDG_CONFIG_HOME/spoken-tts/config.json" ] || fail "migrated config missing at spoken-tts"
+[ ! -f "$XDG_CONFIG_HOME/spoken/config.json" ] || fail "legacy spoken config.json should be removed"
+
+# --- existing spoken-tts config is not replaced by leftover spoken ---
+mkdir -p "$XDG_CONFIG_HOME/spoken"
+printf '%s\n' '{"provider":"say","locale":"en-US","voice":"Samantha"}' \
+  >"$XDG_CONFIG_HOME/spoken/config.json"
+kept="$(run config-show)"
+printf '%s' "$kept" | jq -e '.provider == "edge-tts"' >/dev/null \
+  || fail "existing spoken-tts config should win over leftover spoken: $kept"
+[ -f "$XDG_CONFIG_HOME/spoken/config.json" ] \
+  || fail "unmigrated leftover spoken config should stay when new config exists"
+
+run config-write --provider say --locale zh-TW --voice Meijia >/dev/null
 
 # --- hook-stop speaks last spoken tag ---
 rm -f "$SAY_LOG"
@@ -230,8 +255,8 @@ printf '%s' "$cursor_out" | jq -e '.additional_context' >/dev/null \
 # --- hook-prompt stops playback ---
 sleep 30 &
 sleep_pid=$!
-mkdir -p "$XDG_STATE_HOME/spoken"
-echo "$sleep_pid" >"$XDG_STATE_HOME/spoken/player.pid"
+mkdir -p "$XDG_STATE_HOME/spoken-tts"
+echo "$sleep_pid" >"$XDG_STATE_HOME/spoken-tts/player.pid"
 printf '%s' "$prompt_json" | run hook-prompt >/dev/null
 if kill -0 "$sleep_pid" 2>/dev/null; then
   kill "$sleep_pid" 2>/dev/null || true
@@ -239,8 +264,37 @@ if kill -0 "$sleep_pid" 2>/dev/null; then
 fi
 
 # --- locale recommend ---
-[ "$(LANG=zh_TW.UTF-8 run locale-recommend | tr -d '\r')" = "zh-TW" ] \
-  || fail "zh_TW LANG should recommend zh-TW"
+[ "$(LC_ALL=ja_JP.UTF-8 LANG=en_US.UTF-8 run locale-recommend | tr -d '\r')" = "ja-JP" ] \
+  || fail "LC_ALL should win over LANG"
+NO_DEFAULTS="$TMP_DIR/no-defaults"
+mkdir -p "$NO_DEFAULTS"
+printf '%s\n' '#!/usr/bin/env bash' 'exit 1' >"$NO_DEFAULTS/defaults"
+chmod +x "$NO_DEFAULTS/defaults"
+lang_out="$(
+  unset LC_ALL
+  PATH="$NO_DEFAULTS:$PATH"
+  LANG=zh_TW.UTF-8
+  run locale-recommend | tr -d '\r'
+)"
+[ "$lang_out" = "zh-TW" ] || fail "zh_TW LANG should recommend zh-TW when LC_ALL is unset"
+if [ "$(uname -s)" = Darwin ]; then
+  cat >"$STUB_BIN/defaults" <<'STUB'
+#!/usr/bin/env bash
+if [ "${1:-}" = read ] && [ "${2:-}" = -g ] && [ "${3:-}" = AppleLanguages ]; then
+  printf '%s\n' '(' '    "zh-Hant-TW",' '    "en-TW"' ')'
+  exit 0
+fi
+exit 1
+STUB
+  chmod +x "$STUB_BIN/defaults"
+  ui_out="$(
+    unset LC_ALL
+    LANG=en_US.UTF-8
+    run locale-recommend | tr -d '\r'
+  )"
+  rm -f "$STUB_BIN/defaults"
+  [ "$ui_out" = "zh-TW" ] || fail "macOS AppleLanguages should win over LANG"
+fi
 
 # --- ensure-edge-tts prefers mise, then uv, then pipx ---
 ENSURE_BIN="$TMP_DIR/ensure-bin"
