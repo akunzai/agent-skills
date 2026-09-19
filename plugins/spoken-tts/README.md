@@ -13,6 +13,12 @@ Claude Code lists the skill as `/spoken-tts:spoken`.
 Requires `jq`. Native TTS needs `say` (macOS). Setup recommends `edge-tts`;
 `/spoken setup` installs it when you pick that provider
 (`mise use -g -y pipx:edge-tts` when mise is present, else `uv` / `pipx`).
+Playback on Linux or Windows needs `mpv` or `ffplay` on PATH
+(`scoop bucket add extras && scoop install mpv`).
+`locale-recommend` reads the OS UI language on macOS and Windows before
+`LANG`. On Windows it uses the display-language override, then prefers a
+non-English tag in the user language list (`en-US` then `zh-Hant-TW`
+becomes `zh-TW`).
 
 From the repository root:
 
