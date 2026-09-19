@@ -148,14 +148,3 @@ failure.
 
 When dispatching these roles on Codex CLI, mind its dispatch gotchas (history
 inheritance, relayed claims) in `../../docs/agents/harnesses.md`.
-
-## Prevent Recurrence
-
-- Propose a candidate only when you can name who hits it again, where, and on
-  what change.
-- On confirmation, offer the first tier that reaches them and only that one:
-  enforce it (assert/type/test) with its size quoted, else a comment at that
-  site, else the nearest existing topic document with a backtick-path pointer here
-  and one sentence on why the tiers above cannot hold it.
-- When adding to a file, audit the rest of it in the same pass; drop entries
-  once tests or current documentation make them redundant.
