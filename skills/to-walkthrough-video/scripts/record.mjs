@@ -18,6 +18,13 @@ export const SIGN_IN_TIMEOUT_MS = 180_000;
 export function resolveSessionMode(options = {}) {
   const saved = Boolean(options.storageState);
   const interactive = Boolean(options.signIn);
+  const attached = Boolean(options.connect);
+  if (attached && (saved || interactive)) {
+    return "conflict";
+  }
+  if (attached) {
+    return "attached";
+  }
   if (saved && interactive) {
     return "conflict";
   }
@@ -30,7 +37,7 @@ const AUTH_EXPECT_TIMEOUT_MS = 15_000;
 
 function printUsage(stream) {
   stream.write(`Usage: record.mjs --scenario FILE --out FILE [--width PX] [--height PX] [--pause-ms MS]
-                  [--storage-state FILE] [--sign-in]
+                  [--storage-state FILE] [--sign-in] [--connect CDP_URL]
                   [--check-prereqs]
 
 Drive a Playwright walkthrough with a pointer, click echo, and auto-zoom.
@@ -144,6 +151,7 @@ export function parseArgs(argv) {
     pauseMs: null,
     storageState: null,
     signIn: false,
+    connect: null,
     checkPrereqs: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
@@ -160,6 +168,9 @@ export function parseArgs(argv) {
       i += 1;
     } else if (arg === "--sign-in") {
       args.signIn = true;
+    } else if (arg === "--connect") {
+      args.connect = argv[i + 1];
+      i += 1;
     } else if (arg === "--width" || arg === "--height" || arg === "--pause-ms") {
       const key = arg === "--pause-ms" ? "pauseMs" : arg.slice(2);
       args[key] = Number(argv[i + 1]);
@@ -1077,6 +1088,7 @@ export async function recordWalkthrough(options) {
   const sessionMode = resolveSessionMode(options);
   const signIn = sessionMode === "interactive";
   const authMode = sessionMode === "saved";
+  const attached = sessionMode === "attached";
   const problems = [
     ...(authMode ? storageStateProblems(options.storageState) : []),
     ...validateScenario(scenario, { sessionMode }),
@@ -1099,20 +1111,37 @@ export async function recordWalkthrough(options) {
   }
   const playwright = options.playwright ?? (await loadPlaywright());
   const device = resolveDevice(playwright, scenario);
-  const viewport = resolveViewport(scenario, options, device);
+  let viewport = resolveViewport(scenario, options, device);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "to-walkthrough-video-"));
-  const browser = await launchChromium(playwright, { headless: !signIn });
+  // --connect records a page somebody already signed in on, so the browser and
+  // its context are theirs: nothing here launches them, navigates them or closes
+  // them, and the window keeps the size it already has.
+  const browser = attached
+    ? await playwright.chromium.connectOverCDP(options.connect)
+    : await launchChromium(playwright, { headless: !signIn });
   const contextOptions = resolveContextOptions(
     scenario,
     device,
     viewport,
     authMode ? options.storageState : null,
   );
-  const context = await browser.newContext(contextOptions);
-  if (effects.cursor && !signIn) {
+  const context = attached ? browser.contexts()[0] : await browser.newContext(contextOptions);
+  if (!context) {
+    await browser.close().catch(() => {});
+    throw new Error(`no browser context to record at ${options.connect}`);
+  }
+  if (effects.cursor && !signIn && !attached) {
     await context.addInitScript(installCursor);
   }
-  const page = await context.newPage();
+  const page = attached ? context.pages().at(-1) : await context.newPage();
+  if (!page) {
+    await browser.close().catch(() => {});
+    throw new Error(`no open page to record at ${options.connect}`);
+  }
+  if (attached) {
+    viewport = page.viewportSize() ?? (await page.evaluate(() => ({ width: innerWidth, height: innerHeight })));
+    viewport = { width: evenPx(viewport.width), height: evenPx(viewport.height) };
+  }
   if (typeof page.screencast?.start !== "function") {
     await context.close().catch(() => {});
     await browser.close().catch(() => {});
@@ -1139,7 +1168,9 @@ export async function recordWalkthrough(options) {
   const rawPath = path.join(tmp, "raw.webm");
 
   try {
-    await page.goto(scenario.url, { waitUntil: "domcontentloaded" });
+    if (!attached) {
+      await page.goto(scenario.url, { waitUntil: "domcontentloaded" });
+    }
     if (!signIn) {
       await installOverlay(page, state);
     }
@@ -1168,7 +1199,9 @@ export async function recordWalkthrough(options) {
     await sleep(600);
   } catch (error) {
     await page.screencast.stop().catch(() => {});
-    await context.close().catch(() => {});
+    if (!attached) {
+      await context.close().catch(() => {});
+    }
     await browser.close().catch(() => {});
     fs.rmSync(tmp, { recursive: true, force: true });
     throw error;
@@ -1176,7 +1209,9 @@ export async function recordWalkthrough(options) {
 
   const stoppedAt = Date.now();
   await page.screencast.stop();
-  await context.close();
+  if (!attached) {
+    await context.close();
+  }
   await browser.close();
   const stem = outPath.replace(/\.(mp4|webm)$/i, "");
   const clicksPath = `${stem}.clicks.jsonl`;
@@ -1251,11 +1286,15 @@ export function validateScenario(scenario, options = {}) {
   }
   if (options.sessionMode === "conflict") {
     problems.push(
-      "--sign-in and --storage-state do the same job from opposite ends: one makes a session, the other loads one. Pick one.",
+      "--sign-in, --storage-state and --connect each get the session a different way. Pick one.",
     );
   } else if (options.sessionMode === "saved" && !scenario.auth?.expect) {
     problems.push(
       "--storage-state needs scenario.auth.expect: a locator visible only once signed in",
+    );
+  } else if (options.sessionMode === "attached" && !scenario.auth?.expect) {
+    problems.push(
+      "--connect needs scenario.auth.expect: a locator visible on the signed-in page you are attached to",
     );
   } else if (options.sessionMode === "interactive" && !scenario.auth?.expect) {
     problems.push(
@@ -1388,6 +1427,7 @@ export async function main(argv = process.argv.slice(2), io = process) {
       pauseMs: args.pauseMs,
       storageState: args.storageState,
       signIn: args.signIn,
+      connect: args.connect,
     });
     io.stdout.write(
       `${JSON.stringify({ out: result.out, clicks: result.clicks, zooms: result.zooms, status: result.status }, null, 2)}\n`,

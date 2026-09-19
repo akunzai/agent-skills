@@ -31,7 +31,9 @@ When missing, ask the user for confirmation before installing:
    and record through that state — the anonymous page is only ever a login
    screen. `auth.expect` must be visible only when signed in, and record
    with `--storage-state auth.json`, or pass `--sign-in` to sign in by hand
-   at the start of the recording instead. See `references/auth.md`. Explore
+   at the start of the recording instead, or `--connect` to record a window
+   already signed in on, so a site you cannot know ahead needs one sign-in
+   for both exploring and recording. See `references/auth.md`. Explore
    the live page and write `scenario.json` with the start URL and every
    click, in order. Each click needs a locator (`role`+`name`, `selector`,
    `text`, or `label`). Discover locators with `playwright-cli snapshot`
