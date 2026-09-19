@@ -145,11 +145,18 @@ endpoint:
 
 ```bash
 open -na "Google Chrome" --args --remote-debugging-port=9222 \
+  --no-first-run --no-default-browser-check \
   --user-data-dir="$(mktemp -d)" https://app.example.com
+curl -s http://127.0.0.1:9222/json/list   # a "type": "page" entry means it is up
 playwright-cli attach --cdp http://127.0.0.1:9222
 node scripts/record.mjs --scenario scenario.json --out demo.mp4 \
   --connect http://127.0.0.1:9222
 ```
+
+A fresh `--user-data-dir` shows Chrome's first-run dialog (default browser,
+usage statistics) unless the two `--no-` flags are passed. An agent sees no
+window, so check `/json/list` before asking the person to sign in: an empty
+list means the browser did not come up.
 
 `record.mjs` records the page that is open, at the window's own size, and
 never navigates, reloads or closes it. `scenario.url` is not opened, so the
