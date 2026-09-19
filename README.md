@@ -112,7 +112,6 @@ Use it when you want to:
 
 - Bootstrap an `AGENTS.md` from repo evidence (not an init-script dump)
 - Audit, score, and slim an existing `AGENTS.md` (contradictions, bloat, micromanagement)
-- Keep `AGENTS.md` in sync with Claude Code via a `CLAUDE.md` symlink
 - Prevent recurrence after solving a problem: distill actionable rules and
   place them where whoever would break them must pass (enforced in code,
   commented at the site, or in a referenced topic doc)

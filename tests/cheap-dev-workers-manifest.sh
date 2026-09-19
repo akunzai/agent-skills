@@ -48,9 +48,4 @@ for script in install-codex-agents.sh uninstall-codex-agents.sh sanitize-log.sh;
   [ -x "$path" ] || fail "scripts/$script is not executable"
 done
 
-# --- CLAUDE.md must be the symlink-to-AGENTS.md convention ---
-[ -L "$PLUGIN_DIR/CLAUDE.md" ] || fail "CLAUDE.md must be a symlink to AGENTS.md"
-CLAUDE_MD_TARGET="$(readlink "$PLUGIN_DIR/CLAUDE.md")"
-[ "$CLAUDE_MD_TARGET" = "AGENTS.md" ] || fail "CLAUDE.md symlink target is '$CLAUDE_MD_TARGET', expected 'AGENTS.md'"
-
 echo "cheap-dev-workers manifest checks passed"

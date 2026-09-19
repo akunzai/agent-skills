@@ -51,5 +51,4 @@ house style described in this file rather than looking at the tree.
 
 ## CLAUDE.md
 
-If `CLAUDE.md` is absent, ask before creating a symlink to `AGENTS.md`.
-Do not replace a regular `CLAUDE.md` without approval.
+Do not create or replace `CLAUDE.md` without approval.

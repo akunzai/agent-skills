@@ -50,8 +50,3 @@ env cases: `CURSOR_INVOKED_AS=cursor-agent` must select
   and one sentence on why the tiers above cannot hold it.
 - When adding to a file, audit the rest of it in the same pass; drop entries
   once tests or current documentation make them redundant.
-
-## Claude Code Compatibility
-
-`CLAUDE.md` is a symbolic link pointing to `AGENTS.md`. Edit `AGENTS.md`
-directly.

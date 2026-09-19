@@ -72,26 +72,8 @@ follows the conversation's language; copying bytes does not.
 nobody replaced, for any guarantee in
 [guarantees.tsv](references/guarantees.tsv) the document no longer
 carries, and for `@path` file references in any `docs/agents/*.md`. Run
-it before asking for confirmation. On any finding, fix the file and run
-it again — do not pause to judge whether this finding applies given the
-language answer below; loop on fix-then-rerun until it exits 0, the same
-mechanical step regardless of which language issues or requests use.
-
-A repo set up by an earlier version reaches the current one through that
-last check. It reports the guarantee and where in the template to read
-the original, never a diff: the installed document holds this repo's own
-labels, paths and gate commands, and those edits are the reason it is
-worth keeping. Adapt the template's wording to what the document already
-says, one guarantee at a time, each on its own confirmation.
-
-Link to what a `README` or `CONTRIBUTING.md` already says, and keep only
-what is agent-specific. Where `AGENTS.md` already lists build and test
-commands, `verification.md` becomes their single source and the
-`AGENTS.md` entry shrinks to the pointer. Same rule when the repo already has
-`.github/PULL_REQUEST_TEMPLATE.md` or `.gitlab/merge_request_templates/`:
-the native template stays authoritative on structure and the document
-says so. Generating a native template is opt-in, produces a skeleton
-only, and marks any Related Issue section as dropped when no issue is tracked.
+it before asking for confirmation. On any finding, fix the file and rerun
+until it exits 0; do not judge whether the finding applies.
 
 ## Forge ladder
 
@@ -120,6 +102,10 @@ because they live in history and get searched by tooling. Each rule is
 written into the document it governs; no language table goes into
 `AGENTS.md`.
 
+The same answer picks the capture locale: when the UI ships that language
+(`locales/`, i18n), `verification.md` records its code, such as `zh-TW` for
+Traditional Chinese, not the `en-US` browser default.
+
 **The documents you write are English throughout** — headings, prose,
 and the placeholder text inside a sample block alike. They are read by
 models, and one language means one reading. The answer names the
@@ -142,18 +128,11 @@ does.
 Then propose rather than interview. Probe and offer a concrete default
 the developer confirms or edits: the source paths whose changes must
 land with tests, which of the repo's existing labels an agent should
-apply, the request-title convention, read from merged requests
-(`gh pr list --state merged --limit 30 --json title`,
-`glab mr list --merged`), and where issues are tracked. Read
-the labels with the page size raised
-(`gh label list --limit 100`, `glab label list --per-page 100`): both
-default to 30 and present that page as the whole set, so a label further
-down reads as missing. Inventing a label vocabulary, or importing one
-from another project, produces labels nobody uses; a missing label is a
-conversation with the maintainer.
+apply, the request-title convention, and where issues are tracked.
 
-Where issues are tracked, body shape, diagrams, evidence and PII rules:
-[ticket-and-pr.md](references/ticket-and-pr.md).
+Where issues are tracked, the probes behind those defaults, a forge-native
+request template the repo already has, body shape, diagrams, evidence and
+PII rules: [ticket-and-pr.md](references/ticket-and-pr.md).
 
 **Done when** the issue document and the PR/MR document exist, each
 carries its language rule, `install-templates.sh --check` exits 0 against
@@ -187,70 +166,40 @@ up; or neither is possible — missing credentials, a dependency this repo
 does not run — and it goes under the document's unverified section with
 the reason, rather than claiming a pass.
 
-Then sweep for references to the section you shrank, source comments
-included.
-
-Entrypoint detection, port strategy, local and deployed verification:
+Entrypoint detection, port strategy, local and deployed verification,
+and what an existing `README`, `CONTRIBUTING.md` or `AGENTS.md` command
+list leaves for this document to hold:
 [verification.md](references/verification.md). Capture tooling per
 platform, the UI locale to capture in, and capture rules an existing
 document already states: [capture.md](references/capture.md).
 
-**Done when** `verification.md` exists and carries its `drift:` markers,
-the entrypoint has run clean or
-its failure is recorded as a named gap,
-and `AGENTS.md` carries the pointers. Where `AGENTS.md` does not exist, hand that off to the
-`agents-md` skill, which owns the quality bar and the `CLAUDE.md`
-symlink. Where that skill is not installed, write a minimal `AGENTS.md`
+**Done when** `verification.md` exists, carries its `drift:` markers and a
+`UI locale:` line (the language requests are written in when the UI ships
+it, else the UI default), the entrypoint has run clean or
+its failure is recorded as a named gap, all three documents are English
+prose (other languages only inside backticks), and `AGENTS.md` carries
+the pointers. Where `AGENTS.md` does not exist, hand that off to the
+`agents-md` skill. Where it is not installed, write a minimal `AGENTS.md`
 holding a one-line project description and the three pointers, and say
 in the hand-back that `agents-md` should audit it.
 
 ## Phase 3 — optional
 
-Offer each of these on its own confirmation.
-
-- **Mocks** for a dependency that cannot run locally. Scaffold only: the
-  service, an empty mapping directory, and a documented way to add a
-  scenario. Stubs encode business rules that cannot be inferred from
-  client code, so suggest filing a ticket to implement them.
-- **A remote test environment**, recorded as reachability plus where
-  credentials come from — never the credentials. The "agent may deploy"
-  flag defaults to no and is the developer's to flip.
-- **Port allocation** when several agents work the repo at once.
-- **A forge-native template skeleton.**
+Offer each on its own confirmation: **mocks** for a dependency that
+cannot run locally, **a remote test environment**, **port allocation**
+when several agents work the repo at once, and **a forge-native template
+skeleton**. Scope, tool choice and the credential rule for the first
+three: [verification.md](references/verification.md); for the skeleton:
+[ticket-and-pr.md](references/ticket-and-pr.md).
 
 **Done when** each offer has been accepted or declined on the record.
 
 ## Re-running
 
-Resume at the first incomplete phase; do not re-ask what a document
-already answers. Present is not complete: a document another skill wrote
-counts as this skill's only if it carries the Phase 1 language rule.
-
-[check-drift.sh](scripts/check-drift.sh) compares four mechanical facts:
-documented forge against the remote, the entrypoint still resolving and
-running (`drift:entrypoint` for a script path, `drift:entrypoint-cmd` for
-a task-runner command), documented ports against the compose file, and
-files the document depends on still being present. It reads them from
-`drift:` HTML-comment markers that `verification.md` carries, so the
-document stays the single source and the markers stay invisible when
-rendered. Write those markers whenever you write the file.
-
-[install-templates.sh](scripts/install-templates.sh) `--check` answers the
-other half: which guarantees the current templates pin that these
-documents no longer carry, and whether any `docs/agents/*.md` still has
-an `@path` file reference. Run both on a re-run, before asking anything.
-
-If `AGENTS.md` still has `@docs/agents/<doc>.md` lines, or any
-`docs/agents/*.md` still has an `@` file reference, propose backtick
-paths (the read-trigger shape in `AGENTS.md`) and wait. `--check` flags
-`@path` in `docs/agents/*.md`; it does not parse `AGENTS.md`.
-`check-drift.sh` still compares only the four recorded facts.
-
-Report drift and stop. Fixing it needs the same confirmation as writing
-it did.
-
-The four are what a script can decide. Semantic drift — whether a mock
-still covers a new field — is left to review.
+On a repo an earlier pass already set up — which phase to resume, the two
+drift checks to run before asking anything, upgrading a repo an earlier
+version of this skill wrote, and migrating `@path` pointers:
+[re-running.md](references/re-running.md).
 
 ## Related
 

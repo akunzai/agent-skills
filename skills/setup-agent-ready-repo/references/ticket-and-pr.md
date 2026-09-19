@@ -20,6 +20,26 @@ ones. When none is configured yet, say so and point at `find-skills` or
 `skills-manager` to locate or install one; that is their job, not this
 skill's.
 
+## Probing for the defaults to propose
+
+- **Labels**: read the repo's own with the page size raised
+  (`gh label list --limit 100`, `glab label list --per-page 100`) — both
+  default to 30, so a label further down reads as missing. Inventing a
+  label vocabulary, or importing one from another project, produces
+  labels nobody uses; a missing label is a conversation with the
+  maintainer.
+- **Request titles**: read the convention from merged requests
+  (`gh pr list --state merged --limit 30 --json title`,
+  `glab mr list --merged`).
+
+## A forge-native request template
+
+Where the repo already has `.github/PULL_REQUEST_TEMPLATE.md` or
+`.gitlab/merge_request_templates/`, that template stays authoritative on
+structure and the document says so. Generating one is opt-in, produces a
+skeleton only, and marks any Related Issue section as dropped when no
+issue is tracked.
+
 ## Body shape
 
 Issues and requests share one shape, top to bottom:
