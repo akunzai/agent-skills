@@ -133,6 +133,9 @@ jobs:
       - name: Run codexbar-quota-handoff uninstall checks
         run: bash tests/codexbar-quota-handoff-uninstall.sh
 
+      - name: Run codexbar-quota-handoff remove-grok checks
+        run: bash tests/codexbar-quota-handoff-remove-grok.sh
+
   plugin-version-bump:
     runs-on: ubuntu-latest
     steps:

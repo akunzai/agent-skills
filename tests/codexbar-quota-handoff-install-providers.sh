@@ -120,11 +120,15 @@ run_install "$AGENT_ONLY_HOME" agent >/dev/null
 ACTUAL="$(configured_providers "$AGENT_ONLY_HOME")"
 [ -z "$ACTUAL" ] || fail "with only a bare agent on PATH, expected no providers configured, got: $ACTUAL"
 
-# --- all five tools on PATH: all five providers get a CodexBar rule ---
+# --- all tools on PATH, including grok: grok is not a CodexBar provider ---
 ALL_TOOLS_HOME="$TMP_DIR/all-tools"
 run_install "$ALL_TOOLS_HOME" claude grok codex copilot cursor-agent >/dev/null
 ACTUAL="$(configured_providers "$ALL_TOOLS_HOME")"
-[ "$ACTUAL" = "claude,codex,copilot,cursor,grok" ] || fail "with all five tools on PATH, expected all five providers configured, got: $ACTUAL"
+[ "$ACTUAL" = "claude,codex,copilot,cursor" ] || fail "with grok on PATH, expected no grok CodexBar provider, got: $ACTUAL"
+[ ! -e "$ALL_TOOLS_HOME/.grok/hooks/codexbar-quota-handoff.json" ] \
+  || fail "setup wrote a Grok global hook when grok is no longer a supported runtime"
+[ ! -e "$ALL_TOOLS_HOME/.grok/hooks/codexbar-quota-reminder.sh" ] \
+  || fail "setup wrote a Grok reminder script when grok is no longer a supported runtime"
 
 RUNTIME_DIR="$ALL_TOOLS_HOME/xdg-data/codexbar-quota-handoff/scripts"
 helper="codexbar-quota-flag.sh"
@@ -140,56 +144,60 @@ EXPECTED_STATE_DIR="$ALL_TOOLS_HOME/xdg-state/codexbar-quota-handoff"
 [ ! -e "$ALL_TOOLS_HOME/.claude/skills/codexbar-quota-handoff" ] \
   || fail "setup must not install the legacy Claude skill symlink"
 
-# --- Grok on PATH: setup owns ~/.grok/hooks/codexbar-quota-handoff.json and ~/.grok/hooks/codexbar-quota-reminder.sh ---
-# Grok 1.0.x discovers plugin hooks but does not register them on the session
-# dispatcher, so the reliable path is a global hook alongside its reminder script
-# in ~/.grok/hooks/. Stop only: PostToolUse exit 2 is fail-open on Grok and would
-# claim the flag before Stop can surface the reminder.
-GROK_HOOK_HOME="$TMP_DIR/grok-hook"
-run_install "$GROK_HOOK_HOME" grok >/dev/null
-GROK_HOOK_FILE="$GROK_HOOK_HOME/.grok/hooks/codexbar-quota-handoff.json"
-GROK_HOOK_SCRIPT="$GROK_HOOK_HOME/.grok/hooks/codexbar-quota-reminder.sh"
-[ -f "$GROK_HOOK_FILE" ] || fail "expected Grok global hook at $GROK_HOOK_FILE"
-[ -x "$GROK_HOOK_SCRIPT" ] || fail "expected executable Grok reminder script at $GROK_HOOK_SCRIPT"
-cmp "$ROOT_DIR/plugins/codexbar-quota-handoff/scripts/quota-reminder.sh" "$GROK_HOOK_SCRIPT" \
-  || fail "installed Grok reminder script differs from repository source"
-# shellcheck disable=SC2016
-"$STUB_BIN/jq" -e --arg cmd "$GROK_HOOK_SCRIPT" '
-  .hooks.Stop[0].hooks[0].type == "command"
-  and .hooks.Stop[0].hooks[0].command == $cmd
-  and (.hooks | has("PostToolUse") | not)
-' "$GROK_HOOK_FILE" >/dev/null \
-  || fail "Grok global hook must be Stop-only against the installed reminder helper"
-
-# Re-running setup replaces our owned hook file and script.
-run_install "$GROK_HOOK_HOME" grok >/dev/null
-# shellcheck disable=SC2016
-"$STUB_BIN/jq" -e --arg cmd "$GROK_HOOK_SCRIPT" '
-  .hooks.Stop[0].hooks[0].command == $cmd
-' "$GROK_HOOK_FILE" >/dev/null \
-  || fail "re-running setup did not refresh the owned Grok global hook"
-[ -x "$GROK_HOOK_SCRIPT" ] || fail "re-running setup did not refresh the owned Grok reminder script"
-
-# Foreign files in ~/.grok/hooks/ must be left alone.
-echo '{"hooks":{"SessionStart":[]}}' >"$GROK_HOOK_HOME/.grok/hooks/herdr.json"
-printf '#!/usr/bin/env bash\nexit 0\n' >"$GROK_HOOK_HOME/.grok/hooks/herdr-agent-state.sh"
-chmod +x "$GROK_HOOK_HOME/.grok/hooks/herdr-agent-state.sh"
-run_install "$GROK_HOOK_HOME" grok >/dev/null
-ACTUAL="$("$STUB_BIN/jq" -c . "$GROK_HOOK_HOME/.grok/hooks/herdr.json")"
+# --- leftover Grok global hooks from older installs are removed; foreign files stay ---
+LEFTOVER_HOME="$TMP_DIR/leftover-grok"
+mkdir -p "$LEFTOVER_HOME/.grok/hooks"
+echo '{"hooks":{"Stop":[]}}' >"$LEFTOVER_HOME/.grok/hooks/codexbar-quota-handoff.json"
+printf '#!/usr/bin/env bash\nexit 0\n' >"$LEFTOVER_HOME/.grok/hooks/codexbar-quota-reminder.sh"
+chmod +x "$LEFTOVER_HOME/.grok/hooks/codexbar-quota-reminder.sh"
+echo '{"hooks":{"SessionStart":[]}}' >"$LEFTOVER_HOME/.grok/hooks/herdr.json"
+printf '#!/usr/bin/env bash\nexit 0\n' >"$LEFTOVER_HOME/.grok/hooks/herdr-agent-state.sh"
+chmod +x "$LEFTOVER_HOME/.grok/hooks/herdr-agent-state.sh"
+run_install "$LEFTOVER_HOME" claude >/dev/null
+[ ! -e "$LEFTOVER_HOME/.grok/hooks/codexbar-quota-handoff.json" ] \
+  || fail "setup left a leftover Grok global hook in place"
+[ ! -e "$LEFTOVER_HOME/.grok/hooks/codexbar-quota-reminder.sh" ] \
+  || fail "setup left a leftover Grok reminder script in place"
+ACTUAL="$("$STUB_BIN/jq" -c . "$LEFTOVER_HOME/.grok/hooks/herdr.json")"
 [ "$ACTUAL" = '{"hooks":{"SessionStart":[]}}' ] \
   || fail "setup overwrote an unrelated Grok hook file"
-[ -x "$GROK_HOOK_HOME/.grok/hooks/herdr-agent-state.sh" ] \
+[ -x "$LEFTOVER_HOME/.grok/hooks/herdr-agent-state.sh" ] \
   || fail "setup removed an unrelated Grok script file"
+ACTUAL="$(configured_providers "$LEFTOVER_HOME")"
+[ "$ACTUAL" = "claude" ] || fail "leftover grok hooks must not add a grok CodexBar provider, got: $ACTUAL"
 
-# No grok on PATH: do not create the global hook files.
-NO_GROK_HOME="$TMP_DIR/no-grok"
-run_install "$NO_GROK_HOME" claude >/dev/null
-[ ! -e "$NO_GROK_HOME/.grok/hooks/codexbar-quota-handoff.json" ] \
-  || fail "setup wrote a Grok global hook when grok was not on PATH"
-[ ! -e "$NO_GROK_HOME/.grok/hooks/codexbar-quota-reminder.sh" ] \
-  || fail "setup wrote a Grok reminder script when grok was not on PATH"
+# --- grok on PATH does not configure a CodexBar grok provider or write hooks ---
+GROK_ONLY_HOME="$TMP_DIR/grok-only"
+run_install "$GROK_ONLY_HOME" grok >/dev/null
+ACTUAL="$(configured_providers "$GROK_ONLY_HOME")"
+[ -z "$ACTUAL" ] || fail "with only grok on PATH, expected no providers configured, got: $ACTUAL"
+[ ! -e "$GROK_ONLY_HOME/.grok/hooks/codexbar-quota-handoff.json" ] \
+  || fail "setup wrote a Grok global hook when only grok was on PATH"
+[ ! -e "$GROK_ONLY_HOME/.grok/hooks/codexbar-quota-reminder.sh" ] \
+  || fail "setup wrote a Grok reminder script when only grok was on PATH"
 
-# --- none of the five tools on PATH: CodexBar's config is left untouched
+# --- an existing CodexBar grok rule is stripped when another provider is configured ---
+STRIP_HOME="$TMP_DIR/strip-grok"
+mkdir -p "$STRIP_HOME/.codexbar" "$STRIP_HOME/.grok/hooks"
+cat >"$STRIP_HOME/.codexbar/config.json" <<'EOF'
+{"hooks":{"enabled":true,"events":[
+  {"id":"agent-skills-codexbar-quota-handoff-grok","provider":"grok"},
+  {"id":"someone-elses-rule","provider":"claude"}
+]}}
+EOF
+STRIP_TOOLS="$TMP_DIR/strip-tools"
+mkdir -p "$STRIP_TOOLS"
+ln -s "$TOOL_BIN/claude" "$STRIP_TOOLS/claude"
+PATH="$STRIP_TOOLS:$STUB_BIN:/usr/bin:/bin:/usr/sbin:/sbin" \
+  HOME="$STRIP_HOME" \
+  XDG_DATA_HOME="$STRIP_HOME/xdg-data" \
+  XDG_STATE_HOME="$STRIP_HOME/xdg-state" \
+  bash "$SCRIPT" >/dev/null
+IDS="$("$STUB_BIN/jq" -r '.hooks.events[].id' "$STRIP_HOME/.codexbar/config.json" | sort | paste -sd, -)"
+[ "$IDS" = "agent-skills-codexbar-quota-handoff-claude,someone-elses-rule" ] \
+  || fail "setup should strip the leftover grok CodexBar rule and keep others, got: $IDS"
+
+# --- none of the four tools on PATH: CodexBar's config is left untouched
 #     (no backup file, no rules merged in) ---
 NO_TOOLS_HOME="$TMP_DIR/no-tools"
 mkdir -p "$NO_TOOLS_HOME"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Quota-reminder hook shared by every consuming tool (Claude Code, Grok
-# Build, Codex CLI, GitHub Copilot CLI, Cursor CLI), registered on both Stop
-# and PostToolUse through each tool's native hook location. A no-op unless
+# Quota-reminder hook shared by every consuming tool (Claude Code, Codex
+# CLI, GitHub Copilot CLI, Cursor CLI), registered on both Stop and
+# PostToolUse through each tool's native hook location. A no-op unless
 # codexbar-quota-flag.sh has written a flag, for this tool's provider, since
 # the last time this fired.
 #
@@ -13,20 +13,15 @@
 # way Stop can (the tool has already run by the time it fires), but exit 2
 # still surfaces its stderr to the model the same way, which is all this
 # reminder ever needed — it was never meant to force a stop, just to relay a
-# short message once the model reads it. Grok is Stop-only: its PostToolUse
-# treats exit 2 as fail-open and would claim the flag before Stop can surface
-# the reminder. Cursor CLI is different again: a PostToolUse exit 2 does not
-# inject stderr into the model (it silently claims the flag), so when the
-# provider is cursor this script prints JSON with additional_context on
-# stdout and exits 0 instead.
+# short message once the model reads it. Cursor CLI is different: a
+# PostToolUse exit 2 does not inject stderr into the model (it silently
+# claims the flag), so when the provider is cursor this script prints JSON
+# with additional_context on stdout and exits 0 instead.
 #
 # Which tool is running is inferred from environment variables each hook
 # runner sets natively — not the shared CLAUDE_PLUGIN_ROOT compatibility
 # alias, which all of these tools set and can't disambiguate anything:
-#   - Cursor CLI sets CURSOR_INVOKED_AS (e.g. cursor-agent). Checked first
-#     because a Cursor session launched from a Grok pane inherits GROK_*.
-#   - Grok Build sets GROK_SESSION_ID (its own hook-runner variable, per its
-#     locally-installed user-guide docs, ~/.grok/docs/user-guide/10-hooks.md).
+#   - Cursor CLI sets CURSOR_INVOKED_AS (e.g. cursor-agent).
 #   - GitHub Copilot CLI sets COPILOT_CLI=1 (observed by dumping the hook
 #     environment under Copilot CLI 1.0.82; COPILOT_PROJECT_DIR comes with
 #     it). This must be checked *before* PLUGIN_ROOT: Copilot supports both
@@ -54,8 +49,6 @@ set -euo pipefail
 
 if [[ -n "${CURSOR_INVOKED_AS:-}" ]]; then
   provider="cursor"
-elif [[ -n "${GROK_SESSION_ID:-}" ]]; then
-  provider="grok"
 elif [[ -n "${COPILOT_CLI:-}" ]]; then
   provider="copilot"
 elif [[ -n "${PLUGIN_ROOT:-}" ]]; then

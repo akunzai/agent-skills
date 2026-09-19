@@ -178,10 +178,3 @@ A cached `codexbar-quota-handoff` older than 1.2.1 has no `CURSOR_INVOKED_AS`
 check, so under Cursor it claims `quota-low-claude.json`. Before a live hook
 probe, point `XDG_STATE_HOME` at a scratch directory, and account for the
 Claude Code cached copy running alongside any `--plugin-dir` copy.
-
-## Grok Build
-
-- **Marketplace**: reads `.grok-plugin/marketplace.json`.
-- **Hooks**: plugin marketplace hooks are not registered by Grok Build 1.0.x,
-  so a plugin that needs a hook there relies on a global hook under
-  `~/.grok/hooks/` instead.

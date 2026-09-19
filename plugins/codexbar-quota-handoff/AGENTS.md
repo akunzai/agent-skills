@@ -12,13 +12,15 @@ In a terminal the script interactively installs the plugin into a selected
 Claude Code, Codex, or Copilot runtime, then configures the host integration.
 It detects and skips an existing plugin install. Pass `--local` to register
 this checkout instead of the published GitHub source, or use `--runtime` and
-`--yes` for non-interactive setup. Grok uses only the global hook.
+`--yes` for non-interactive setup.
 
 The root `scripts/upgrade.sh` and `scripts/uninstall.sh` use the same interactive
 runtime/plugin-state flow. Upgrade refreshes the local integration; uninstall
 removes it after the selected plugin-manager entry is removed.
-Plugin-local `configure-host.sh` and `remove-host.sh` are internal post-action
-helpers and are not public lifecycle entry points.
+Plugin-local `configure-host.sh`, `remove-host.sh`, and `remove-grok.sh` are
+internal helpers and are not public lifecycle entry points. `remove-grok.sh`
+drops leftover Grok hook files and the CodexBar grok rule without uninstalling
+the plugin from other runtimes.
 
 ## Checks
 
@@ -29,11 +31,12 @@ for test in tests/codexbar-quota-handoff-*.sh; do bash "$test"; done
 mise run lint
 ```
 
-The three marketplace manifests (`.claude-plugin/`, `.agents/plugins/`,
-`.grok-plugin/`) must continue to resolve to this shared plugin root; Copilot
-and Cursor reuse the Claude one, so there is no fourth. Grok does not register
-marketplace hooks, so its reminder path is the Stop-only global hook
-`~/.grok/hooks/codexbar-quota-handoff.json` written by the root setup.
+The two marketplace manifests (`.claude-plugin/`, `.agents/plugins/`) must
+continue to resolve to this shared plugin root; Copilot and Cursor reuse the
+Claude one, so there is no third. Grok Build is not a supported plugin
+runtime: do not add `.grok-plugin/`. Configure removes leftover
+`~/.grok/hooks/codexbar-quota-handoff.json` files from older installs so they
+cannot claim the Claude flag.
 
 The reminder's host detection depends on each runtime's hook identity variables
 and the order they are tested in (`../../docs/agents/harnesses.md`). Reminder

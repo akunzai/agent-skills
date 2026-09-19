@@ -1,7 +1,7 @@
 {
   "name": "codexbar-quota-handoff",
   "description": "Reminds Codex CLI to wrap up when CodexBar detects the Codex 5-hour or 7-day quota is nearly exhausted, and to ask before writing a handoff document if needed.",
-  "version": "1.2.2",
+  "version": "2.0.0",
   "author": {
     "name": "Charley Wu"
   },

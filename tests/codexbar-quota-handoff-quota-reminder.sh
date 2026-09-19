@@ -73,15 +73,15 @@ run_reminder() {
   shift 3
   local extra_env=("$@")
   # Drop host-detection vars from the calling environment (this test itself
-  # may run under Grok/Copilot/Codex) so the default case is Claude unless
+  # may run under Copilot/Codex/Cursor) so the default case is Claude unless
   # extra_env puts them back.
-  (cd "$work" && env -u CURSOR_INVOKED_AS -u GROK_SESSION_ID -u COPILOT_CLI -u PLUGIN_ROOT \
+  (cd "$work" && env -u CURSOR_INVOKED_AS -u COPILOT_CLI -u PLUGIN_ROOT \
     "${extra_env[@]+"${extra_env[@]}"}" HOME="$home" CODEXBAR_QUOTA_FLAG_PATH="$flag_path" "$SCRIPT")
 }
 
 # Each case: provider label and extra env assignments (as an array, one
 # NAME=value per element) to simulate that tool's own hook runner. Claude
-# Code sets neither GROK_SESSION_ID nor a bare PLUGIN_ROOT, so it's exercised
+# Code sets neither COPILOT_CLI nor a bare PLUGIN_ROOT, so it's exercised
 # as the "no extra env" default case (an empty array). Copilot CLI exports a
 # bare PLUGIN_ROOT to plugin hooks as well (it accepts both the
 # ${CLAUDE_PLUGIN_ROOT} and ${PLUGIN_ROOT} placeholders), so that case
@@ -132,14 +132,11 @@ run_case() {
 }
 
 run_case "claude"
-run_case "grok" "GROK_SESSION_ID=test-session"
 run_case "codex" "PLUGIN_ROOT=/tmp/fake-codex-plugin-root"
 run_case "copilot" "COPILOT_CLI=1" "PLUGIN_ROOT=/tmp/fake-copilot-plugin-root"
 
 # --- Cursor CLI: exit 0 with additional_context JSON on stdout (exit 2 does
-#     not inject stderr into the Cursor model). CURSOR_INVOKED_AS must beat
-#     GROK_SESSION_ID because a Cursor session launched from a Grok pane
-#     inherits GROK_*. ---
+#     not inject stderr into the Cursor model). ---
 assert_cursor_json() {
   local stdout_output="$1" label="$2"
   local additional_context
@@ -172,16 +169,6 @@ case "$CURSOR_STDERR" in
     ;;
 esac
 [ ! -f "$CURSOR_FLAG" ] || fail "[cursor] flag file was not cleared after firing"
-
-# CURSOR_INVOKED_AS wins over GROK_SESSION_ID.
-printf '%s' "$FIXTURE" >"$CURSOR_FLAG"
-RC=0
-CURSOR_STDOUT="$(run_reminder "$EMPTY_HOME" "$WORK_DIR" "$CURSOR_FLAG" \
-  "CURSOR_INVOKED_AS=cursor-agent" "GROK_SESSION_ID=test-session" \
-  2>"$TMP_DIR/cursor-vs-grok.stderr")" || RC=$?
-[ "$RC" -eq 0 ] || fail "[cursor-vs-grok] expected exit 0 (cursor path), got $RC"
-assert_cursor_json "$CURSOR_STDOUT" "cursor-vs-grok"
-[ ! -f "$CURSOR_FLAG" ] || fail "[cursor-vs-grok] flag file was not cleared after firing"
 
 # --- to-memory present, cwd is not a git repo: global short-term path ---
 MEM_HOME="$TMP_DIR/mem-home"
@@ -275,7 +262,7 @@ FALLBACK_HOME="$TMP_DIR/fallback-home"
 mkdir -p "$FALLBACK_HOME/.local/state/codexbar-quota-handoff"
 printf '%s' "$FIXTURE" >"$FALLBACK_HOME/.local/state/codexbar-quota-handoff/quota-low-claude.json"
 RC=0
-(cd "$WORK_DIR" && env -u CURSOR_INVOKED_AS -u GROK_SESSION_ID -u COPILOT_CLI -u PLUGIN_ROOT \
+(cd "$WORK_DIR" && env -u CURSOR_INVOKED_AS -u COPILOT_CLI -u PLUGIN_ROOT \
   HOME="$FALLBACK_HOME" XDG_STATE_HOME=relative "$SCRIPT" >/dev/null 2>&1) || RC=$?
 [ "$RC" -eq 2 ] || fail "relative XDG_STATE_HOME should fall back to HOME, got exit $RC"
 
