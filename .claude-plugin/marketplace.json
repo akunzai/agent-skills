@@ -13,6 +13,10 @@
       "source": "./plugins/cheap-dev-workers"
     },
     {
+      "name": "spoken-tts",
+      "source": "./plugins/spoken-tts"
+    },
+    {
       "name": "charley-skills",
       "source": "./",
       "description": "Charley's Agent Skills for engineering, memory, and media."
