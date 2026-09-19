@@ -645,7 +645,14 @@ speak_text() {
 cmd_speak() {
   local text
   text="$(cat)"
-  speak_text "$text" 5000
+  if [[ -z "$text" ]]; then
+    printf 'spoken: pipe text into speak\n' >&2
+    return 1
+  fi
+  # Git Bash `kill` does not stop Win32 mpv/edge-tts children, so a background
+  # speak looks one utterance behind. Wait here; the Stop hook stays async.
+  # https://github.com/git-for-windows/msys2-runtime/commit/15f209511985092588b171703e5046eba937b47b
+  SPOKEN_SYNC=1 speak_text "$text" 5000
 }
 
 cmd_test() {

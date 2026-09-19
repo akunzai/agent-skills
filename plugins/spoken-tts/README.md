@@ -6,6 +6,7 @@ Claude Code lists the skill as `/spoken-tts:spoken`.
 
 - Session on: a Stop hook speaks the last `<spoken>…</spoken>` line.
 - Named passage: the skill runs `spoken.sh speak` without enabling the session.
+  CLI `test` and `speak` wait until playback finishes; the Stop hook does not.
 - Providers: `edge-tts` (recommended) and macOS `say`.
 
 ## Install

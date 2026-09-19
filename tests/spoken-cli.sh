@@ -232,6 +232,23 @@ rm -f "$SAY_LOG"
 printf 'named passage' | run speak
 grep -q 'named passage' "$SAY_LOG" || fail "speak without session should still talk"
 
+set +e
+printf '' | run speak >/dev/null 2>"$TMP_DIR/speak-empty.err"
+empty_speak=$?
+set -e
+[ "$empty_speak" -ne 0 ] || fail "speak with empty stdin should fail"
+grep -q 'pipe text' "$TMP_DIR/speak-empty.err" \
+  || fail "empty speak should ask for piped text: $(cat "$TMP_DIR/speak-empty.err")"
+
+# CLI speak waits even when the test harness is not forcing SPOKEN_SYNC.
+rm -f "$XDG_STATE_HOME/spoken-tts/player.pid"
+(
+  unset SPOKEN_SYNC
+  printf 'cli waits' | run speak
+)
+[ ! -f "$XDG_STATE_HOME/spoken-tts/player.pid" ] \
+  || fail "CLI speak should wait inline, not leave a background player.pid"
+
 # --- edge-tts failure falls back to native say ---
 run config-write --provider edge-tts --locale zh-TW --voice zh-TW-HsiaoChenNeural >/dev/null
 rm -f "$SAY_LOG" "$EDGE_LOG"

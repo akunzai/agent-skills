@@ -20,5 +20,6 @@ bash tests/plugin-version-bump.sh
 mise run lint
 ```
 
-`SPOKEN_SYNC=1` runs speak inline (tests). `SPOKEN_NATIVE_PROVIDER` overrides
-OS native detection (`say` / empty).
+CLI `speak`/`test` wait until playback finishes. `SPOKEN_SYNC=1` runs speak
+inline for hooks (tests). `SPOKEN_NATIVE_PROVIDER` overrides OS native
+detection (`say` / empty).
