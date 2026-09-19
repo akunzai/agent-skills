@@ -42,14 +42,3 @@ The reminder's host detection depends on each runtime's hook identity variables
 and the order they are tested in (`../../docs/agents/harnesses.md`). Reminder
 env cases: `CURSOR_INVOKED_AS=cursor-agent` must select
 `quota-low-cursor.json`, not `quota-low-claude.json`.
-
-## Prevent Recurrence
-
-- Propose a candidate only when you can name who hits it again, where, and on
-  what change.
-- On confirmation, offer the first tier that reaches them and only that one:
-  enforce it (assert/type/test) with its size quoted, else a comment at that
-  site, else the nearest existing topic document with a backtick-path pointer here
-  and one sentence on why the tiers above cannot hold it.
-- When adding to a file, audit the rest of it in the same pass; drop entries
-  once tests or current documentation make them redundant.
