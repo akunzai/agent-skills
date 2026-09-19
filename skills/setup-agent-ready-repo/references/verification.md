@@ -36,6 +36,13 @@ A dependency's own log is often too quiet to show the request that
 proves an integration. Raise its level for the check and restore the
 repo's configuration afterwards, rather than concluding from silence.
 
+## What the repo already documents
+
+Link to what a `README` or `CONTRIBUTING.md` already says, and keep only
+what is agent-specific. Where `AGENTS.md` already lists build and test
+commands, `verification.md` becomes their single source and the
+`AGENTS.md` entry shrinks to the pointer.
+
 ## Sweeping after the move
 
 Where `AGENTS.md`'s build and test commands moved into `verification.md`,
