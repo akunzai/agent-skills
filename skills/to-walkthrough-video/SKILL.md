@@ -56,6 +56,13 @@ When missing, ask the user for confirmation before installing:
 }
 ```
 
+Prefer `role` + `name` over `selector`: a caption falls back to the raw
+selector text (`Click nav a[href…]`) when a step has no name, label or text, so
+give a `selector` step its own `caption`. A `click` waits up to 15 seconds for
+its target to be visible; there is no separate wait-for-element step. When the
+flow creates data, do it once while exploring and note where it lands (a later
+page, a filter, below the fold) so the last step targets the right place.
+
 Pointer, captions and auto-zoom are on; `effects` turns any off. Set
 `captionLocale` to the language of the conversation asking for the
 recording, or, for evidence on an issue or request, to the language the

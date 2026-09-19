@@ -140,6 +140,11 @@ the dashboard.
   cannot be reloaded from a file at all. Use `--sign-in` for those: the browser
   never closes, so the session never leaves. Check DevTools › Application after
   signing in to find out which kind you have.
+- **A page load can end an in-memory or `sessionStorage` sign-in.** Under
+  `--sign-in`, a `goto` step, a reload, or a `playwright-cli goto` while
+  exploring drops that session and lands back on the login page. Navigate by
+  clicking links inside the page after the sign-in. The exploring window and
+  the recording window are separate sessions, so each needs its own sign-in.
 - **The recording shows whatever the account can see.** There is no masking in
   video; `mask` exists only on Playwright's screenshot APIs. Record with a
   test account holding fixture data, not with a real one.
