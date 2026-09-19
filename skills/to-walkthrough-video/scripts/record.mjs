@@ -962,10 +962,47 @@ async function scrollToTarget(page, target) {
   return target.boundingBox();
 }
 
+const STEP_TIMEOUT_MS = 15_000;
+
+// A step that fails names itself and leaves what the page looked like, so the
+// author does not have to re-run the walkthrough by hand to find out why.
 export async function runScenario(page, scenario, log, state) {
+  try {
+    await runSteps(page, scenario, log, state);
+  } catch (error) {
+    throw await explainFailure(page, scenario, state, error);
+  }
+}
+
+async function explainFailure(page, scenario, state, error) {
+  const steps = scenario.steps ?? [];
+  const index = state.stepIndex ?? 0;
+  const where = `step ${index + 1} of ${steps.length} ${JSON.stringify(steps[index])}`;
+  const saved = [];
+  if (state.failureStem) {
+    const png = `${state.failureStem}.failure.png`;
+    const aria = `${state.failureStem}.failure.aria.txt`;
+    try {
+      fs.mkdirSync(path.dirname(png), { recursive: true });
+      await page.screenshot({ path: png });
+      saved.push(png);
+    } catch {}
+    try {
+      fs.writeFileSync(aria, `${await page.locator("body").ariaSnapshot()}\n`);
+      saved.push(aria);
+    } catch {}
+  }
+  const detail = saved.length > 0 ? `\nWhat the page showed: ${saved.join(", ")}` : "";
+  const wrapped = new Error(`${where} failed: ${error.message}${detail}`);
+  wrapped.cause = error;
+  return wrapped;
+}
+
+async function runSteps(page, scenario, log, state) {
   const steps = scenario.steps ?? [];
   const effects = state.effects ?? EFFECT_DEFAULTS;
   for (let index = 0; index < steps.length; index += 1) {
+    state.stepIndex = index;
     const step = steps[index];
     const action = resolveAction(step);
     if (action === "wait") {
@@ -975,6 +1012,14 @@ export async function runScenario(page, scenario, log, state) {
     if (action === "goto") {
       await page.goto(step.url, { waitUntil: "domcontentloaded" });
       await installOverlay(page, state);
+      continue;
+    }
+    if (action === "expect") {
+      // Waits without touching the page: no pointer, no caption, no click.
+      await locatorFor(page, step)
+        .first()
+        .waitFor({ state: step.state ?? "visible", timeout: step.timeout ?? STEP_TIMEOUT_MS });
+      await sleep(Number(step.pause ?? 0));
       continue;
     }
     if (action === "press") {
@@ -987,7 +1032,7 @@ export async function runScenario(page, scenario, log, state) {
       continue;
     }
     const locator = locatorFor(page, step);
-    await locator.first().waitFor({ state: "visible", timeout: 15_000 });
+    await locator.first().waitFor({ state: "visible", timeout: step.timeout ?? STEP_TIMEOUT_MS });
     const box = await scrollToTarget(page, locator.first());
     if (!box) {
       throw new Error(`no bounding box for ${JSON.stringify(step)}`);
@@ -1163,6 +1208,7 @@ export async function recordWalkthrough(options) {
         : POST_CLICK_MS,
     effects,
     captionLocale: resolveCaptionLocale(scenario),
+    failureStem: outPath.replace(/\.(mp4|webm)$/i, ""),
     touch: Boolean(contextOptions.hasTouch),
   };
   const rawPath = path.join(tmp, "raw.webm");
@@ -1264,6 +1310,13 @@ export function validateScenario(scenario, options = {}) {
   for (let index = 0; index < steps.length; index += 1) {
     if (resolveAction(steps[index]) === "press" && !steps[index].keys) {
       problems.push(`steps[${index}] is a press step without keys`);
+    }
+    if (resolveAction(steps[index]) === "expect" && !["visible", "hidden", undefined].includes(steps[index].state)) {
+      problems.push(`steps[${index}].state must be "visible" or "hidden"`);
+    }
+    const timeout = steps[index].timeout;
+    if (timeout !== undefined && !(Number.isFinite(timeout) && timeout > 0)) {
+      problems.push(`steps[${index}].timeout must be a positive number of milliseconds`);
     }
     const placement = steps[index].captionPlacement;
     if (placement !== undefined && !CAPTION_PLACEMENTS.includes(placement)) {
