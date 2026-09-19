@@ -267,17 +267,21 @@ fi
 [ ! -e "$fake_home/.codex/agents/repo-explorer.toml" ] \
   || fail "setup ran Codex agent post-install for an already-installed plugin"
 
+mkdir -p "$fake_home/.codex/agents"
+printf 'retired\n' >"$fake_home/.codex/agents/commit-writer.toml"
 PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" CODEX_LOG="$codex_log" \
   bash "$ROOT_DIR/scripts/upgrade.sh" --runtime codex \
     --plugin cheap-dev-workers --yes >/dev/null \
   || fail "Codex plugin upgrade failed"
 grep -qx 'plugin marketplace upgrade akunzai-agent-skills' "$codex_log" \
   || fail "upgrade did not refresh the Codex marketplace snapshot"
-for name in repo-explorer.toml check-runner.toml log-summarizer.toml commit-writer.toml; do
+for name in repo-explorer.toml check-runner.toml log-summarizer.toml; do
   diff -q "$ROOT_DIR/plugins/cheap-dev-workers/codex-agents/$name" \
     "$fake_home/.codex/agents/$name" >/dev/null \
     || fail "Codex upgrade did not sync $name"
 done
+[ ! -e "$fake_home/.codex/agents/commit-writer.toml" ] \
+  || fail "Codex upgrade left leftover commit-writer.toml"
 
 PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" CODEX_LOG="$codex_log" \
   bash "$ROOT_DIR/scripts/uninstall.sh" --runtime codex \

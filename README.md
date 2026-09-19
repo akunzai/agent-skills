@@ -226,10 +226,9 @@ entry points; plugin-local scripts are internal post-actions.
   reconstruct. Machine-specific (depends on your own CodexBar installation
   and account authorization) rather than something a visitor installs
   directly.
-- [`cheap-dev-workers`](plugins/cheap-dev-workers/README.md) — four narrow,
-  cheap-model workers for repository evidence, verification, safe-log
-  summaries, and caller-scoped commit or PR drafting across every plugin
-  runtime.
+- [`cheap-dev-workers`](plugins/cheap-dev-workers/README.md) — three narrow,
+  cheap-model workers for repository evidence, verification, and safe-log
+  summaries across every plugin runtime.
 
 ## Contributing
 

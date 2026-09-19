@@ -24,11 +24,8 @@ Inspect state → refuse unclear or unrelated working-tree changes → create a 
 
 ## Cleanup plan
 
-The primary agent decides commit boundaries, the rewrite plan, and every Git
-mutation. For a large caller-scoped diff and history, it may ask an available
-named `commit-writer` to draft text only after those boundaries are decided.
-Include the decided boundary, scoped diff, relevant recent commit subjects, and
-available intent in its dispatch.
+The primary agent decides commit boundaries, the rewrite plan, every Git
+mutation, and commit message text.
 
 ### Worker routing
 
@@ -43,8 +40,6 @@ pre-execution dispatch/runtime error (for example capacity, rate limit,
 rejected model, or launch error), try one generic fallback that preserves
 the named worker's tools and permissions:
 
-- **Commit text:** read-only leaf using decided boundaries, supplied diff,
-  intent, and subjects; no worktree or Git-state mutation.
 - **Check:** selected commands, artifacts allowed, no tracked/Git-state mutation;
   report commands, exits, cause/final summaries, omissions, and artifacts.
 

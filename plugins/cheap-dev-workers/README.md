@@ -1,12 +1,11 @@
 # cheap-dev-workers
 
-Four cheap-model roles keep bounded, context-heavy development work out of the
+Three cheap-model roles keep bounded, context-heavy development work out of the
 primary session without delegating judgment or Git mutation:
 
 - `repo-explorer`: read-only repository facts with file/line evidence.
 - `check-runner`: caller-selected checks with auditable result evidence.
 - `log-summarizer`: read-only summaries of caller-approved safe artifacts.
-- `commit-writer`: commit or PR text for boundaries already decided in primary.
 
 Claude, Codex, and Copilot leave model and reasoning effort unset. Callers ask
 runtimes that support per-dispatch selection for the cheapest available model
@@ -16,7 +15,7 @@ defaults. Environment, organization, and runtime policies can override that
 request, and the plugin does not bypass them.
 
 Cursor CLI loads plugin `agents/*.md` from the Claude Code install. It ignores
-`tools:` but enforces `permissionMode: readonly` on the three read-only roles,
+`tools:` but enforces `permissionMode: readonly` on the two read-only roles,
 so caller skills delegate those there and keep `check-runner` in primary. See
 `../../docs/agents/harnesses.md`.
 
@@ -43,7 +42,7 @@ bash scripts/setup.sh --plugin cheap-dev-workers
 The interactive setup detects Claude Code, Codex CLI, and GitHub Copilot CLI,
 then shows whether the plugin is already installed. Copilot reads the shared
 `.claude-plugin` manifests and never touches Codex personal agents. Selecting
-Codex also installs the four personal agent definitions under
+Codex also installs the three personal agent definitions under
 `~/.codex/agents/`.
 
 Start a new session after installation.

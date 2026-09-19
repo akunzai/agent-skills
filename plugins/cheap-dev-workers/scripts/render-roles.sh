@@ -10,7 +10,7 @@ ROLES_DIR="$PLUGIN_ROOT/roles"
 SHARED="$ROLES_DIR/shared.role"
 MD_DIR="$PLUGIN_ROOT/agents"
 TOML_DIR="$PLUGIN_ROOT/codex-agents"
-ROLES=(check-runner commit-writer log-summarizer repo-explorer)
+ROLES=(check-runner log-summarizer repo-explorer)
 
 usage() {
   cat <<'EOF'
@@ -20,7 +20,7 @@ Project roles/*.role onto agents/*.md and codex-agents/*.toml.
 
   --check     Render into a temporary directory and compare with the committed
               artifacts. Writes nothing. Exit 1 when they differ.
-  --write     Validate every role, then replace all eight artifacts. Any
+  --write     Validate every role, then replace all six artifacts. Any
               failure leaves every artifact untouched.
   -h, --help  Show this help
 
@@ -104,7 +104,7 @@ case "$mode" in
       fi
     done
     if [[ $status -eq 0 ]]; then
-      echo "render-roles: all eight artifacts match roles/"
+      echo "render-roles: all six artifacts match roles/"
     fi
     ;;
   write)
@@ -120,7 +120,7 @@ case "$mode" in
         mv "$temporary" "$target"
       done
     done
-    echo "render-roles: wrote 8 artifacts from roles/"
+    echo "render-roles: wrote 6 artifacts from roles/"
     ;;
 esac
 

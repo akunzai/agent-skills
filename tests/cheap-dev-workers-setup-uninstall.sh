@@ -35,14 +35,22 @@ grep -q 'user-owned' "$dest/check-runner.toml" || fail "install helper overwrote
 [[ ! -e "$dest/repo-explorer.toml" ]] || fail "install helper partially installed before conflict"
 rm "$dest/check-runner.toml"
 
-# --- install helper installs all four agents, byte-identical to the source ---
+# --- install helper installs all three agents, byte-identical to the source ---
 HOME="$fake_home" bash "$INSTALL_SCRIPT" >/dev/null
 
-for name in repo-explorer.toml check-runner.toml log-summarizer.toml commit-writer.toml; do
+for name in repo-explorer.toml check-runner.toml log-summarizer.toml; do
   [ -f "$dest/$name" ] || fail "install helper did not install $name into $dest"
   diff -q "$PLUGIN_DIR/codex-agents/$name" "$dest/$name" >/dev/null \
     || fail "$dest/$name differs from the plugin source $name"
 done
+[ ! -e "$dest/commit-writer.toml" ] \
+  || fail "install helper must not install leftover commit-writer.toml"
+
+# --- leftover commit-writer.toml from older installs is removed ---
+printf 'retired\n' >"$dest/commit-writer.toml"
+HOME="$fake_home" bash "$INSTALL_SCRIPT" >/dev/null
+[ ! -e "$dest/commit-writer.toml" ] \
+  || fail "install helper left leftover commit-writer.toml in place"
 
 # --- uninstall refuses a locally modified installed role ---
 printf '\n# local change\n' >>"$dest/check-runner.toml"
@@ -53,7 +61,9 @@ fi
 [[ -f "$dest/repo-explorer.toml" ]] || fail "remove helper partially removed before conflict"
 cp "$PLUGIN_DIR/codex-agents/check-runner.toml" "$dest/check-runner.toml"
 
-# --- remove helper removes exactly what the install helper installed ---
+# --- remove helper removes exactly what the install helper installed,
+#     plus leftover commit-writer.toml ---
+printf 'retired\n' >"$dest/commit-writer.toml"
 HOME="$fake_home" bash "$REMOVE_SCRIPT" >/dev/null
 
 for name in repo-explorer.toml check-runner.toml log-summarizer.toml commit-writer.toml; do

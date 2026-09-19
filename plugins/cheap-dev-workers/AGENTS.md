@@ -45,13 +45,13 @@ id, which roles carry it, and a `class`:
 - `drift` — differs with no runtime justification
 
 Per-role, per-runtime prose lives in `roles/<role>.role`, because the same
-invariant is worded differently in all four roles today. The grammar has no
+invariant is worded differently in all three roles today. The grammar has no
 quoting, escaping, or continuation: anything it cannot hold verbatim is
 rejected with a `file:line` error rather than silently transformed.
 
 ### What the checks do and do not prove
 
-`--check` proves the eight artifacts are exactly what `roles/` projects, and
+`--check` proves the six artifacts are exactly what `roles/` projects, and
 `tests/cheap-dev-workers-agents-content.sh` proves the native seams (required
 fields, `tools:` / `sandbox_mode`, no model or effort pins, no unsupported
 Claude nesting claim). Neither proves the semantics are right, and no test here
@@ -63,7 +63,7 @@ event metadata (`subagent.started` / `subagent.completed`). That is a separate
 integration seam, not part of this renderer. The Waza suites evaluate skills
 that *describe* routing; they never load these artifacts.
 
-Normalizing the divergent wording is blocked on that seam: collapsing four
+Normalizing the divergent wording is blocked on that seam: collapsing three
 wordings into one changes prompt behaviour, and nothing here can currently
 observe a regression.
 

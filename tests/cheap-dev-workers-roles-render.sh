@@ -39,7 +39,7 @@ require_ids() {
   done
 }
 
-for role in check-runner commit-writer log-summarizer repo-explorer; do
+for role in check-runner log-summarizer repo-explorer; do
   require_ids "$role" git.no-mutation role.description
 done
 require_ids check-runner checks.caller-named artifacts.tracked-source \
@@ -50,9 +50,6 @@ require_ids repo-explorer scope.caller-repo evidence.cited \
   relay.child-boundary decisions.none
 require_ids log-summarizer role.leaf scope.exact-artifact input.rejection \
   summary.root-causes secrets.residual-scan
-require_ids commit-writer role.leaf boundaries.caller-decided \
-  input.caller-supplied message.why-not-what pr.shape issue.linking \
-  output.contract
 
 # --- usage errors are refused, not guessed at ---
 "$RENDER" >/dev/null 2>&1 && fail "a missing mode must be an error"
@@ -91,10 +88,10 @@ expect_exit 65 "unknown directive" "$COPY" --check
 cp "$PLUGIN_DIR/roles/check-runner.role" "$SANDBOX/roles/check-runner.role"
 
 # An id that is not declared in the shared skeleton is rejected.
-sed 's/^entry output.contract$/entry output.contract nope.id/' \
-  "$PLUGIN_DIR/roles/commit-writer.role" > "$SANDBOX/roles/commit-writer.role"
+sed 's/^entry role.leaf /entry role.leaf nope.id /' \
+  "$PLUGIN_DIR/roles/log-summarizer.role" > "$SANDBOX/roles/log-summarizer.role"
 expect_exit 65 "undeclared id" "$COPY" --check
-cp "$PLUGIN_DIR/roles/commit-writer.role" "$SANDBOX/roles/commit-writer.role"
+cp "$PLUGIN_DIR/roles/log-summarizer.role" "$SANDBOX/roles/log-summarizer.role"
 
 # The role set is fixed: an extra source is a hard error.
 cp "$SANDBOX/roles/check-runner.role" "$SANDBOX/roles/extra.role"

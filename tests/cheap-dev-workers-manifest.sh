@@ -34,7 +34,7 @@ CODEX_MARKETPLACE_PATH="$(jq -r '.plugins[] | select(.name == "cheap-dev-workers
 grep -q 'plugins/cheap-dev-workers/README.md' "$ROOT_DIR/README.md" \
   || fail "root README is missing the cheap-dev-workers plugin"
 # --- Claude Code agents auto-discovered from agents/ ---
-for agent in repo-explorer check-runner log-summarizer commit-writer; do
+for agent in repo-explorer check-runner log-summarizer; do
   [ -f "$PLUGIN_DIR/agents/$agent.md" ] || fail "agents/$agent.md is missing"
   [ -f "$PLUGIN_DIR/codex-agents/$agent.toml" ] || fail "codex-agents/$agent.toml is missing"
 done
