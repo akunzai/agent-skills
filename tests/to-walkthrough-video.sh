@@ -178,6 +178,10 @@ if (!mockPrereqsNoFfmpeg.messages.some((m) => m.includes("mise use -g ffmpeg") &
   fail("checkPrereqs with missing ffmpeg should include installation advice asking user authorization");
 }
 
+if (!mockPrereqsNoFfmpeg.messages.some((m) => m.includes("command -v ffmpeg") && m.includes("mise ls ffmpeg"))) {
+  fail("checkPrereqs with missing ffmpeg should first point at an installed-but-off-PATH ffmpeg");
+}
+
 const macMiseAdvice = getFfmpegInstallAdvice({ hasMise: () => true, platform: "darwin" });
 if (!macMiseAdvice.includes("mise use -g ffmpeg") || !macMiseAdvice.includes("brew install ffmpeg")) {
   fail("getFfmpegInstallAdvice with mise on mac should mention mise and brew");
