@@ -732,7 +732,7 @@ inject_rules() {
     body="$(cat "$LINE_FILE")"
     body="${body//LOCALE/$locale}"
   else
-    body="End the reply with one trailing <spoken>one-sentence status in ${locale}</spoken> line."
+    body="End the reply with one trailing <spoken>de-identified one-sentence status in ${locale}</spoken> line. Include a personal field only when this user message asked to hear that field or value. Keep credentials out of the tag. Placeholders may appear."
   fi
   if [[ -n "${CURSOR_INVOKED_AS:-}" || -n "${COPILOT_CLI:-}" ]]; then
     jq -n --arg additional_context "$body" '{additional_context:$additional_context}'
