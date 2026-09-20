@@ -341,9 +341,9 @@ export function getFfmpegInstallAdvice(options = {}) {
   }
 
   if (checkMise()) {
-    return `To install ffmpeg, ask user authorization to run: mise use -g ffmpeg (or system package manager: ${sysCmd})`;
+    return `If ffmpeg is already installed (mise, brew) but off this PATH, fix PATH first: check "command -v ffmpeg" and "mise ls ffmpeg". Otherwise ask user authorization to run: mise use -g ffmpeg (or system package manager: ${sysCmd})`;
   }
-  return `To install ffmpeg, ask user authorization to install via mise (curl https://mise.run | sh && mise use -g ffmpeg) or system package manager (${sysCmd})`;
+  return `If ffmpeg is already installed (mise, brew) but off this PATH, fix PATH first: check "command -v ffmpeg" and "mise ls ffmpeg". Otherwise ask user authorization to install via mise (curl https://mise.run | sh && mise use -g ffmpeg) or system package manager (${sysCmd})`;
 }
 
 export async function checkPrereqs(options = {}) {
@@ -1451,7 +1451,7 @@ export async function main(argv = process.argv.slice(2), io = process) {
     const prereqs = await checkPrereqs();
     const stream = prereqs.ok ? io.stdout : io.stderr;
     stream.write(
-      `${prereqs.ok ? "Prerequisites satisfied" : "Prerequisites check failed"}:\n${prereqs.messages.map((m) => `  - ${m}`).join("\n")}\n`,
+      `${prereqs.ok ? (prereqs.ffmpeg ? "Prerequisites satisfied" : "Prerequisites satisfied, but ffmpeg is missing (raw WebM only)") : "Prerequisites check failed"}:\n${prereqs.messages.map((m) => `  - ${m}`).join("\n")}\n`,
     );
     return prereqs.ok ? 0 : 1;
   }

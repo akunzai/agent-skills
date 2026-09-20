@@ -167,6 +167,11 @@ frame is wherever you stopped. Put the window on the screen you want as the
 first frame, by clicking, before recording. `--connect` cannot be combined
 with `--sign-in` or `--storage-state`.
 
+Recording leaves the window as it ended, and a flow that creates data leaves
+that data in the account. To record again, delete what the last take added, or
+start a fresh browser and sign in once more. The window stays open for the
+person to close.
+
 ## Limits
 
 - **sessionStorage is not covered by a saved state.** Playwright's storage

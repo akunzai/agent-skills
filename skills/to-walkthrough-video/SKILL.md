@@ -18,7 +18,7 @@ Scripts live in `scripts/` next to this file.
 - Playwright 1.59+ with Chromium (global npm/pnpm/Yarn Classic/Bun, cwd, or `PLAYWRIGHT_DIR`)
 - `ffmpeg` on PATH for auto-zoom (both `.webm` and `.mp4`), and whenever `.mp4` output is requested
 
-Check first with `node scripts/record.mjs --check-prereqs`. If satisfied (exit 0), skip installation.
+Check first with `node scripts/record.mjs --check-prereqs`. Exit 0 means recording works, not that ffmpeg is present: read the `ffmpeg:` line. Where it says missing, check `command -v ffmpeg` and `mise ls ffmpeg` before installing, since a mise-managed ffmpeg can exist yet be off this shell's PATH.
 
 When missing, ask the user for confirmation before installing:
 - Playwright: recommend `npm i -g playwright && npx playwright install chromium` (global avoids repo pollution; or `-D`).
@@ -99,6 +99,11 @@ Leave this step when the video, `demo.clicks.jsonl`, and `demo.zooms.json`
 exist and the zoom file has `"status": "ok"` with one region per click
 cluster. Without ffmpeg, output is raw `.webm` without auto-zoom (pointer and
 click echo are still included), and the zoom file still lists the clusters.
+
+A passing zoom file says nothing about the picture. Before handing back, pull a
+frame from the last step (`ffmpeg -sseof -1 -i demo.mp4 -frames:v 1 last.png`)
+and look at it: the result the flow was meant to end on, such as the new row,
+must be in frame, and a page you scrolled must have reached its end.
 
 3. **Hand back.** Give the user the video path.
 
