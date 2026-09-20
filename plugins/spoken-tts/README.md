@@ -5,6 +5,8 @@ passage. Default is off. `/spoken on` enables **this conversation only**.
 Claude Code lists the skill as `/spoken-tts:spoken`.
 
 - Session on: a Stop hook speaks the last `<spoken>…</spoken>` line.
+  Auto summaries are a de-identified status: no credentials, and no
+  personal identifiers unless this turn asked to hear them.
 - Named passage: the skill runs `spoken.sh speak` without enabling the session.
   CLI `test` and `speak` wait until playback finishes; the Stop hook does not.
 - Providers: `edge-tts` (recommended) and macOS `say`.

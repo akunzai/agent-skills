@@ -77,6 +77,10 @@ grep -q 'plugins/spoken-tts/README.md' "$ROOT_DIR/README.md" \
 [ -f "$PLUGIN_DIR/skills/spoken/SKILL.md" ] || fail "skills/spoken/SKILL.md is missing"
 [ -f "$PLUGIN_DIR/skills/spoken/references/line.md" ] \
   || fail "skills/spoken/references/line.md is missing"
+for token in de-identified credentials 'asked to hear'; do
+  grep -qF "$token" "$PLUGIN_DIR/skills/spoken/references/line.md" \
+    || fail "line.md is missing spoken-summary token '$token'"
+done
 
 path="$PLUGIN_DIR/scripts/spoken.sh"
 [ -f "$path" ] || fail "scripts/spoken.sh is missing"
