@@ -38,6 +38,18 @@ section per harness. Plugin-specific consequences live in that plugin's
   - The root session relays whatever the subagent's final message claims
     (counts, exit codes) without independently checking raw output. Ask
     explicitly for the subagent's raw output when the claim matters.
+- **Filesystem sandbox (`secure-workspace`)**:
+  When running under `sandbox_mode = "workspace-write"` with
+  `default_permissions = "secure-workspace"`, macOS Seatbelt restricts write
+  access strictly to the workspace root and `/tmp`. Plugin tools attempting to
+  write to external state paths (such as `~/.local/state/<plugin>` or
+  `~/.config/<plugin>`) fail with `Operation not permitted`. Allow external
+  write targets in `~/.codex/config.toml` under
+  `[permissions.secure-workspace.filesystem]`:
+  ```toml
+  "~/.local/state/spoken-tts" = "write"
+  "~/.config/spoken-tts" = "write"
+  ```
 
 ## GitHub Copilot CLI
 
@@ -74,6 +86,9 @@ moving the file.
   substituted, and PascalCase `Stop` / `PostToolUse` are accepted alongside
   Copilot's own camelCase event names. A hook exiting 2 surfaces its stderr to
   the user and the session continues.
+  On `Stop`, Copilot passes `transcript_path` (pointing to `events.jsonl`) rather
+  than `last_assistant_message`. Assistant responses in `events.jsonl` are
+  recorded under `{"type": "assistant.message", "data": {"content": "..."}}`.
 - `skills/*/SKILL.md` — plugin skills load, as do personal skills from
   `~/.agents/skills/` and a project's `.claude/skills/`.
 
@@ -94,6 +109,18 @@ Copilot also exports a bare `PLUGIN_ROOT` to plugin hooks and substitutes both
 `${CLAUDE_PLUGIN_ROOT}` and `${PLUGIN_ROOT}`. `PLUGIN_ROOT` is therefore *not*
 Codex-specific: any shared hook must test `COPILOT_CLI` before it, or Copilot
 is misreported as Codex.
+
+### Direct plugin installs and caching
+
+Direct local installs (`copilot plugin install ./path`) perform a snapshot copy
+into `~/.copilot/installed-plugins/_direct/<plugin>` rather than creating a
+symlink. Local edits to `SKILL.md` or scripts are not visible in running or
+subsequent sessions until re-installed with `copilot plugin install ./path`.
+
+Furthermore, lightweight models (such as `MAI-Code-1.1-Flash`) strictly match
+`$ARGUMENTS` descriptions in `SKILL.md`. If a subcommand (such as `test`) is
+not listed in `$ARGUMENTS`, the model may omit invoking shell tools entirely and
+return plain-text prose instead.
 
 ## Cursor CLI
 
@@ -177,3 +204,39 @@ A cached `codexbar-quota-handoff` older than 1.2.1 has no `CURSOR_INVOKED_AS`
 check, so under Cursor it claims `quota-low-claude.json`. Before a live hook
 probe, point `XDG_STATE_HOME` at a scratch directory, and account for the
 Claude Code cached copy running alongside any `--plugin-dir` copy.
+
+## Antigravity CLI (`agy`)
+
+Verified against Antigravity CLI 1.2.7 on macOS.
+
+### Manifests & Installation
+
+Antigravity CLI discovers and validates plugins via `plugin.json` located directly
+at the plugin root (`plugins/<name>/plugin.json`).
+
+Installation supports both local checkouts and remote GitHub repositories:
+
+```bash
+# Local directory
+agy plugin install ./plugins/spoken-tts
+
+# Remote GitHub repository (full repo or tree subpath)
+agy plugin install https://github.com/akunzai/agent-skills/tree/main/plugins/spoken-tts
+```
+
+Remote installs clone the repository into `~/.gemini/config/plugins/<name>` and
+record the import in `~/.gemini/config/import_manifest.json`.
+
+### Lifecycle Hooks
+
+- **Configuration path**: Root `hooks.json` in the plugin directory (`plugins/<name>/hooks.json`).
+  Nested `hooks/hooks.json` is ignored by Antigravity CLI.
+- **Schema**: Top-level keys are hook identifiers containing flat lists of handlers
+  under event names (`PreInvocation`, `PostInvocation`, `PreToolUse`, `PostToolUse`, `Stop`).
+- **Prompt Injection (`PreInvocation`)**: Fires before model execution. Returns JSON
+  with `injectSteps: [{ "ephemeralMessage": "..." }]` to inject instructions.
+- **Turn Completion (`Stop`)**: Receives `conversationId` and `transcriptPath` on stdin.
+  Does not provide `last_assistant_message` directly; hooks parse the last `PLANNER_RESPONSE`
+  step from the `transcript.jsonl` file.
+- **Identity**: `ANTIGRAVITY_AGENT=1` and `ANTIGRAVITY_CONVERSATION_ID` identify Antigravity runs.
+  Hook payloads provide `conversationId` in camelCase.

@@ -5,6 +5,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PLUGIN_DIR="$ROOT_DIR/plugins/spoken-tts"
 CLAUDE_PLUGIN_JSON="$PLUGIN_DIR/.claude-plugin/plugin.json"
 CODEX_PLUGIN_JSON="$PLUGIN_DIR/.codex-plugin/plugin.json"
+ANTIGRAVITY_PLUGIN_JSON="$PLUGIN_DIR/plugin.json"
+ANTIGRAVITY_HOOKS_JSON="$PLUGIN_DIR/hooks.json"
 HOOKS_JSON="$PLUGIN_DIR/hooks/hooks.json"
 CLAUDE_MARKETPLACE_JSON="$ROOT_DIR/.claude-plugin/marketplace.json"
 CODEX_MARKETPLACE_JSON="$ROOT_DIR/.agents/plugins/marketplace.json"
@@ -14,7 +16,8 @@ fail() {
   exit 1
 }
 
-for f in "$CLAUDE_PLUGIN_JSON" "$CODEX_PLUGIN_JSON" "$HOOKS_JSON" \
+for f in "$CLAUDE_PLUGIN_JSON" "$CODEX_PLUGIN_JSON" "$ANTIGRAVITY_PLUGIN_JSON" \
+  "$ANTIGRAVITY_HOOKS_JSON" "$HOOKS_JSON" \
   "$CLAUDE_MARKETPLACE_JSON" "$CODEX_MARKETPLACE_JSON"; do
   [ -f "$f" ] || fail "$f is missing"
   jq empty "$f" 2>/dev/null || fail "$f is not valid JSON"
@@ -26,13 +29,26 @@ CLAUDE_NAME="$(jq -r '.name' "$CLAUDE_PLUGIN_JSON")"
 CODEX_NAME="$(jq -r '.name' "$CODEX_PLUGIN_JSON")"
 [ "$CODEX_NAME" = "spoken-tts" ] || fail "Codex plugin name is '$CODEX_NAME'"
 
+AGY_NAME="$(jq -r '.name' "$ANTIGRAVITY_PLUGIN_JSON")"
+[ "$AGY_NAME" = "spoken-tts" ] || fail "Antigravity plugin name is '$AGY_NAME'"
+
 CLAUDE_VER="$(jq -r '.version' "$CLAUDE_PLUGIN_JSON")"
 CODEX_VER="$(jq -r '.version' "$CODEX_PLUGIN_JSON")"
+AGY_VER="$(jq -r '.version' "$ANTIGRAVITY_PLUGIN_JSON")"
 [ "$CLAUDE_VER" = "$CODEX_VER" ] || fail "Claude version '$CLAUDE_VER' != Codex '$CODEX_VER'"
+[ "$AGY_VER" = "$CLAUDE_VER" ] || fail "Antigravity version '$AGY_VER' != Claude '$CLAUDE_VER'"
 
 CODEX_HOOKS_PATH="$(jq -r '.hooks' "$CODEX_PLUGIN_JSON")"
 [ "$CODEX_HOOKS_PATH" = "./hooks/hooks.json" ] \
   || fail "Codex hooks field is '$CODEX_HOOKS_PATH'"
+
+for event in Stop PreInvocation; do
+  COMMAND="$(jq -r ".hooks.${event}[0].command // .hooks.${event}[0].hooks[0].command // empty" "$ANTIGRAVITY_HOOKS_JSON")"
+  case "$COMMAND" in
+    *spoken.sh*) ;;
+    *) fail "Antigravity hooks.json $event command does not reference spoken.sh (got: $COMMAND)" ;;
+  esac
+done
 
 for event in Stop UserPromptSubmit; do
   COMMAND="$(jq -r ".hooks.${event}[0].hooks[0].command" "$HOOKS_JSON")"

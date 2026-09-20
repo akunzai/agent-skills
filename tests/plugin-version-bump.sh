@@ -42,6 +42,13 @@ for plugin_json in "${plugin_jsons[@]}"; do
       || fail "$name Codex version '$codex_version' != Claude '$version'"
   fi
 
+  root_json="$plugin_dir/plugin.json"
+  if [ -f "$root_json" ]; then
+    root_version="$(jq -r '.version // empty' "$root_json")"
+    [ "$root_version" = "$version" ] \
+      || fail "$name root plugin.json version '$root_version' != Claude '$version'"
+  fi
+
   if [ -n "$base" ]; then
     rel="plugins/$name"
     if git -C "$ROOT_DIR" cat-file -e "$base:$rel/.claude-plugin/plugin.json" 2>/dev/null; then
