@@ -100,6 +100,11 @@ exist and the zoom file has `"status": "ok"` with one region per click
 cluster. Without ffmpeg, output is raw `.webm` without auto-zoom (pointer and
 click echo are still included), and the zoom file still lists the clusters.
 
+A passing zoom file says nothing about the picture. Before handing back, pull a
+frame from the last step (`ffmpeg -sseof -1 -i demo.mp4 -frames:v 1 last.png`)
+and look at it: the result the flow was meant to end on, such as the new row,
+must be in frame, and a page you scrolled must have reached its end.
+
 3. **Hand back.** Give the user the video path.
 
 ## Defaults
