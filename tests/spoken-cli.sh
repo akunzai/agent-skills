@@ -57,7 +57,7 @@ chmod +x "$STUB_BIN/edge-tts"
 export PATH="$STUB_BIN:/usr/bin:/bin"
 export SPOKEN_SYNC=1
 export SPOKEN_NATIVE_PROVIDER=say
-unset CURSOR_INVOKED_AS COPILOT_CLI PLUGIN_ROOT || true
+unset CURSOR_INVOKED_AS COPILOT_CLI PLUGIN_ROOT SPOKEN_SESSION_ID CLAUDE_CODE_SESSION_ID || true
 
 run() {
   bash "$SCRIPT" "$@"
