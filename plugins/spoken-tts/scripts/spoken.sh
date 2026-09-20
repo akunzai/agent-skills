@@ -69,7 +69,7 @@ Commands:
   config-write --provider NAME --locale LOCALE --voice NAME
   config-show
   speak
-  test
+  test [sample-text]
   stop
   ensure-edge-tts
   hook-stop
@@ -201,7 +201,7 @@ load_config() {
 }
 
 session_id_from_args() {
-  SESSION_ID="${SPOKEN_SESSION_ID:-${CLAUDE_CODE_SESSION_ID:-}}"
+  SESSION_ID="${SPOKEN_SESSION_ID:-${CLAUDE_CODE_SESSION_ID:-${ANTIGRAVITY_CONVERSATION_ID:-}}}"
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --session-id)
@@ -380,14 +380,16 @@ require_native_or_config() {
 cmd_on() {
   session_id_from_args "$@"
   require_native_or_config
+  resolve_provider_voice
   ensure_state_dirs
   if [[ -n "$SESSION_ID" ]]; then
     enable_session "$SESSION_ID"
-    printf 'spoken enabled for this conversation\n'
-    return
+    printf 'spoken enabled for this conversation (locale: %s, voice: %s)\n' "$LOCALE" "$VOICE"
+  else
+    : >"$PENDING_FILE"
+    printf 'spoken: waiting for this conversation'\''s hook to claim enablement (locale: %s, voice: %s)\n' "$LOCALE" "$VOICE"
   fi
-  : >"$PENDING_FILE"
-  printf 'spoken: waiting for this conversation'\''s hook to claim enablement\n'
+  printf 'Rule for this session: End the reply with one trailing line: <spoken>one-sentence status in %s</spoken>\n' "$LOCALE"
 }
 
 cmd_off() {
@@ -656,12 +658,27 @@ cmd_speak() {
 }
 
 cmd_test() {
-  load_config
-  local sample="Spoken is ready."
-  case "${LOCALE:-}" in
-    zh-*) sample="語音已設定完成。" ;;
-    ja-*) sample="音声の準備ができました。" ;;
-  esac
+  resolve_provider_voice
+  local sample=""
+  if [[ $# -gt 0 ]]; then
+    sample="$*"
+    case "${LOCALE:-}" in
+      zh-*|ja-*)
+        if [[ "$sample" =~ ^[Hh]ello.*spoken.* || "$sample" =~ ^[Tt]est.* || "$sample" =~ ^[Tt]his\ is\ a\ test.* ]]; then
+          sample=""
+        fi
+        ;;
+    esac
+  fi
+  if [[ -z "$sample" ]]; then
+    sample="Spoken is ready."
+    case "${LOCALE:-}" in
+      zh-*) sample="語音已設定完成。" ;;
+      ja-*) sample="音声の準備ができました。" ;;
+    esac
+  fi
+  printf 'spoken: testing speech (provider: %s, locale: %s, voice: %s): %s\n' \
+    "${PROVIDER:-unknown}" "${LOCALE:-unknown}" "${VOICE:-unknown}" "$sample"
   printf '%s' "$sample" | cmd_speak
 }
 
@@ -727,12 +744,17 @@ claim_pending() {
 
 inject_rules() {
   local locale="${1:-en-US}"
+  local is_antigravity="${2:-0}"
   local body
   if [[ -f "$LINE_FILE" ]]; then
     body="$(cat "$LINE_FILE")"
     body="${body//LOCALE/$locale}"
   else
     body="End the reply with one trailing <spoken>de-identified one-sentence status in ${locale}</spoken> line. Include a personal field only when this user message asked to hear that field or value. Keep credentials out of the tag. Placeholders may appear."
+  fi
+  if [[ "$is_antigravity" == 1 || -n "${ANTIGRAVITY_AGENT:-}" ]]; then
+    jq -n --arg msg "$body" '{injectSteps:[{ephemeralMessage:$msg}]}'
+    return
   fi
   if [[ -n "${CURSOR_INVOKED_AS:-}" || -n "${COPILOT_CLI:-}" ]]; then
     jq -n --arg additional_context "$body" '{additional_context:$additional_context}'
@@ -743,35 +765,64 @@ inject_rules() {
 }
 
 cmd_hook_prompt() {
-  local input session_id
+  local input session_id is_antigravity=0
   input="$(cat)"
   stop_playback
   command -v jq >/dev/null 2>&1 || exit 0
-  session_id="$(printf '%s' "$input" | jq -r '.session_id // empty')"
+  session_id="$(printf '%s' "$input" | jq -r '.session_id // .conversationId // empty' 2>/dev/null || true)"
+  if [[ -n "$(printf '%s' "$input" | jq -r '.conversationId // empty' 2>/dev/null || true)" || -n "${ANTIGRAVITY_AGENT:-}" ]]; then
+    is_antigravity=1
+  fi
   claim_pending "$session_id"
   if session_enabled "$session_id"; then
     load_config
-    inject_rules "${LOCALE:-$(cmd_locale_recommend)}"
+    inject_rules "${LOCALE:-$(cmd_locale_recommend)}" "$is_antigravity"
+  elif [[ "$is_antigravity" == 1 ]]; then
+    echo "{}"
   fi
   exit 0
 }
 
 cmd_hook_stop() {
-  local input session_id event message tag limit
+  local input session_id event message tag limit transcript is_antigravity=0
   input="$(cat)"
   command -v jq >/dev/null 2>&1 || exit 0
-  session_id="$(printf '%s' "$input" | jq -r '.session_id // empty')"
-  event="$(printf '%s' "$input" | jq -r '.hook_event_name // empty')"
+  session_id="$(printf '%s' "$input" | jq -r '.session_id // .conversationId // empty' 2>/dev/null || true)"
+  event="$(printf '%s' "$input" | jq -r '.hook_event_name // empty' 2>/dev/null || true)"
+  if [[ -n "$(printf '%s' "$input" | jq -r '.conversationId // empty' 2>/dev/null || true)" || -n "${ANTIGRAVITY_AGENT:-}" ]]; then
+    is_antigravity=1
+  fi
   claim_pending "$session_id"
-  session_enabled "$session_id" || exit 0
-  [[ "$event" != "SubagentStop" ]] || exit 0
-  message="$(printf '%s' "$input" | jq -r '.last_assistant_message // empty')"
+  session_enabled "$session_id" || {
+    [[ "$is_antigravity" == 1 ]] && echo "{}"
+    exit 0
+  }
+  [[ "$event" != "SubagentStop" ]] || {
+    [[ "$is_antigravity" == 1 ]] && echo "{}"
+    exit 0
+  }
+  message="$(printf '%s' "$input" | jq -r '.last_assistant_message // empty' 2>/dev/null || true)"
+  if [[ -z "$message" ]]; then
+    transcript="$(printf '%s' "$input" | jq -r '.transcriptPath // .transcript_path // empty' 2>/dev/null || true)"
+    if [[ -n "$transcript" && -f "$transcript" ]]; then
+      # Antigravity uses PLANNER_RESPONSE with .content
+      message="$(jq -r 'select(.type=="PLANNER_RESPONSE" and .content != null and (.content | length > 0)) | .content' "$transcript" 2>/dev/null | tail -n 1 || true)"
+      # Copilot CLI uses assistant.message with .data.content
+      if [[ -z "$message" ]]; then
+        message="$(jq -r 'select(.type=="assistant.message" and .data.content != null and (.data.content | length > 0)) | .data.content' "$transcript" 2>/dev/null | tail -n 1 || true)"
+      fi
+    fi
+  fi
   tag="$(extract_spoken "$message")"
-  [[ -n "$tag" ]] || exit 0
+  [[ -n "$tag" ]] || {
+    [[ "$is_antigravity" == 1 ]] && echo "{}"
+    exit 0
+  }
   load_config
   limit="$(summary_limit "${LOCALE:-}")"
   tag="$(truncate_chars "$tag" "$limit")"
   speak_text "$tag" "$limit" || true
+  [[ "$is_antigravity" == 1 ]] && echo "{}"
   exit 0
 }
 
@@ -789,7 +840,7 @@ main() {
     config-write) cmd_config_write "$@" ;;
     config-show) cmd_config_show ;;
     speak) cmd_speak ;;
-    test) cmd_test ;;
+    test) cmd_test "$@" ;;
     stop) cmd_stop ;;
     ensure-edge-tts) cmd_ensure_edge_tts ;;
     hook-stop) cmd_hook_stop ;;

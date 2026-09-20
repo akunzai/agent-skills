@@ -31,6 +31,12 @@ bash scripts/setup.sh --plugin spoken-tts
 
 Or enable `spoken` from this marketplace in Claude Code, Copilot, or Cursor.
 Codex uses `.agents/plugins/marketplace.json`.
+Antigravity CLI installs via:
+```bash
+agy plugin install ./plugins/spoken-tts
+# or remote github
+agy plugin install https://github.com/akunzai/agent-skills/tree/main/plugins/spoken-tts
+```
 
 ## Config
 

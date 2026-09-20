@@ -13,32 +13,46 @@ Two pipes share one CLI, one global voice config, and the leading word
 CLI (from this skill: `../../scripts/spoken.sh`):
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT:-$CLAUDE_SKILL_DIR/../..}/scripts/spoken.sh" <command>
+bash "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-$CLAUDE_SKILL_DIR/../..}}/scripts/spoken.sh" <command>
 ```
 
-On Codex/Copilot, `CLAUDE_PLUGIN_ROOT` may be `PLUGIN_ROOT`. If both are
+On Codex, Copilot, or Antigravity, `CLAUDE_PLUGIN_ROOT` may be `PLUGIN_ROOT`. If both are
 unset, the path above is relative to this `SKILL.md`.
 
-## Slash: on / off / setup / toggle
+## Slash: on / off / setup / toggle / status / test
 
-`$ARGUMENTS` is `on`, `off`, `setup`, empty (toggle), or absent. Anything
-else is not a speech payload — ask what they meant.
+Always execute the corresponding `spoken.sh` subcommand using your shell tool. Run `spoken.sh` directly; do not read or inspect files in this skill folder.
+
+`$ARGUMENTS` is `on`, `off`, `setup`, `status`, `test` (optionally followed by custom speech text), empty (toggle), or absent. Anything else is not a speech payload — ask what they meant.
 
 ### on
 
+Execute `spoken.sh on` using your shell tool.
 Done when `spoken.sh on` exits 0 (or pending-claim) and you have told the
-user this conversation will speak summaries. Do not install packages.
+user this conversation will speak summaries in the reported locale. Do not install packages.
 
 If it asks for setup (no native TTS), stop and say so.
 
 ### off
 
+Execute `spoken.sh off` using your shell tool.
 Done when `spoken.sh off` exits 0. Playback stops.
 
 ### toggle
 
+Execute `spoken.sh toggle` using your shell tool.
 Done when `spoken.sh toggle` exits 0 and you report the new state from
 `spoken.sh status`.
+
+### status
+
+Execute `spoken.sh status` using your shell tool.
+Done when `spoken.sh status` exits 0 and you report the exact status and locale output by the command.
+
+### test
+
+Execute `spoken.sh test` using your shell tool. Pass user-provided text after `test` as arguments (`spoken.sh test <text>`); if none was given, run `spoken.sh test` with no arguments so it plays the built-in localized test phrase. Do not invent or supply sample text.
+Done when `spoken.sh test` exits 0 and you report what was spoken, along with the provider, locale, and voice tested. Do not add a `<spoken>` tag this turn.
 
 ### setup
 

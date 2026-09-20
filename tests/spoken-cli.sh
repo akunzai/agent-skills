@@ -57,7 +57,7 @@ chmod +x "$STUB_BIN/edge-tts"
 export PATH="$STUB_BIN:/usr/bin:/bin"
 export SPOKEN_SYNC=1
 export SPOKEN_NATIVE_PROVIDER=say
-unset CURSOR_INVOKED_AS COPILOT_CLI PLUGIN_ROOT SPOKEN_SESSION_ID CLAUDE_CODE_SESSION_ID || true
+unset CURSOR_INVOKED_AS COPILOT_CLI PLUGIN_ROOT SPOKEN_SESSION_ID CLAUDE_CODE_SESSION_ID ANTIGRAVITY_CONVERSATION_ID ANTIGRAVITY_AGENT || true
 
 run() {
   bash "$SCRIPT" "$@"
@@ -68,6 +68,7 @@ out="$(run on 2>&1)" || fail "on without session id should write pending: $out"
 [ -f "$XDG_STATE_HOME/spoken-tts/pending" ] || fail "pending flag was not written"
 sessions="$(find "$XDG_STATE_HOME/spoken-tts/sessions" -type f 2>/dev/null | wc -l | tr -d ' \t\r')"
 [ "$sessions" = "0" ] || fail "on without session id enabled a session"
+printf '%s' "$out" | grep -q 'Rule for this session:' || fail "on should output session rule: $out"
 
 # --- hook-prompt claims pending and injects rules ---
 prompt_json='{"session_id":"sess-1","hook_event_name":"UserPromptSubmit"}'
@@ -77,6 +78,15 @@ inject="$(printf '%s' "$prompt_json" | run hook-prompt)"
 printf '%s' "$inject" | grep -q '<spoken>' || fail "hook-prompt did not inject spoken rules: $inject"
 printf '%s' "$inject" | grep -q 'hookSpecificOutput' \
   || fail "Claude hook-prompt should use hookSpecificOutput: $inject"
+
+# --- Antigravity hook-prompt uses conversationId and injectSteps ---
+run on --session-id "agy-conv-1" >/dev/null
+agy_prompt_json='{"conversationId":"agy-conv-1","invocationNum":1}'
+agy_inject="$(printf '%s' "$agy_prompt_json" | run hook-prompt)"
+printf '%s' "$agy_inject" | jq -e '.injectSteps[0].ephemeralMessage' >/dev/null \
+  || fail "Antigravity hook-prompt should return injectSteps with ephemeralMessage: $agy_inject"
+printf '%s' "$agy_inject" | grep -q '<spoken>' \
+  || fail "Antigravity hook-prompt did not inject spoken rules: $agy_inject"
 
 # --- on with session id enables that session ---
 run off --session-id sess-1 >/dev/null
@@ -160,6 +170,35 @@ stop_json="$(jq -n --arg msg $'hello\n<spoken>done now</spoken>\n' \
 printf '%s' "$stop_json" | run hook-stop
 [ -f "$SAY_LOG" ] || fail "hook-stop did not invoke say"
 grep -q 'done now' "$SAY_LOG" || fail "hook-stop did not speak the tag text: $(cat "$SAY_LOG")"
+
+# --- Antigravity hook-stop parses transcriptPath ---
+rm -f "$SAY_LOG"
+agy_transcript="$TMP_DIR/transcript.jsonl"
+cat >"$agy_transcript" <<'EOF'
+{"type":"USER_INPUT","content":"please do task"}
+{"type":"PLANNER_RESPONSE","content":"Done.\n<spoken>antigravity finished</spoken>"}
+EOF
+agy_stop_json="$(jq -n --arg tr "$agy_transcript" \
+  '{conversationId:"agy-conv-1",terminationReason:"model_stop",transcriptPath:$tr}')"
+agy_stop_out="$(printf '%s' "$agy_stop_json" | run hook-stop)"
+[ -f "$SAY_LOG" ] || fail "Antigravity hook-stop did not invoke say"
+grep -q 'antigravity finished' "$SAY_LOG" || fail "Antigravity hook-stop did not speak transcript tag: $(cat "$SAY_LOG")"
+printf '%s' "$agy_stop_out" | jq -e '.' >/dev/null \
+  || fail "Antigravity hook-stop should output valid JSON: $agy_stop_out"
+
+# --- Copilot hook-stop parses transcript_path with assistant.message ---
+run on --session-id "copilot-conv-1" >/dev/null
+rm -f "$SAY_LOG"
+copilot_transcript="$TMP_DIR/copilot-events.jsonl"
+cat >"$copilot_transcript" <<'EOF'
+{"type":"user.message","data":{"content":"hello"}}
+{"type":"assistant.message","data":{"content":"Reply.\n<spoken>copilot finished</spoken>"}}
+EOF
+copilot_stop_json="$(jq -n --arg tr "$copilot_transcript" \
+  '{session_id:"copilot-conv-1",hook_event_name:"Stop",transcript_path:$tr}')"
+printf '%s' "$copilot_stop_json" | run hook-stop
+[ -f "$SAY_LOG" ] || fail "Copilot hook-stop did not invoke say"
+grep -q 'copilot finished' "$SAY_LOG" || fail "Copilot hook-stop did not speak transcript tag: $(cat "$SAY_LOG")"
 
 # --- missing tag is silence ---
 rm -f "$SAY_LOG"
@@ -248,6 +287,18 @@ rm -f "$XDG_STATE_HOME/spoken-tts/player.pid"
 )
 [ ! -f "$XDG_STATE_HOME/spoken-tts/player.pid" ] \
   || fail "CLI speak should wait inline, not leave a background player.pid"
+
+# --- test command speaks sample phrase or custom text ---
+rm -f "$SAY_LOG"
+test_out="$(run test)"
+printf '%s' "$test_out" | grep -q 'testing speech' || fail "test should output testing speech message: $test_out"
+[ -f "$SAY_LOG" ] || fail "test did not invoke say"
+grep -q '語音已設定完成。' "$SAY_LOG" || fail "test default sample missing from say log: $(cat "$SAY_LOG")"
+
+rm -f "$SAY_LOG"
+custom_test_out="$(run test 自訂測試語音)"
+printf '%s' "$custom_test_out" | grep -q '自訂測試語音' || fail "custom test should report custom text: $custom_test_out"
+grep -q '自訂測試語音' "$SAY_LOG" || fail "custom test text missing from say log: $(cat "$SAY_LOG")"
 
 # Isolated PATH: Linux CI has no afplay/mpv; macOS /usr/bin/afplay must not hide that.
 NO_PLAYER="$TMP_DIR/no-player"
