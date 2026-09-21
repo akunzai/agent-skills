@@ -1196,59 +1196,85 @@ jq_field() {
   node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); const path=process.argv[2].split('.'); let v=j; for (const k of path) v=v[k]; if (v===undefined||v===null) process.exit(1); process.stdout.write(String(v));" "$@"
 }
 
-# single isolated click → one region padded ±500ms
+count_zooms() {
+  node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).suggestions.length)" "$1"
+}
+
+# single isolated click → zoom lands on the click, holds 1500ms, zooms out in 400ms
 cat >"$TMP_DIR/one.jsonl" <<'EOF'
 {"t": 5000, "action": "click", "button": "left", "cx": 0.4, "cy": 0.3}
 EOF
 node "$SUGGEST" --clicks "$TMP_DIR/one.jsonl" --duration-ms 30000 --out "$TMP_DIR/one.zooms.json"
 [ "$(jq_field "$TMP_DIR/one.zooms.json" status)" = "ok" ] || fail "single click status"
 [ "$(jq_field "$TMP_DIR/one.zooms.json" suggestions.0.start)" = "4500" ] || fail "single click start"
-[ "$(jq_field "$TMP_DIR/one.zooms.json" suggestions.0.end)" = "5500" ] || fail "single click end"
+[ "$(jq_field "$TMP_DIR/one.zooms.json" suggestions.0.end)" = "6900" ] || fail "single click end"
 [ "$(jq_field "$TMP_DIR/one.zooms.json" suggestions.0.scale)" = "1.5" ] || fail "single click scale"
+[ "$(jq_field "$TMP_DIR/one.zooms.json" suggestions.0.keyframes.0.cx)" = "0.4" ] || fail "single click keyframe"
 
-# clicks 2499ms apart merge; 2501ms apart split
+# a step whose action outlasts the click (typing) holds the zoom until it ends
+cat >"$TMP_DIR/typed.jsonl" <<'EOF'
+{"t": 5000, "endT": 8000, "action": "click", "cx": 0.5, "cy": 0.5}
+EOF
+node "$SUGGEST" --clicks "$TMP_DIR/typed.jsonl" --duration-ms 30000 --out "$TMP_DIR/typed.zooms.json"
+[ "$(jq_field "$TMP_DIR/typed.zooms.json" suggestions.0.end)" = "9200" ] || fail "zoom should hold past endT"
+
+# the camera stays in when zooming out would last under 800ms: 2799ms apart
+# merges, 2801ms apart splits
 cat >"$TMP_DIR/merge.jsonl" <<'EOF'
 {"t": 4000, "action": "click", "cx": 0.5, "cy": 0.5}
-{"t": 6499, "action": "click", "cx": 0.5, "cy": 0.5}
+{"t": 6799, "action": "click", "cx": 0.5, "cy": 0.5}
 EOF
 node "$SUGGEST" --clicks "$TMP_DIR/merge.jsonl" --duration-ms 30000 --out "$TMP_DIR/merge.zooms.json"
 [ "$(jq_field "$TMP_DIR/merge.zooms.json" suggestions.0.start)" = "3500" ] || fail "merged start"
-[ "$(jq_field "$TMP_DIR/merge.zooms.json" suggestions.0.end)" = "6999" ] || fail "merged end"
-COUNT="$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).suggestions.length)" "$TMP_DIR/merge.zooms.json")"
+[ "$(jq_field "$TMP_DIR/merge.zooms.json" suggestions.0.end)" = "8699" ] || fail "merged end"
+COUNT="$(count_zooms "$TMP_DIR/merge.zooms.json")"
 [ "$COUNT" = "1" ] || fail "expected 1 merged region, got $COUNT"
 
 cat >"$TMP_DIR/split.jsonl" <<'EOF'
 {"t": 3000, "action": "click", "cx": 0.5, "cy": 0.5}
-{"t": 5501, "action": "click", "cx": 0.5, "cy": 0.5}
+{"t": 5801, "action": "click", "cx": 0.5, "cy": 0.5}
 EOF
 node "$SUGGEST" --clicks "$TMP_DIR/split.jsonl" --duration-ms 30000 --out "$TMP_DIR/split.zooms.json"
-COUNT="$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).suggestions.length)" "$TMP_DIR/split.zooms.json")"
+COUNT="$(count_zooms "$TMP_DIR/split.zooms.json")"
 [ "$COUNT" = "2" ] || fail "expected 2 split regions, got $COUNT"
 
-# clicks within the merge gap but far apart on screen (e.g. a corner click
-# right after a center click) split too, so the zoom keeps following the
-# cursor instead of freezing on the earlier click
-cat >"$TMP_DIR/spatial.jsonl" <<'EOF'
+# the default 2500ms step pause leaves each recorded step its own zoom
+cat >"$TMP_DIR/paced.jsonl" <<'EOF'
+{"t": 1607, "endT": 1650, "action": "click", "cx": 0.27, "cy": 0.24}
+{"t": 4906, "endT": 6100, "action": "click", "cx": 0.5, "cy": 0.36}
+EOF
+node "$SUGGEST" --clicks "$TMP_DIR/paced.jsonl" --duration-ms 30000 --out "$TMP_DIR/paced.zooms.json"
+COUNT="$(count_zooms "$TMP_DIR/paced.zooms.json")"
+[ "$COUNT" = "2" ] || fail "steps at the default pace should zoom out between them, got $COUNT regions"
+
+# a merged region pans to every click instead of sitting on one focus, so a
+# corner click right after a center click is still in frame
+cat >"$TMP_DIR/pan.jsonl" <<'EOF'
 {"t": 1000, "action": "click", "cx": 0.1, "cy": 0.1}
 {"t": 2000, "action": "click", "cx": 0.9, "cy": 0.9}
 EOF
-node "$SUGGEST" --clicks "$TMP_DIR/spatial.jsonl" --duration-ms 30000 --out "$TMP_DIR/spatial.zooms.json"
-COUNT="$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).suggestions.length)" "$TMP_DIR/spatial.zooms.json")"
-[ "$COUNT" = "2" ] || fail "expected 2 regions for a corner-to-corner jump, got $COUNT"
-[ "$(jq_field "$TMP_DIR/spatial.zooms.json" suggestions.1.focus.cx)" = "0.6666666666666667" ] \
-  || fail "second region should track the later click, not the first"
+node "$SUGGEST" --clicks "$TMP_DIR/pan.jsonl" --duration-ms 30000 --out "$TMP_DIR/pan.zooms.json"
+COUNT="$(count_zooms "$TMP_DIR/pan.zooms.json")"
+[ "$COUNT" = "1" ] || fail "expected 1 panning region for a corner-to-corner jump, got $COUNT"
+[ "$(jq_field "$TMP_DIR/pan.zooms.json" suggestions.0.keyframes.0.t)" = "1000" ] || fail "first keyframe time"
+[ "$(jq_field "$TMP_DIR/pan.zooms.json" suggestions.0.keyframes.0.cx)" = "0.3333333333333333" ] \
+  || fail "first keyframe should clamp to the frame edge"
+[ "$(jq_field "$TMP_DIR/pan.zooms.json" suggestions.0.keyframes.1.t)" = "2000" ] || fail "second keyframe time"
+[ "$(jq_field "$TMP_DIR/pan.zooms.json" suggestions.0.keyframes.1.cx)" = "0.6666666666666667" ] \
+  || fail "second keyframe should follow the later click"
+[ "$(jq_field "$TMP_DIR/pan.zooms.json" suggestions.0.focus.cx)" = "0.3333333333333333" ] \
+  || fail "focus should stay the first keyframe for older readers"
 
-# clicks close in both time and space still merge, but the shared focus
-# tracks the most recent click rather than sticking to the first
-cat >"$TMP_DIR/recency.jsonl" <<'EOF'
-{"t": 1000, "action": "click", "cx": 0.5, "cy": 0.5}
-{"t": 2000, "action": "click", "cx": 0.55, "cy": 0.5}
-EOF
-node "$SUGGEST" --clicks "$TMP_DIR/recency.jsonl" --duration-ms 30000 --out "$TMP_DIR/recency.zooms.json"
-COUNT="$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).suggestions.length)" "$TMP_DIR/recency.zooms.json")"
-[ "$COUNT" = "1" ] || fail "expected 1 merged region for a nearby jump, got $COUNT"
-[ "$(jq_field "$TMP_DIR/recency.zooms.json" suggestions.0.focus.cx)" = "0.55" ] \
-  || fail "merged focus should track the latest click"
+# every click lies inside the window its keyframe shows
+node -e '
+const z = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).suggestions[0];
+const clicks = [[0.1, 0.1], [0.9, 0.9]];
+const half = 1 / (2 * z.scale);
+z.keyframes.forEach((k, i) => {
+  const [x, y] = clicks[i];
+  if (Math.abs(x - k.cx) > half || Math.abs(y - k.cy) > half) process.exit(1);
+});
+' "$TMP_DIR/pan.zooms.json" || fail "a click fell outside its zoom window"
 
 # chained clicks 2000ms apart become one region, start clamped to 0
 cat >"$TMP_DIR/chain.jsonl" <<'EOF'
@@ -1258,7 +1284,9 @@ cat >"$TMP_DIR/chain.jsonl" <<'EOF'
 EOF
 node "$SUGGEST" --clicks "$TMP_DIR/chain.jsonl" --duration-ms 30000 --out "$TMP_DIR/chain.zooms.json"
 [ "$(jq_field "$TMP_DIR/chain.zooms.json" suggestions.0.start)" = "0" ] || fail "chained start clamp"
-[ "$(jq_field "$TMP_DIR/chain.zooms.json" suggestions.0.end)" = "4500" ] || fail "chained end"
+[ "$(jq_field "$TMP_DIR/chain.zooms.json" suggestions.0.end)" = "5900" ] || fail "chained end"
+KEYS="$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).suggestions[0].keyframes.length)" "$TMP_DIR/chain.zooms.json")"
+[ "$KEYS" = "1" ] || fail "clicks on one spot should share one keyframe, got $KEYS"
 
 # moves only → no-interactions
 cat >"$TMP_DIR/moves.jsonl" <<'EOF'
@@ -1280,7 +1308,7 @@ cat >"$TMP_DIR/dbl.jsonl" <<'EOF'
 {"t": 5200, "action": "click", "cx": 0.51, "cy": 0.5}
 EOF
 node "$SUGGEST" --clicks "$TMP_DIR/dbl.jsonl" --duration-ms 30000 --out "$TMP_DIR/dbl.zooms.json"
-COUNT="$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).suggestions.length)" "$TMP_DIR/dbl.zooms.json")"
+COUNT="$(count_zooms "$TMP_DIR/dbl.zooms.json")"
 [ "$COUNT" = "1" ] || fail "double-click pair should be one region, got $COUNT"
 
 # bounding-box fields on a click are ignored by clustering
@@ -1323,5 +1351,37 @@ node "$RENDER" --video "$TMP_DIR/src.mp4" --clicks "$TMP_DIR/render.clicks.jsonl
   >/dev/null || fail "render-auto-zoom to webm failed"
 CODEC="$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of csv=p=0 "$TMP_DIR/out.webm")"
 [ "$CODEC" = "vp9" ] || fail "webm output should be VP9 (constant quality), got $CODEC"
+
+# The camera pans between keyframes: the left half is red, the right blue, so
+# the frame centre shows red while zoomed on the left and blue after the pan.
+ffmpeg -hide_banner -loglevel error -y \
+  -f lavfi -i "color=c=red:s=640x720:d=4:r=30" -f lavfi -i "color=c=blue:s=640x720:d=4:r=30" \
+  -filter_complex "[0:v][1:v]hstack" -c:v libx264 -pix_fmt yuv420p "$TMP_DIR/halves.mp4" \
+  || fail "failed to create the two-colour source video"
+cat >"$TMP_DIR/pan-render.zooms.json" <<'EOF'
+{"status": "ok", "suggestions": [{"start": 0, "end": 4000, "scale": 1.5,
+  "focus": {"cx": 0.3333, "cy": 0.5},
+  "keyframes": [{"t": 500, "cx": 0.3333, "cy": 0.5}, {"t": 2500, "cx": 0.6667, "cy": 0.5}]}]}
+EOF
+node "$RENDER" --video "$TMP_DIR/halves.mp4" --zooms "$TMP_DIR/pan-render.zooms.json" --out "$TMP_DIR/pan.mp4" \
+  >/dev/null || fail "render-auto-zoom with keyframes failed"
+center_rgb() {
+  ffmpeg -v error -ss "$2" -i "$1" -frames:v 1 -vf "crop=2:2:639:359,scale=1:1" -f rawvideo -pix_fmt rgb24 - \
+    | od -An -tu1 | tr -s ' ' | sed 's/^ //'
+}
+is_red() { node -e 'const [r,,b]=process.argv[1].split(" ").map(Number); process.exit(r > 150 && b < 100 ? 0 : 1)' "$1"; }
+is_blue() { node -e 'const [r,,b]=process.argv[1].split(" ").map(Number); process.exit(b > 150 && r < 100 ? 0 : 1)' "$1"; }
+BEFORE="$(center_rgb "$TMP_DIR/pan.mp4" 1.2)"
+AFTER="$(center_rgb "$TMP_DIR/pan.mp4" 3.0)"
+is_red "$BEFORE" || fail "before the pan the frame centre should sit on the first keyframe (red), got $BEFORE"
+is_blue "$AFTER" || fail "after the pan the frame centre should sit on the second keyframe (blue), got $AFTER"
+
+# A zooms file from before keyframes existed, with only focus, still renders.
+cat >"$TMP_DIR/legacy.zooms.json" <<'EOF'
+{"status": "ok", "suggestions": [{"start": 500, "end": 1500, "focus": {"cx": 0.3333, "cy": 0.5}, "scale": 1.5}]}
+EOF
+node "$RENDER" --video "$TMP_DIR/halves.mp4" --zooms "$TMP_DIR/legacy.zooms.json" --out "$TMP_DIR/legacy.mp4" \
+  >/dev/null || fail "render-auto-zoom with a focus-only zooms file failed"
+is_red "$(center_rgb "$TMP_DIR/legacy.mp4" 1.0)" || fail "a focus-only region should zoom on its focus"
 
 echo "to-walkthrough-video tests passed"

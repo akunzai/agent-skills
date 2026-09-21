@@ -3,12 +3,19 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-export const MERGE_GAP_MS = 2500;
-export const PAD_MS = 500;
+// The zoom (and any pan to a later click) lands exactly on the click.
+export const ZOOM_IN_MS = 500;
+export const ZOOM_OUT_MS = 400;
+// Held until the step's action (typing, choosing) ends, plus this long.
+export const HOLD_AFTER_MS = 800;
+export const MIN_HOLD_MS = 1500;
+// Below this, zooming out and straight back in would read as a flicker, so the
+// camera stays in and pans instead. Kept under the gap that the default
+// 2500ms step pause leaves, so ordinary steps still zoom out between them.
+export const MERGE_GAP_MS = 800;
 export const DOUBLE_CLICK_MS = 350;
 export const DOUBLE_CLICK_DIST = 0.04;
 export const ZOOM_SCALE = 1.5;
-export const MERGE_DIST = 0.35;
 
 const CLICK_TYPES = new Set(["click", "double-click", "right-click", "middle-click"]);
 
@@ -56,6 +63,7 @@ export function normalizeSamples(rawSamples) {
     .filter((sample) => sample && typeof sample === "object")
     .map((sample) => {
       const timeMs = Number(sample.timeMs ?? sample.t ?? 0);
+      const endMs = Number(sample.endTimeMs ?? sample.endT);
       let cx = Number(sample.cx);
       let cy = Number(sample.cy);
       if (!Number.isFinite(cx) || !Number.isFinite(cy)) {
@@ -79,8 +87,10 @@ export function normalizeSamples(rawSamples) {
       } else if (sample.button) {
         interactionType = buttonToType(sample.button);
       }
+      const start = Number.isFinite(timeMs) ? Math.max(0, timeMs) : 0;
       return {
-        timeMs: Number.isFinite(timeMs) ? Math.max(0, timeMs) : 0,
+        timeMs: start,
+        endMs: Number.isFinite(endMs) ? Math.max(start, endMs) : start,
         cx: Number.isFinite(cx) ? clamp(cx, 0, 1) : 0.5,
         cy: Number.isFinite(cy) ? clamp(cy, 0, 1) : 0.5,
         interactionType,
@@ -112,10 +122,6 @@ function isExplicitClick(interactionType) {
   return typeof interactionType === "string" && CLICK_TYPES.has(interactionType);
 }
 
-function clickStrength(interactionType) {
-  return interactionType === "double-click" ? 1500 : 900;
-}
-
 function clampFocus(focus, scale) {
   const margin = 1 / (2 * scale);
   return {
@@ -124,47 +130,43 @@ function clampFocus(focus, scale) {
   };
 }
 
-function buildClusters(clicks, mergeGapMs, mergeDist) {
-  if (clicks.length === 0) {
-    return [];
-  }
+function holdEnd(click) {
+  return Math.max(click.timeMs + MIN_HOLD_MS, click.endMs + HOLD_AFTER_MS);
+}
 
-  const sorted = [...clicks].sort((a, b) => a.timeMs - b.timeMs);
+// One cluster per stretch of clicks the camera stays zoomed through. Each click
+// keeps its own keyframe, so the camera pans to it rather than sitting on one
+// focus that an earlier click in the cluster may lie outside of.
+function buildClusters(clicks, mergeGapMs) {
   const clusters = [];
-  let firstMs = sorted[0].timeMs;
-  let lastMs = sorted[0].timeMs;
-  let lastFocus = sorted[0].focus;
-  let bestStrength = sorted[0].strength;
-  let bestFocus = sorted[0].focus;
-
-  for (let i = 1; i < sorted.length; i += 1) {
-    const click = sorted[i];
-    const withinTime = click.timeMs - lastMs <= mergeGapMs;
-    const withinSpace = Math.hypot(click.focus.cx - lastFocus.cx, click.focus.cy - lastFocus.cy) <= mergeDist;
-    if (withinTime && withinSpace) {
-      lastMs = Math.max(lastMs, click.timeMs);
-      // Recency wins ties so the zoom keeps following the cursor within a merged cluster.
-      if (click.strength >= bestStrength) {
-        bestStrength = click.strength;
-        bestFocus = click.focus;
-      }
+  let current = null;
+  for (const click of clicks) {
+    if (current && click.timeMs - ZOOM_IN_MS - current.holdEndMs < mergeGapMs) {
+      current.clicks.push(click);
+      current.holdEndMs = Math.max(current.holdEndMs, holdEnd(click));
     } else {
-      clusters.push({ firstMs, lastMs, focus: bestFocus });
-      firstMs = click.timeMs;
-      lastMs = click.timeMs;
-      bestStrength = click.strength;
-      bestFocus = click.focus;
+      current = { clicks: [click], holdEndMs: holdEnd(click) };
+      clusters.push(current);
     }
-    lastFocus = click.focus;
   }
-  clusters.push({ firstMs, lastMs, focus: bestFocus });
   return clusters;
+}
+
+function keyframesFor(clicks, scale) {
+  const keyframes = [];
+  for (const click of clicks) {
+    const { cx, cy } = clampFocus(click, scale);
+    const last = keyframes[keyframes.length - 1];
+    if (last && Math.hypot(cx - last.cx, cy - last.cy) < 0.005) {
+      continue;
+    }
+    keyframes.push({ t: click.timeMs, cx, cy });
+  }
+  return keyframes;
 }
 
 export function suggestZooms(rawSamples, totalMs, options = {}) {
   const mergeGapMs = options.mergeGapMs ?? MERGE_GAP_MS;
-  const mergeDist = options.mergeDist ?? MERGE_DIST;
-  const padMs = options.padMs ?? PAD_MS;
   const scale = options.scale ?? ZOOM_SCALE;
 
   if (!Number.isFinite(totalMs) || totalMs <= 0) {
@@ -178,27 +180,19 @@ export function suggestZooms(rawSamples, totalMs, options = {}) {
     return { status: samples.length === 0 ? "no-telemetry" : "no-interactions", suggestions: [] };
   }
 
-  const clusters = buildClusters(
-    clicks.map((click) => ({
-      timeMs: click.timeMs,
-      strength: clickStrength(click.interactionType),
-      focus: { cx: click.cx, cy: click.cy },
-    })),
-    mergeGapMs,
-    mergeDist,
-  );
-
   const suggestions = [];
-  for (const cluster of clusters) {
-    const start = Math.max(0, cluster.firstMs - padMs);
-    const end = Math.min(totalMs, cluster.lastMs + padMs);
+  for (const cluster of buildClusters(clicks, mergeGapMs)) {
+    const start = Math.max(0, cluster.clicks[0].timeMs - ZOOM_IN_MS);
+    const end = Math.min(totalMs, cluster.holdEndMs + ZOOM_OUT_MS);
     if (end <= start) {
       continue;
     }
+    const keyframes = keyframesFor(cluster.clicks, scale);
     suggestions.push({
       start,
       end,
-      focus: clampFocus(cluster.focus, scale),
+      focus: { cx: keyframes[0].cx, cy: keyframes[0].cy },
+      keyframes,
       scale,
     });
   }
@@ -207,7 +201,6 @@ export function suggestZooms(rawSamples, totalMs, options = {}) {
     return { status: "no-slots", suggestions: [] };
   }
 
-  suggestions.sort((a, b) => a.start - b.start);
   return { status: "ok", suggestions };
 }
 
@@ -215,7 +208,8 @@ function printUsage(stream) {
   stream.write(`Usage: suggest-zooms.mjs --clicks FILE --duration-ms MS [--out FILE]
 
 Cluster explicit clicks into auto-zoom regions (JSON on stdout).
-FILE is JSONL or a JSON array. Each click needs t/timeMs and cx, cy.
+FILE is JSONL or a JSON array. Each click needs t/timeMs and cx, cy;
+an optional endT holds the zoom until that step's action ended.
 `);
 }
 

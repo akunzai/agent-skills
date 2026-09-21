@@ -3,10 +3,9 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { parseSamples, suggestZooms, ZOOM_SCALE } from "./suggest-zooms.mjs";
+import { parseSamples, suggestZooms, ZOOM_IN_MS, ZOOM_OUT_MS, ZOOM_SCALE } from "./suggest-zooms.mjs";
 
-export const ZOOM_IN_MS = 500;
-export const ZOOM_OUT_MS = 400;
+export { ZOOM_IN_MS, ZOOM_OUT_MS };
 
 function printUsage(stream) {
   stream.write(`Usage: render-auto-zoom.mjs --video FILE --out FILE [--zooms FILE | --clicks FILE]
@@ -143,12 +142,24 @@ function buildSegments(suggestions, durationMs) {
     if (start > cursor) {
       segments.push({ kind: "plain", start: cursor, end: start });
     }
+    const focus = {
+      t: start,
+      cx: Number(region.focus?.cx ?? 0.5),
+      cy: Number(region.focus?.cy ?? 0.5),
+    };
+    // A zooms file written before keyframes existed has only focus.
+    const keyframes = Array.isArray(region.keyframes) && region.keyframes.length > 0
+      ? region.keyframes.map((frame) => ({
+          t: Number(frame.t),
+          cx: Number(frame.cx ?? focus.cx),
+          cy: Number(frame.cy ?? focus.cy),
+        }))
+      : [focus];
     segments.push({
       kind: "zoom",
       start,
       end,
-      cx: Number(region.focus?.cx ?? 0.5),
-      cy: Number(region.focus?.cy ?? 0.5),
+      keyframes,
       scale: Number(region.scale ?? ZOOM_SCALE),
     });
     cursor = end;
@@ -170,25 +181,47 @@ function sec(ms) {
   return (ms / 1000).toFixed(3);
 }
 
+// Focus along one axis as a function of the output frame: it holds at each
+// keyframe and eases to the next one over the ZOOM_IN_MS before that click.
+function focusExpr(segment, axis, fps) {
+  const frames = segment.keyframes;
+  const toFrame = (ms) => Math.round(((ms - segment.start) / 1000) * fps);
+  let expr = frames[frames.length - 1][axis].toFixed(4);
+  for (let i = frames.length - 1; i >= 1; i -= 1) {
+    const from = frames[i - 1][axis].toFixed(4);
+    const to = frames[i][axis].toFixed(4);
+    const panEnd = Math.max(1, toFrame(frames[i].t));
+    const panStart = Math.min(panEnd - 1, Math.max(0, toFrame(Math.max(frames[i].t - ZOOM_IN_MS, frames[i - 1].t))));
+    const span = panEnd - panStart;
+    expr =
+      `if(lt(on,${panStart}),${from},` +
+      `if(lt(on,${panEnd}),${from}+(${to}-${from})*(0.5-0.5*cos(PI*(on-${panStart})/${span})),` +
+      `${expr}))`;
+  }
+  return expr;
+}
+
 function zoomFilter(segment, width, height, fps) {
   const durationMs = segment.end - segment.start;
-  const inMs = Math.max(1, Math.min(ZOOM_IN_MS, Math.floor(durationMs / 3)));
-  const outMs = Math.max(1, Math.min(ZOOM_OUT_MS, Math.floor(durationMs / 3)));
+  // A hand-written region shorter than a full zoom in and out shrinks both.
+  const shrink = Math.min(1, durationMs / (ZOOM_IN_MS + ZOOM_OUT_MS));
+  const inMs = Math.max(1, ZOOM_IN_MS * shrink);
+  const outMs = Math.max(1, ZOOM_OUT_MS * shrink);
   const inFrames = Math.max(1, Math.round((inMs / 1000) * fps));
   const outFrames = Math.max(1, Math.round((outMs / 1000) * fps));
   const totalFrames = Math.max(inFrames + outFrames, Math.round((durationMs / 1000) * fps));
   const holdUntil = Math.max(inFrames, totalFrames - outFrames);
   const scale = segment.scale;
   const delta = (scale - 1).toFixed(4);
-  const cx = segment.cx.toFixed(4);
-  const cy = segment.cy.toFixed(4);
+  const cx = focusExpr(segment, "cx", fps);
+  const cy = focusExpr(segment, "cy", fps);
   const z =
     `if(lt(on,${inFrames}),` +
     `1+${delta}*(0.5-0.5*cos(PI*on/${inFrames})),` +
     `if(lt(on,${holdUntil}),${scale},` +
     `1+${delta}*(0.5-0.5*cos(PI*(${totalFrames}-on)/${outFrames}))))`;
-  const x = `max(0,min(iw-iw/zoom,${cx}*iw-iw/zoom/2))`;
-  const y = `max(0,min(ih-ih/zoom,${cy}*ih-ih/zoom/2))`;
+  const x = `max(0,min(iw-iw/zoom,(${cx})*iw-iw/zoom/2))`;
+  const y = `max(0,min(ih-ih/zoom,(${cy})*ih-ih/zoom/2))`;
   return (
     `trim=${sec(segment.start)}:${sec(segment.end)},setpts=PTS-STARTPTS,` +
     `setsar=1,format=yuv420p,` +
