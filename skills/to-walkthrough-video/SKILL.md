@@ -35,7 +35,8 @@ When missing, ask the user for confirmation before installing:
    already signed in on, so a site you cannot know ahead needs one sign-in
    for both exploring and recording. See `references/auth.md`. Explore
    the live page and write `scenario.json` with the start URL and every
-   click, in order. Each click needs a locator (`role`+`name`, `selector`,
+   click, in order, taken from the user's brief and the live page;
+   `examples/` shows only the file's shape. Each click needs a locator (`role`+`name`, `selector`,
    `text`, or `label`). Discover locators with `playwright-cli snapshot`
    when that command is on PATH; otherwise a Playwright script. Reuse a
    webwright run only when one already exists for this flow — webwright
@@ -68,6 +69,9 @@ step fails the error names it (`step 3 of 5 {...}`) and `<out>.failure.png` and
 `<out>.failure.aria.txt` show what the page looked like. When the
 flow creates data, do it once while exploring and note where it lands (a later
 page, a filter, below the fold) so the last step targets the right place.
+A secret a step types goes in `"textEnv": "VAR"` rather than `text`, and a
+field the page does not mark as a password (an API key) gets
+`"sensitive": true` so its caption shows dots.
 
 Pointer, captions and auto-zoom are on; `effects` turns any off. Set
 `captionLocale` to the language of the conversation asking for the

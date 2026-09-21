@@ -78,7 +78,14 @@ a template rather than a verb, because word order differs: `Click Save`,
 of the conversation that asked for the recording**: a script cannot know who
 the video is for, so the agent writing `scenario.json` decides.
 
-Any step can replace its generated caption:
+A `type` step captions a secret as dots. When its field is `type="password"`
+or carries `autocomplete` `current-password`, `new-password` or
+`one-time-code`, the caption reads `Type ••••••••` — eight dots whatever the
+length. `"sensitive": true` masks any other field the page cannot mark, such
+as an API key, and a step whose text comes from `textEnv` is always masked.
+
+Any step can replace its generated caption. A secret step's own `caption` is
+shown as written, so it names the field rather than the value:
 
 ```json
 { "action": "press", "keys": "Control+k", "caption": "按下 Ctrl + K 開啟搜尋" }
