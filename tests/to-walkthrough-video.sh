@@ -1124,6 +1124,55 @@ curl -s -H 'Cookie: walkthrough_session=1' "$BASE/app" | grep -q 'id="menu-toggl
 curl -s -D- -o /dev/null --max-time 5 -d 'username=a&password=b' "$BASE/login" \
   | grep -qi '^set-cookie: walkthrough_session=' || fail "fixture login should set the session cookie"
 
+# The sign-in example types a password on camera: it reaches the form and signs
+# in, and neither the password nor any caption drawn on the way carries it.
+if [ "$check_status" -eq 0 ]; then
+  DEMO_PASSWORD="fixture-secret-9f3" node --input-type=module <<EOF || fail "sign-in example"
+import fs from "node:fs";
+import { loadPlaywright, runScenario, validateScenario } from "file://${RECORD}";
+
+const fail = (message) => {
+  console.error(message);
+  process.exit(1);
+};
+
+const scenario = JSON.parse(fs.readFileSync("${ROOT_DIR}/skills/to-walkthrough-video/examples/scenario-login.json", "utf8"));
+const problems = validateScenario(scenario);
+if (problems.length !== 0) {
+  fail("the sign-in example should validate: " + problems.join("; "));
+}
+const playwright = await loadPlaywright();
+const browser = await playwright.chromium.launch();
+try {
+  const page = await browser.newPage({ viewport: scenario.viewport });
+  const drawn = [];
+  const showOverlay = page.screencast.showOverlay.bind(page.screencast);
+  page.screencast.showOverlay = async (html) => {
+    drawn.push(html);
+    return showOverlay(html);
+  };
+  await page.goto(scenario.url.replace("http://localhost:4173", "${BASE}"));
+  const steps = scenario.steps.map((step) => ({ ...step, pause: 0, ms: 0 }));
+  await runScenario(page, { ...scenario, steps }, () => {}, {
+    x: 0, y: 0, startedAt: Date.now(), pauseMs: 0, captionLocale: scenario.captionLocale,
+    effects: { zoom: false, cursor: false, captions: true },
+  });
+  if (!page.url().endsWith("/app")) {
+    fail("the sign-in example should land on the dashboard: " + page.url());
+  }
+  const typed = drawn.filter((html) => html.includes("Type "));
+  if (typed.length !== 2 || !typed[0].includes("Type demo") || !typed[1].includes("\u2022".repeat(8))) {
+    fail("the sign-in example should caption the username and dots: " + JSON.stringify(typed));
+  }
+  if (drawn.some((html) => html.includes(process.env.DEMO_PASSWORD))) {
+    fail("the sign-in example leaked its password into a caption");
+  }
+} finally {
+  await browser.close();
+}
+EOF
+fi
+
 kill "$SERVE_PID" 2>/dev/null || true
 trap 'rm -rf "$TMP_DIR"' EXIT
 

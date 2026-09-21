@@ -1,0 +1,13 @@
+{
+  "url": "http://localhost:4173/login",
+  "viewport": { "width": 1280, "height": 720 },
+  "pauseMs": 2500,
+  "captionLocale": "en",
+  "steps": [
+    { "action": "wait", "ms": 800 },
+    { "action": "type", "label": "Username", "text": "demo", "pause": 1200 },
+    { "action": "type", "label": "Password", "textEnv": "DEMO_PASSWORD", "pause": 1800 },
+    { "action": "click", "role": "button", "name": "Sign in" },
+    { "action": "expect", "role": "heading", "name": "Dashboard", "pause": 1500 }
+  ]
+}

@@ -211,3 +211,10 @@ node scripts/record.mjs --scenario examples/scenario-auth.json \
 
 `examples/scenario.json` records the public page, for the mode that needs no
 state at all.
+`examples/scenario-login.json` signs in on camera, with the password from
+`DEMO_PASSWORD` and captioned as dots:
+
+```bash
+DEMO_PASSWORD=anything node scripts/record.mjs \
+  --scenario examples/scenario-login.json --out demo.mp4
+```
