@@ -868,6 +868,22 @@ try {
   }
   await waited.close();
 
+  // Typing outlasts the click, so the log records when the step's action
+  // ended and the zoom can hold until then.
+  const typing = await browser.newPage({ viewport: { width: 640, height: 480 } });
+  await typing.setContent('<label>Name <input></label>');
+  const typedLog = [];
+  await runScenario(
+    typing,
+    { steps: [{ action: "type", role: "textbox", name: "Name", text: "abcdef", pause: 0 }] },
+    (entry) => typedLog.push(entry),
+    stateFor({ width: 640, height: 480 }),
+  );
+  if (typedLog.length !== 1 || !(typedLog[0].endT - typedLog[0].t >= 5 * 90)) {
+    fail("a type step should log when its typing ended: " + JSON.stringify(typedLog));
+  }
+  await typing.close();
+
   // A phone page without a viewport meta tag lays out 980px wide and zooms
   // out, so a target past the device's own width is still on screen.
   const zoomedOut = await browser.newContext({ viewport, isMobile: true });
