@@ -15,7 +15,7 @@ silently ignored.
 | --- | --- | --- |
 | `cursor` | An arrow travels to each target, swaps to a hand or text-input icon while resting on it, and a click or double-click leaves a fading blue ring | No arrow, and the mouse moves straight to its target instead of sweeping hover states along a path nobody can see |
 | `captions` | A caption names each interaction while it happens | Nothing is drawn |
-| `zoom` | ffmpeg zooms into each click cluster | No zoom is applied. A `.webm` output is the raw capture; any other container is still re-encoded by ffmpeg. `.clicks.jsonl` and `.zooms.json` are written either way |
+| `zoom` | ffmpeg zooms into each click, panning from one to the next when they come close together | No zoom is applied. A `.webm` output is the raw capture; any other container is still re-encoded by ffmpeg. `.clicks.jsonl` and `.zooms.json` are written either way |
 
 Turning `zoom` off does not throw the zoom data away, so you can record once
 and decide later:

@@ -1107,13 +1107,14 @@ async function runSteps(page, scenario, log, state) {
     const button = step.button ?? "left";
     const isDouble = action === "dblclick" || action === "double-click";
     const interaction = isDouble ? "double-click" : "click";
-    log({
+    const entry = {
       t: Date.now() - state.startedAt,
       action: interaction,
       button,
       cx: x / viewport.width,
       cy: y / viewport.height,
-    });
+    };
+    log(entry);
     if (effects.cursor && (action === "click" || isDouble)) {
       await firePulses(page, x, y, isDouble ? 2 : 1);
     }
@@ -1140,6 +1141,8 @@ async function runSteps(page, scenario, log, state) {
         });
       }
     }
+    // Typing and choosing outlast the click, and the zoom holds until they end.
+    entry.endT = Date.now() - state.startedAt;
     await sleep(resolvePauseMs(step, state));
     await hideCaption(caption);
     await installOverlay(page, state);

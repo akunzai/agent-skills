@@ -115,11 +115,11 @@ must be in frame, and a page you scrolled must have reached its end.
 
 Viewport is 1280×720 CSS pixels (`deviceScaleFactor` 1). Override with
 `scenario.viewport` or `--width`/`--height` (even numbers; odd values
-round up). After each click, pause 2500ms so clusters split; override
-with `scenario.pauseMs`, `--pause-ms`, or per-step `pause`. Clicks
-≤2500ms apart share one zoom only if they also land within 0.35 of the
-normalized viewport (a click far enough away, e.g. a corner toolbar
-button after a center click, starts its own zoom even if the pause was
-shorter — otherwise the camera would freeze on the earlier click and
-never pan to follow the cursor there). Each region is padded ±500ms
-and scaled 1.5×. Flags: `record.mjs --help`.
+round up). After each click, pause 2500ms; override with
+`scenario.pauseMs`, `--pause-ms`, or per-step `pause`. Each zoom is 1.5×,
+lands on the click 500ms after it starts, and holds until the step's
+typing or choosing ends plus 800ms (at least 1500ms after the click).
+At the default pause the view zooms out between steps; a click whose zoom
+would start under 800ms after the last one ends keeps the view in and pans
+to it instead, so every click stays in frame. A click near an edge is not
+centred: the crop stops at the frame. Flags: `record.mjs --help`.
