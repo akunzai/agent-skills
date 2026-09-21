@@ -146,8 +146,9 @@ quirk, the agent MUST:
    environment fact no assertion can reach? Gates in
    [references/quality-criteria.md](references/quality-criteria.md).
 2. **Promote**: Offer the first tier that applies and only that one — the same
-   knowledge twice is the duplicate Prune exists to remove. Every tier waits on
-   the user's explicit confirmation.
+   knowledge twice is the duplicate Prune exists to remove. Name it by its
+   leading word (enforce, comment, doc). Every tier waits on the user's
+   explicit confirmation.
    - **Enforce it**: an assert, a type, or a test leaves nothing to remember.
      Quote its size and the files it touches so one word can authorize it. It
      has to be able to fail on the mistake itself; where only the symptom is
