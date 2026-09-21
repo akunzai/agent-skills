@@ -68,6 +68,9 @@ step fails the error names it (`step 3 of 5 {...}`) and `<out>.failure.png` and
 `<out>.failure.aria.txt` show what the page looked like. When the
 flow creates data, do it once while exploring and note where it lands (a later
 page, a filter, below the fold) so the last step targets the right place.
+A secret a step types goes in `"textEnv": "VAR"` rather than `text`, and a
+field the page does not mark as a password (an API key) gets
+`"sensitive": true` so its caption shows dots. See `references/auth.md`.
 
 Pointer, captions and auto-zoom are on; `effects` turns any off. Set
 `captionLocale` to the language of the conversation asking for the

@@ -424,6 +424,26 @@ if (validateScenario({ password: "x", steps: [] }, {}).length !== 0) {
   fail("scenario fields are the author's business");
 }
 
+// A secret can come from the environment instead, so it never sits in a
+// scenario file that gets committed or pasted into a pull request.
+const fromEnv = { steps: [{ action: "type", label: "Password", textEnv: "DEMO_PASSWORD" }] };
+if (validateScenario(fromEnv, { env: { DEMO_PASSWORD: "set" } }).length !== 0) {
+  fail("a type step may read its text from the environment");
+}
+if (!validateScenario(fromEnv, { env: {} }).some((p) => p.includes("DEMO_PASSWORD"))) {
+  fail("an unset textEnv should be refused before a browser opens");
+}
+const both = { steps: [{ action: "type", label: "Password", text: "x", textEnv: "DEMO_PASSWORD" }] };
+if (!validateScenario(both, { env: { DEMO_PASSWORD: "set" } }).some((p) => p.includes("textEnv"))) {
+  fail("text and textEnv together should be refused");
+}
+if (!validateScenario({ steps: [{ action: "click", text: "Go", textEnv: "DEMO_PASSWORD" }] }, { env: { DEMO_PASSWORD: "set" } }).some((p) => p.includes("textEnv"))) {
+  fail("textEnv outside a type step should be refused");
+}
+if (!validateScenario({ steps: [{ action: "type", label: "Key", text: "x", sensitive: "yes" }] }, {}).some((p) => p.includes("sensitive"))) {
+  fail("a non-boolean sensitive should be refused");
+}
+
 // auth mode still needs the assertion that proves the session survived.
 const missingExpect = validateScenario({ steps: [] }, { sessionMode: "saved" });
 if (!missingExpect.some((p) => p.includes("auth.expect"))) {
@@ -675,6 +695,21 @@ if (captionFor(click, "zh-tw") !== "\u9ede\u64ca More information") {
 if (captionFor({ action: "type", text: "SSH" }, "en") !== "Type SSH") {
   fail("type caption");
 }
+// A secret is captioned as a fixed row of dots, which gives away neither the
+// value nor its length. A caption the author wrote is still theirs.
+const dots = "Type \u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
+if (captionFor({ action: "type", text: "hunter2" }, "en", { masked: true }) !== dots) {
+  fail("a masked type caption: " + captionFor({ action: "type", text: "hunter2" }, "en", { masked: true }));
+}
+if (captionFor({ action: "type", text: "hunter2", sensitive: true }, "en") !== dots) {
+  fail("a sensitive step should be masked");
+}
+if (captionFor({ action: "type", textEnv: "DEMO_PASSWORD" }, "en") !== dots) {
+  fail("text from the environment should be masked");
+}
+if (captionFor({ action: "type", text: "hunter2", caption: "Sign in" }, "en", { masked: true }) !== "Sign in") {
+  fail("an author's caption should not be replaced");
+}
 if (captionFor({ action: "select", value: "English" }, "en") !== "Select English") {
   fail("select caption");
 }
@@ -889,6 +924,53 @@ try {
     fail("a step's captionPlacement should place its caption: " + JSON.stringify(drawn));
   }
   await placed.close();
+
+  // A password or one-time-code field is recognised on the page, so its
+  // caption shows dots however the scenario wrote the step; an ordinary field
+  // still shows what is typed.
+  const secret = await browser.newPage({ viewport });
+  await secret.setContent(
+    '<label>Password <input id="pw" type="password"></label>' +
+    '<label>Code <input id="otp" autocomplete="one-time-code"></label>' +
+    '<label>Env <input id="env" type="password"></label>' +
+    '<label>Search <input id="q"></label>',
+  );
+  const secretDrawn = [];
+  const showSecretOverlay = secret.screencast.showOverlay.bind(secret.screencast);
+  secret.screencast.showOverlay = async (html) => {
+    secretDrawn.push(html);
+    return showSecretOverlay(html);
+  };
+  process.env.TVR_TEST_SECRET = "from-env-secret";
+  await runScenario(secret, {
+    steps: [
+      { action: "type", label: "Password", text: "hunter2", pause: 0 },
+      { action: "type", label: "Code", text: "424242", pause: 0 },
+      { action: "type", label: "Env", textEnv: "TVR_TEST_SECRET", pause: 0 },
+      { action: "type", label: "Search", text: "SSH", pause: 0 },
+    ],
+  }, () => {}, stateFor(viewport, { effects: { ...quiet, captions: true }, captionLocale: "en" }));
+  const leaked = secretDrawn.filter((html) => /hunter2|424242|from-env-secret/.test(html));
+  if (secretDrawn.length !== 4 || leaked.length !== 0 || !secretDrawn[3].includes("Type SSH")) {
+    fail("a secret should never reach a caption: " + JSON.stringify(secretDrawn));
+  }
+  const secretValues = await secret.evaluate(() => ["pw", "otp", "env"].map((id) => document.getElementById(id).value));
+  if (secretValues.join() !== "hunter2,424242,from-env-secret") {
+    fail("a masked step should still type its text: " + JSON.stringify(secretValues));
+  }
+  // Error text lands in terminals and CI logs, so a type step's text is left out.
+  let redacted = "";
+  try {
+    await runScenario(secret, {
+      steps: [{ action: "type", label: "Missing", text: "hunter2", timeout: 200 }],
+    }, () => {}, stateFor(viewport));
+  } catch (error) {
+    redacted = error.message;
+  }
+  if (!redacted.includes("Missing") || redacted.includes("hunter2")) {
+    fail("a failing type step should not print its text: " + redacted);
+  }
+  await secret.close();
 
   // A touch device taps, so touch-only handlers fire, and the cursor's sweep
   // does not hover anything on the way. Double-click still works there.

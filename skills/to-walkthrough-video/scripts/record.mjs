@@ -674,9 +674,33 @@ export function resolveCaptionLocale(scenario) {
   return asked in CAPTION_TEMPLATES ? asked : DEFAULT_CAPTION_LOCALE;
 }
 
-function captionSubject(step, action) {
+// A secret is drawn into the video, so its caption shows a fixed row of dots
+// that gives away neither the value nor its length.
+export const MASKED_TEXT = "\u2022".repeat(8);
+
+// The scenario can say a step is secret; the page can too, which only
+// isSecretField below can read.
+export function isSecretStep(step) {
+  return step.sensitive === true || step.textEnv !== undefined;
+}
+
+export function typedText(step, env = process.env) {
+  return String(step.textEnv !== undefined ? env[step.textEnv] ?? "" : step.text ?? "");
+}
+
+// Error text lands in terminals, CI logs and pull requests. What a type step
+// types is already in the scenario, and a failure is reported before the page
+// could say whether the field was a password.
+export function describeStep(step) {
+  if (resolveAction(step) !== "type" || step.text === undefined) {
+    return JSON.stringify(step);
+  }
+  return JSON.stringify({ ...step, text: "<redacted>" });
+}
+
+function captionSubject(step, action, masked) {
   if (action === "type") {
-    return String(step.text ?? "");
+    return masked || isSecretStep(step) ? MASKED_TEXT : String(step.text ?? "");
   }
   if (action === "select") {
     return String(step.value ?? step.option ?? step.label ?? "");
@@ -692,7 +716,7 @@ function captionAction(step) {
   return action === "dblclick" ? "double-click" : action;
 }
 
-export function captionFor(step, locale = DEFAULT_CAPTION_LOCALE) {
+export function captionFor(step, locale = DEFAULT_CAPTION_LOCALE, { masked = false } = {}) {
   if (typeof step.caption === "string") {
     return step.caption;
   }
@@ -702,7 +726,7 @@ export function captionFor(step, locale = DEFAULT_CAPTION_LOCALE) {
   if (!template) {
     return null;
   }
-  const subject = captionSubject(step, action);
+  const subject = captionSubject(step, action, masked);
   return subject ? template.replace("{}", subject) : null;
 }
 
@@ -759,11 +783,11 @@ export function captionHtml(text, anchor, viewport = DEFAULT_VIEWPORT, placement
   <div class="tvr-caption">${escapeHtml(text)}</div>`;
 }
 
-async function showCaption(page, state, step, anchor) {
+async function showCaption(page, state, step, anchor, masked = false) {
   if (!state.effects?.captions) {
     return null;
   }
-  const text = captionFor(step, state.captionLocale);
+  const text = captionFor(step, state.captionLocale, { masked });
   if (!text) {
     return null;
   }
@@ -828,13 +852,14 @@ function locatorFor(page, step) {
     }
     return page.getByRole(step.role, options);
   }
-  if (step.text) {
+  // A type step's text is what it types, not what it looks for.
+  if (step.text && resolveAction(step) !== "type") {
     return page.getByText(step.text, { exact: Boolean(step.exact) });
   }
   if (step.label) {
     return page.getByLabel(step.label);
   }
-  throw new Error(`step needs selector, role, text, or label: ${JSON.stringify(step)}`);
+  throw new Error(`step needs selector, role, text, or label: ${describeStep(step)}`);
 }
 
 // A touch device taps, and a tap is where touchstart and pointerType "touch"
@@ -964,6 +989,21 @@ async function scrollToTarget(page, target) {
 
 const STEP_TIMEOUT_MS = 15_000;
 
+const SECRET_AUTOCOMPLETE = ["current-password", "new-password", "one-time-code"];
+
+// Only the page knows a field holds a password. A field that cannot be read
+// counts as one: a masked caption costs less than a leaked secret.
+async function isSecretField(target) {
+  return target
+    .evaluate(
+      (el, tokens) =>
+        el.type === "password" ||
+        (el.getAttribute("autocomplete") ?? "").split(/\s+/).some((token) => tokens.includes(token)),
+      SECRET_AUTOCOMPLETE,
+    )
+    .catch(() => true);
+}
+
 // A step that fails names itself and leaves what the page looked like, so the
 // author does not have to re-run the walkthrough by hand to find out why.
 export async function runScenario(page, scenario, log, state) {
@@ -977,7 +1017,7 @@ export async function runScenario(page, scenario, log, state) {
 async function explainFailure(page, scenario, state, error) {
   const steps = scenario.steps ?? [];
   const index = state.stepIndex ?? 0;
-  const where = `step ${index + 1} of ${steps.length} ${JSON.stringify(steps[index])}`;
+  const where = `step ${index + 1} of ${steps.length} ${describeStep(steps[index])}`;
   const saved = [];
   if (state.failureStem) {
     const png = `${state.failureStem}.failure.png`;
@@ -1035,12 +1075,12 @@ async function runSteps(page, scenario, log, state) {
     await locator.first().waitFor({ state: "visible", timeout: step.timeout ?? STEP_TIMEOUT_MS });
     const box = await scrollToTarget(page, locator.first());
     if (!box) {
-      throw new Error(`no bounding box for ${JSON.stringify(step)}`);
+      throw new Error(`no bounding box for ${describeStep(step)}`);
     }
     const viewport = await cssViewport(page, page.viewportSize() ?? DEFAULT_VIEWPORT);
     const target = targetPoint(box, viewport);
     if (!target) {
-      throw new Error(`target is outside the viewport even after scrolling: ${JSON.stringify(step)}`);
+      throw new Error(`target is outside the viewport even after scrolling: ${describeStep(step)}`);
     }
     const { x, y } = target;
     const input = resolveInput(step, state);
@@ -1061,7 +1101,8 @@ async function runSteps(page, scenario, log, state) {
     }
     // Shown while the pointer rests rather than at the click, so a step that
     // navigates, and so takes its caption with it, is still read first.
-    const caption = await showCaption(page, state, step, { x, y });
+    const masked = action === "type" && (await isSecretField(locator.first()));
+    const caption = await showCaption(page, state, step, { x, y }, masked);
     await sleep(PRE_CLICK_MS);
     const button = step.button ?? "left";
     const isDouble = action === "dblclick" || action === "double-click";
@@ -1085,7 +1126,7 @@ async function runSteps(page, scenario, log, state) {
         await page.mouse.click(x, y, { button });
       }
       if (action === "type") {
-        const typed = String(step.text ?? "");
+        const typed = typedText(step);
         if (typed) {
           await locator.first().pressSequentially(typed, { delay: 90 });
         }
@@ -1317,6 +1358,21 @@ export function validateScenario(scenario, options = {}) {
     const timeout = steps[index].timeout;
     if (timeout !== undefined && !(Number.isFinite(timeout) && timeout > 0)) {
       problems.push(`steps[${index}].timeout must be a positive number of milliseconds`);
+    }
+    const textEnv = steps[index].textEnv;
+    if (textEnv !== undefined) {
+      if (resolveAction(steps[index]) !== "type") {
+        problems.push(`steps[${index}].textEnv belongs only on a type step`);
+      } else if (typeof textEnv !== "string" || !textEnv) {
+        problems.push(`steps[${index}].textEnv must name an environment variable`);
+      } else if (steps[index].text !== undefined) {
+        problems.push(`steps[${index}] has both text and textEnv; pick one`);
+      } else if ((options.env ?? process.env)[textEnv] === undefined) {
+        problems.push(`steps[${index}].textEnv names ${textEnv}, which is not set`);
+      }
+    }
+    if (steps[index].sensitive !== undefined && typeof steps[index].sensitive !== "boolean") {
+      problems.push(`steps[${index}].sensitive must be true or false`);
     }
     const placement = steps[index].captionPlacement;
     if (placement !== undefined && !CAPTION_PLACEMENTS.includes(placement)) {

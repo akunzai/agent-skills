@@ -100,7 +100,7 @@ node scripts/record.mjs --scenario scenario.json --out demo.mp4 \
 ```
 
 The path is a flag, never a scenario field, so `scenario.json` stays safe to
-commit and share.
+commit and share — unless a step types a secret as `text`; see Limits.
 
 When `auth.expect` does not appear, recording stops before the video is kept
 and tells you to sign in again. A saved state expires on the server's schedule,
@@ -188,11 +188,14 @@ person to close.
 - **The recording shows whatever the account can see.** There is no masking in
   video; `mask` exists only on Playwright's screenshot APIs. Record with a
   test account holding fixture data, not with a real one.
-- **What the scenario carries is yours to decide.** `record.mjs` does not
-  inspect what a step types, so a walkthrough that fills a login form on camera
-  records exactly as written. The storage state above exists so you rarely need
-  to: it keeps the credential out of a file you might commit, and the sign-in
-  out of the video.
+- **What the scenario carries is yours to decide.** A walkthrough may fill a
+  login form on camera; its caption shows dots (`references/effects.md`,
+  Captions). The value itself sits in `scenario.json` unless the step reads it
+  with `"textEnv": "DEMO_PASSWORD"`. The person exports that variable in their
+  own shell; `record.mjs` refuses to start while it is unset, so check it with
+  `[ -n "${DEMO_PASSWORD:-}" ]`. Error output leaves out what any `type` step
+  types, so it is safe to paste. The storage state above keeps the sign-in out
+  of the video entirely.
 
 ## Trying it offline
 
