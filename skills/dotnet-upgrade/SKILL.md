@@ -101,7 +101,10 @@ Per task:
 4. Gate: the touched projects **and their dependents** build on every
    target they carry, with no new warnings, and their tests pass. A test
    that fails where the upgrade did not intend a behaviour change means
-   production code is wrong; fix the code, keep the test. Prefer a
+   production code is wrong; fix the code, keep the test. When CI is the
+   evidence, confirm the job actually ran on the change: path-filtered
+   jobs often skip toolchain files (`global.json`, `Directory.*.props`,
+   CI config), and a skipped job is no evidence. Prefer a
    `check-runner` worker for build and test commands and a
    `log-summarizer` for long build logs.
 5. Record what changed, the gate evidence, and any deviation from the
