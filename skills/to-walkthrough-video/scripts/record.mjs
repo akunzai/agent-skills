@@ -793,6 +793,22 @@ export function captionHtml(text, anchor, viewport = DEFAULT_VIEWPORT, placement
 // caption the scenario gives one holds until the step ends.
 const WATCHING_ACTIONS = ["wait", "expect", "goto"];
 
+function disposeOverlay(overlay) {
+  return overlay?.[Symbol.asyncDispose]?.().catch(() => {});
+}
+
+// What is drawn into the page is placed in CSS pixels and zoomed with the
+// page, so render lays it out in screen pixels and scales it back.
+async function drawOverlay(page, render) {
+  const screen = page.viewportSize() ?? DEFAULT_VIEWPORT;
+  const scale = pageScale(screen, await cssViewport(page, screen));
+  const overlay = await page.screencast.showOverlay(render(screen, scale)).catch(() => null);
+  if (overlay) {
+    await page.evaluate(bringOverlayToFront).catch(() => {});
+  }
+  return overlay;
+}
+
 async function showCaption(page, state, step, anchor, masked = false) {
   if (!state.effects?.captions) {
     return null;
@@ -805,20 +821,16 @@ async function showCaption(page, state, step, anchor, masked = false) {
   // while its content is already usable; waiting here leaves only this step's
   // own navigation to take the caption down below.
   await page.waitForLoadState("domcontentloaded").catch(() => {});
-  // The overlay is drawn into the page, so it is placed in CSS pixels and
-  // zoomed with the page; it is laid out in screen pixels and scaled back.
-  const screen = page.viewportSize() ?? DEFAULT_VIEWPORT;
-  const scale = pageScale(screen, await cssViewport(page, screen));
-  const onScreen = anchor ? { x: anchor.x * scale, y: anchor.y * scale } : undefined;
-  const html = captionHtml(text, onScreen, screen, step.captionPlacement, scale, state.statusBarInset ?? 0);
-  const overlay = await page.screencast.showOverlay(html).catch(() => null);
+  const overlay = await drawOverlay(page, (screen, scale) => {
+    const onScreen = anchor ? { x: anchor.x * scale, y: anchor.y * scale } : undefined;
+    return captionHtml(text, onScreen, screen, step.captionPlacement, scale, state.statusBarInset ?? 0);
+  });
   if (!overlay) {
     return null;
   }
-  await page.evaluate(bringOverlayToFront).catch(() => {});
   // The overlay belongs to the page, not the document, so a step that
   // navigates would otherwise go on captioning the page it lands on.
-  const dispose = () => overlay[Symbol.asyncDispose]?.().catch(() => {});
+  const dispose = () => disposeOverlay(overlay);
   if (!WATCHING_ACTIONS.includes(resolveAction(step))) {
     page.once("domcontentloaded", dispose);
   }
@@ -970,18 +982,19 @@ export async function startStatusBar(page, state) {
       if (stopped || url === drawn) {
         return;
       }
-      const screen = page.viewportSize() ?? DEFAULT_VIEWPORT;
-      const scale = pageScale(screen, await cssViewport(page, screen));
-      const next = await page.screencast.showOverlay(statusBarHtml(url, bar.label, screen, scale)).catch(() => null);
+      let height = 0;
+      const next = await drawOverlay(page, (screen, scale) => {
+        height = statusBarLayout(url, bar.label, screen).height;
+        return statusBarHtml(url, bar.label, screen, scale);
+      });
       if (!next) {
         return;
       }
-      await page.evaluate(bringOverlayToFront).catch(() => {});
       // The new bar is up before the old one goes, so no frame is without one.
-      await overlay?.[Symbol.asyncDispose]?.().catch(() => {});
+      await disposeOverlay(overlay);
       overlay = next;
       drawn = url;
-      state.statusBarInset = statusBarLayout(url, bar.label, screen).height;
+      state.statusBarInset = height;
     });
     return queue;
   };
@@ -997,7 +1010,7 @@ export async function startStatusBar(page, state) {
       page.off("framenavigated", onNavigated);
       stopped = true;
       await queue;
-      await overlay?.[Symbol.asyncDispose]?.().catch(() => {});
+      await disposeOverlay(overlay);
     },
   };
 }
@@ -1232,6 +1245,17 @@ async function explainFailure(page, scenario, state, error) {
   return wrapped;
 }
 
+// No navigation takes a wait, expect or goto caption down, so a step that
+// fails must.
+async function whileCaptioned(page, state, step, act) {
+  const caption = await showCaption(page, state, step);
+  try {
+    await act(caption);
+  } finally {
+    await hideCaption(caption);
+  }
+}
+
 async function runSteps(page, scenario, log, state) {
   const steps = scenario.steps ?? [];
   const effects = state.effects ?? EFFECT_DEFAULTS;
@@ -1239,44 +1263,32 @@ async function runSteps(page, scenario, log, state) {
     state.stepIndex = index;
     const step = steps[index];
     const action = resolveAction(step);
-    // No navigation takes these captions down, so a step that fails must.
     if (action === "wait") {
-      const waitCaption = await showCaption(page, state, step);
-      try {
-        await sleep(Number(step.ms ?? step.wait ?? 0));
-      } finally {
-        await hideCaption(waitCaption);
-      }
+      await whileCaptioned(page, state, step, () => sleep(Number(step.ms ?? step.wait ?? 0)));
       continue;
     }
     if (action === "goto") {
       // Shown before the page goes blank, so the viewer knows what is loading.
-      const gotoCaption = await showCaption(page, state, step);
-      try {
+      await whileCaptioned(page, state, step, async (caption) => {
         await page.goto(step.url, { waitUntil: "domcontentloaded" });
         await installOverlay(page, state);
         // Only a caption needs the pause to be read; an uncaptioned goto
         // moves straight on, as it always has.
-        if (gotoCaption) {
+        if (caption) {
           await sleep(Number(step.pause ?? 0));
         }
-      } finally {
-        await hideCaption(gotoCaption);
-      }
+      });
       continue;
     }
     if (action === "expect") {
       // Waits without touching the page: no pointer and no click. The element
       // may not exist yet, so a caption has no anchor to sit under.
-      const expectCaption = await showCaption(page, state, step);
-      try {
+      await whileCaptioned(page, state, step, async () => {
         await locatorFor(page, step)
           .first()
           .waitFor({ state: step.state ?? "visible", timeout: step.timeout ?? STEP_TIMEOUT_MS });
         await sleep(Number(step.pause ?? 0));
-      } finally {
-        await hideCaption(expectCaption);
-      }
+      });
       continue;
     }
     if (action === "press") {

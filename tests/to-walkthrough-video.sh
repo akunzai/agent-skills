@@ -911,6 +911,28 @@ const quiet = { zoom: false, cursor: false, captions: false };
 const stateFor = (viewport, extra = {}) => ({
   x: viewport.width / 2, y: viewport.height / 2, startedAt: Date.now(), pauseMs: 0, effects: quiet, ...extra,
 });
+// Every overlay a page draws: its html, when it went up, and when it first
+// came down. Later removals of the same overlay are no-ops on screen.
+const spyOverlays = (page) => {
+  const drawn = [];
+  const show = page.screencast.showOverlay.bind(page.screencast);
+  page.screencast.showOverlay = async (html) => {
+    const overlay = await show(html);
+    const entry = { html, shownAt: Date.now(), removedAt: 0 };
+    drawn.push(entry);
+    return {
+      async [Symbol.asyncDispose]() {
+        entry.removedAt ||= Date.now();
+        await overlay[Symbol.asyncDispose]();
+      },
+    };
+  };
+  return drawn;
+};
+const captionOf = (entry) => entry.html.match(/tvr-caption">([^<]*)/)?.[1];
+// What a failure message needs of an overlay, without its stylesheet.
+const brief = (entries) => JSON.stringify([].concat(entries).map(({ html, ...times }) => ({ caption: captionOf({ html }), ...times })));
+const addressOf = (entry) => entry.html.match(/tvr-status-url">([^<]*)/)?.[1];
 
 try {
   // A target below the fold is scrolled to, not clicked at off-screen
@@ -986,12 +1008,7 @@ try {
   const unscaled = await zoomedOut.newPage();
   await unscaled.setContent('<button style="position:absolute; left:700px; top:100px" onclick="window.hit = true">Wide</button>');
   const zoomedLog = [];
-  const zoomedDrawn = [];
-  const showZoomedOverlay = unscaled.screencast.showOverlay.bind(unscaled.screencast);
-  unscaled.screencast.showOverlay = async (html) => {
-    zoomedDrawn.push(html);
-    return showZoomedOverlay(html);
-  };
+  const zoomedDrawn = spyOverlays(unscaled);
   await runScenario(
     unscaled,
     { steps: [{ action: "click", role: "button", name: "Wide", pause: 0 }] },
@@ -1010,7 +1027,7 @@ try {
   }
   // What is drawn into the page is zoomed out with it, so it is scaled back up.
   const zoomFactor = zoomed.width / viewport.width;
-  const drawnScale = Number(zoomedDrawn[0]?.match(/scale\(([\d.]+)\)/)?.[1]);
+  const drawnScale = Number(zoomedDrawn[0]?.html.match(/scale\(([\d.]+)\)/)?.[1]);
   if (Math.abs(drawnScale - zoomFactor) > 0.01) {
     fail("a caption on a zoomed-out page should be scaled back to screen size: " + JSON.stringify({ zoomFactor, zoomedDrawn }));
   }
@@ -1023,16 +1040,11 @@ try {
   // A step's captionPlacement reaches the overlay the recording draws.
   const placed = await browser.newPage({ viewport });
   await placed.setContent("<button>Menu</button>");
-  const drawn = [];
-  const showPlacedOverlay = placed.screencast.showOverlay.bind(placed.screencast);
-  placed.screencast.showOverlay = async (html) => {
-    drawn.push(html);
-    return showPlacedOverlay(html);
-  };
+  const drawn = spyOverlays(placed);
   await runScenario(placed, {
     steps: [{ action: "click", role: "button", name: "Menu", captionPlacement: "bottom", pause: 0 }],
   }, () => {}, stateFor(viewport, { effects: { ...quiet, captions: true }, captionLocale: "en" }));
-  if (drawn.length !== 1 || !drawn[0].includes("bottom: 24px")) {
+  if (drawn.length !== 1 || !drawn[0].html.includes("bottom: 24px")) {
     fail("a step's captionPlacement should place its caption: " + JSON.stringify(drawn));
   }
   await placed.close();
@@ -1047,12 +1059,7 @@ try {
     '<label>Env <input id="env" type="password"></label>' +
     '<label>Search <input id="q"></label>',
   );
-  const secretDrawn = [];
-  const showSecretOverlay = secret.screencast.showOverlay.bind(secret.screencast);
-  secret.screencast.showOverlay = async (html) => {
-    secretDrawn.push(html);
-    return showSecretOverlay(html);
-  };
+  const secretOverlays = spyOverlays(secret);
   process.env.TVR_TEST_SECRET = "from-env-secret";
   await runScenario(secret, {
     steps: [
@@ -1062,6 +1069,7 @@ try {
       { action: "type", label: "Search", text: "SSH", pause: 0 },
     ],
   }, () => {}, stateFor(viewport, { effects: { ...quiet, captions: true }, captionLocale: "en" }));
+  const secretDrawn = secretOverlays.map((entry) => entry.html);
   const leaked = secretDrawn.filter((html) => /hunter2|424242|from-env-secret/.test(html));
   if (secretDrawn.length !== 4 || leaked.length !== 0 || !secretDrawn[3].includes("Type SSH")) {
     fail("a secret should never reach a caption: " + JSON.stringify(secretDrawn));
@@ -1150,21 +1158,12 @@ try {
     const navigating = await browser.newPage({ viewport });
     await navigating.goto("http://127.0.0.1:" + server.address().port + "/");
     let loadedAt = 0;
-    let disposedAt = 0;
     navigating.on("domcontentloaded", () => { loadedAt ||= Date.now(); });
-    const showOverlay = navigating.screencast.showOverlay.bind(navigating.screencast);
-    navigating.screencast.showOverlay = async (html) => {
-      const overlay = await showOverlay(html);
-      return {
-        async [Symbol.asyncDispose]() {
-          disposedAt ||= Date.now();
-          await overlay[Symbol.asyncDispose]();
-        },
-      };
-    };
+    const navigated = spyOverlays(navigating);
     await runScenario(navigating, {
       steps: [{ action: "click", role: "link", name: "Continue", pause: 2500 }],
     }, () => {}, stateFor(viewport, { effects: { ...quiet, captions: true }, captionLocale: "en" }));
+    const disposedAt = navigated[0]?.removedAt;
     if (!loadedAt || !disposedAt || disposedAt - loadedAt > 1000) {
       fail("a caption should be removed once its step navigates: loaded " + loadedAt + ", removed " + disposedAt);
     }
@@ -1174,30 +1173,15 @@ try {
     // that late event is not the next step's navigation and leaves its caption.
     const slow = await browser.newPage({ viewport });
     await slow.goto("http://127.0.0.1:" + server.address().port + "/");
-    const lifetimes = [];
-    const showSlowOverlay = slow.screencast.showOverlay.bind(slow.screencast);
-    slow.screencast.showOverlay = async (html) => {
-      const overlay = await showSlowOverlay(html);
-      const shownAt = Date.now();
-      let removed = false;
-      return {
-        async [Symbol.asyncDispose]() {
-          // Only the first removal ends what a viewer sees; later ones are no-ops.
-          if (!removed) {
-            removed = true;
-            lifetimes.push(Date.now() - shownAt);
-          }
-          await overlay[Symbol.asyncDispose]();
-        },
-      };
-    };
+    const slowDrawn = spyOverlays(slow);
     await runScenario(slow, {
       steps: [
         { action: "click", role: "link", name: "Slow", pause: 100 },
         { action: "click", role: "button", name: "Stay", pause: 3000 },
       ],
     }, () => {}, stateFor(viewport, { effects: { ...quiet, captions: true }, captionLocale: "en" }));
-    if (!(lifetimes[lifetimes.length - 1] >= 3000)) {
+    const lifetimes = slowDrawn.map((entry) => entry.removedAt - entry.shownAt);
+    if (!(lifetimes.at(-1) >= 3000)) {
       fail("an earlier step's late page load should not remove this step's caption: " + JSON.stringify(lifetimes));
     }
     await slow.close();
@@ -1207,28 +1191,16 @@ try {
     // before the page it opens goes blank.
     const watching = await browser.newPage({ viewport });
     const origin = "http://127.0.0.1:" + server.address().port;
-    const shown = [];
-    let loads = 0;
+    const reloadedAt = [];
     let committedAt = 0;
-    watching.on("domcontentloaded", () => { loads += 1; });
+    watching.on("domcontentloaded", () => { reloadedAt.push(Date.now()); });
     watching.on("framenavigated", (frame) => {
       if (frame === watching.mainFrame() && frame.url().endsWith("/loop")) {
         committedAt ||= Date.now();
       }
     });
-    const showWatchingOverlay = watching.screencast.showOverlay.bind(watching.screencast);
-    watching.screencast.showOverlay = async (html) => {
-      const overlay = await showWatchingOverlay(html);
-      const entry = { text: html.match(/tvr-caption">([^<]*)/)?.[1], shownAt: Date.now(), loadsAtShow: loads };
-      shown.push(entry);
-      return {
-        async [Symbol.asyncDispose]() {
-          entry.removedAt ||= Date.now();
-          entry.loadsAtRemove ??= loads;
-          await overlay[Symbol.asyncDispose]();
-        },
-      };
-    };
+    const shown = spyOverlays(watching);
+    const loadsWhileShown = (entry) => reloadedAt.filter((t) => t > entry.shownAt && t <= entry.removedAt).length;
     await watching.goto(origin + "/");
     await runScenario(watching, {
       steps: [
@@ -1240,17 +1212,17 @@ try {
       ],
     }, () => {}, stateFor(viewport, { effects: { ...quiet, captions: true }, captionLocale: "en" }));
     const [opened, waited, expected] = shown;
-    if (shown.length !== 3 || opened.text !== "Open the looping page" || waited.text !== "It keeps reloading" || expected.text !== "Wait for it") {
-      fail("only a captioned wait, expect or goto should draw one: " + JSON.stringify(shown));
+    if (shown.length !== 3 || captionOf(opened) !== "Open the looping page" || captionOf(waited) !== "It keeps reloading" || captionOf(expected) !== "Wait for it") {
+      fail("only a captioned wait, expect or goto should draw one: " + brief(shown));
     }
     if (!(opened.shownAt <= committedAt)) {
-      fail("a goto caption should be up before its page loads: " + JSON.stringify({ opened, committedAt }));
+      fail("a goto caption should be up before its page loads: " + brief(opened) + " committed " + committedAt);
     }
-    if (!(waited.loadsAtRemove - waited.loadsAtShow >= 2) || !(waited.removedAt - waited.shownAt >= 1500)) {
-      fail("a wait caption should hold across the reloads it waits through: " + JSON.stringify(waited));
+    if (!(loadsWhileShown(waited) >= 2) || !(waited.removedAt - waited.shownAt >= 1500)) {
+      fail("a wait caption should hold across the reloads it waits through: " + brief(waited) + " reloaded " + JSON.stringify(reloadedAt));
     }
     if (!(expected.removedAt - expected.shownAt >= 400)) {
-      fail("an expect caption should show while the element is still missing: " + JSON.stringify(expected));
+      fail("an expect caption should show while the element is still missing: " + brief(expected));
     }
     // A watching step that fails takes its caption down with it.
     const before = shown.length;
@@ -1259,14 +1231,14 @@ try {
     }, () => {}, stateFor(viewport, { effects: { ...quiet, captions: true }, captionLocale: "en" }))
       .then(() => fail("an expect on a missing element should fail"), () => {});
     if (shown.length !== before + 1 || !shown.at(-1).removedAt) {
-      fail("a failing expect should remove its caption: " + JSON.stringify(shown.slice(before)));
+      fail("a failing expect should remove its caption: " + brief(shown.slice(before)));
     }
     // With captions off, a watching step draws nothing, caption or not.
     await runScenario(watching, {
       steps: [{ action: "wait", ms: 50, caption: "Hidden" }],
     }, () => {}, stateFor(viewport));
     if (shown.length !== before + 1) {
-      fail("captions off should draw no wait caption: " + JSON.stringify(shown.slice(before)));
+      fail("captions off should draw no wait caption: " + brief(shown.slice(before)));
     }
     await watching.close();
 
@@ -1274,32 +1246,20 @@ try {
     // history changes included, never shows a secret, and stays on screen
     // throughout: each new bar is up before the old one goes.
     const barred = await browser.newPage({ viewport });
-    const bars = [];
-    const showBarOverlay = barred.screencast.showOverlay.bind(barred.screencast);
-    barred.screencast.showOverlay = async (html) => {
-      const overlay = await showBarOverlay(html);
-      const entry = { url: html.match(/tvr-status-url">([^<]*)/)?.[1], removed: false };
-      bars.push(entry);
-      return {
-        async [Symbol.asyncDispose]() {
-          entry.removed = true;
-          await overlay[Symbol.asyncDispose]();
-        },
-      };
-    };
+    const bars = spyOverlays(barred);
     const barState = stateFor(viewport, { statusBar: resolveStatusBar({ statusBar: { label: "Before" } }) });
     await barred.goto(origin + "/grow?token=s3cret&foo=bar");
     const statusBar = await startStatusBar(barred, barState);
     await new Promise((resolve) => setTimeout(resolve, 1500));
-    const urls = bars.map((entry) => entry.url);
+    const urls = bars.map(addressOf);
     if (urls.length < 3 || urls.some((url, i) => i > 0 && url.length <= urls[i - 1].length)) {
       fail("the status bar should redraw each longer address: " + JSON.stringify(urls));
     }
     if (urls.some((url) => url.includes("s3cret") || !url.includes("token=\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022&amp;foo=bar")) || !urls.at(-1).endsWith("%23%2F%23%2F")) {
       fail("the status bar should mask a secret and keep the escapes: " + JSON.stringify(urls));
     }
-    if (bars.filter((entry) => !entry.removed).length !== 1) {
-      fail("exactly one status bar should be up at a time: " + JSON.stringify(bars));
+    if (bars.filter((entry) => !entry.removedAt).length !== 1) {
+      fail("exactly one status bar should be up at a time: " + JSON.stringify(bars.map(addressOf)));
     }
     if (!(barState.statusBarInset > 0)) {
       fail("the status bar should tell captions how tall it is: " + barState.statusBarInset);
@@ -1315,18 +1275,15 @@ try {
       }
     }
     await statusBar.stop();
-    if (bars.some((entry) => !entry.removed)) {
+    if (bars.some((entry) => !entry.removedAt)) {
       fail("stopping the status bar should take it down");
     }
-    const history = [];
-    barred.screencast.showOverlay = async (html) => {
-      history.push(html.match(/tvr-status-url">([^<]*)/)?.[1]);
-      return showBarOverlay(html);
-    };
+    const earlier = bars.length;
     await barred.goto(origin + "/spa");
     const spaBar = await startStatusBar(barred, barState);
     await new Promise((resolve) => setTimeout(resolve, 900));
     await spaBar.stop();
+    const history = bars.slice(earlier).map(addressOf);
     if (!history.some((url) => url?.endsWith("/spa/next")) || !history.some((url) => url?.endsWith("/spa/next#/done"))) {
       fail("the status bar should follow history and hash changes: " + JSON.stringify(history));
     }
