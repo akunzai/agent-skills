@@ -159,9 +159,9 @@ window, so check `/json/list` before asking the person to sign in: an empty
 list means the browser did not come up.
 
 `record.mjs` records the page that is open, at the window's own size, and
-never navigates, reloads or closes it. `scenario.url` is not opened, so the
-first step must be reachable from the screen you leave the window on, and
-`auth.expect` must already be visible there. Anything you clicked through while
+never navigates, reloads or closes it. `scenario.url` is not opened (and can
+be omitted under `--connect`), so the first step must be reachable from the
+screen you leave the window on, and `auth.expect` must already be visible there. Anything you clicked through while
 exploring is still in the window: data you added is on screen, and the start
 frame is wherever you stopped. Put the window on the screen you want as the
 first frame, by clicking, before recording. `--connect` cannot be combined

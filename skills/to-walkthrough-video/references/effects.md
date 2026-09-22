@@ -24,6 +24,10 @@ and decide later:
 node scripts/render-auto-zoom.mjs --video demo.webm --clicks demo.clicks.jsonl --out zoomed.mp4
 ```
 
+### Zoom clusters
+
+Clicks closer together than 800ms (`MERGE_GAP_MS`) are grouped into a single zoom cluster that pans between targets instead of zooming out and straight back in. For distinct steps to zoom out and back in between each other, keep the step's `pause` at 2500ms or higher (the default pause).
+
 ## Pointer
 
 The icon is read off the step's own `action`, not sniffed live from the page:

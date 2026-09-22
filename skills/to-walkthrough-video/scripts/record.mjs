@@ -1770,7 +1770,7 @@ export async function main(argv = process.argv.slice(2), io = process) {
     } catch {
       throw new Error(`${scenarioPath} is not readable JSON`);
     }
-    if (!scenario.url) {
+    if (!scenario.url && !args.connect) {
       throw new Error("scenario.json needs a url");
     }
     const result = await recordWalkthrough({
