@@ -71,6 +71,13 @@ Use [aube](https://aube.sh/) as the Node.js package manager, installed and
 pinned through mise. Covers `aube run`/`aube ci` workflows, lockfile policy,
 the lifecycle-script jail, and migrating from pnpm/npm/bun.
 
+#### [`dotnet-upgrade`](skills/dotnet-upgrade/SKILL.md)
+
+Upgrade a .NET codebase — .NET Framework 4.x to modern .NET, or an
+out-of-support .NET to the current LTS — as a resumable, tier-by-tier plan
+that lands trunk-safe work early and keeps only what cannot coexist on a
+long-lived upgrade branch.
+
 #### [`backfill-unit-tests`](skills/backfill-unit-tests/SKILL.md)
 
 Detect an existing codebase's test framework and backfill unit test
