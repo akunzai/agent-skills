@@ -678,6 +678,9 @@ if (resolvePointerIcon({ action: "type" }) !== "text") {
 if (resolvePointerIcon({ action: "press", keys: "Control+k" }) !== null) {
   fail("press should leave the arrow alone");
 }
+if (resolvePointerIcon({ action: "scroll" }) !== null) {
+  fail("scroll should leave the arrow alone");
+}
 if (resolvePointerIcon({ action: "wait", ms: 100 }) !== null) {
   fail("wait should leave the arrow alone");
 }
@@ -705,6 +708,15 @@ if (!validateScenario({ steps: [{ action: "press" }] })[0].includes("without key
   fail("a press step without keys should be refused before recording");
 }
 same(validateScenario({ steps: [{ action: "press", keys: "Enter" }] }), [], "a well-formed press step");
+
+// A scroll step validates direction and positive amount.
+if (!validateScenario({ steps: [{ action: "scroll", direction: "diagonal" }] })[0].includes("direction must be")) {
+  fail("an invalid scroll direction should be refused");
+}
+if (!validateScenario({ steps: [{ action: "scroll", amount: -10 }] })[0].includes("amount must be a positive number")) {
+  fail("a negative scroll amount should be refused");
+}
+same(validateScenario({ steps: [{ action: "scroll", direction: "down", amount: 500 }] }), [], "a well-formed scroll step");
 
 // A viewer reads their own keyboard, not Playwright's key syntax.
 if (formatKeys("Meta+Shift+p") !== "\u2318 + \u21e7 + P") {
@@ -766,6 +778,12 @@ if (captionFor({ action: "select", value: "English" }, "en") !== "Select English
 if (captionFor({ action: "press", keys: "Control+k" }, "en") !== "Press Ctrl + K") {
   fail("press caption: " + captionFor({ action: "press", keys: "Control+k" }, "en"));
 }
+if (captionFor({ action: "scroll", direction: "down" }, "en") !== "Scroll down") {
+  fail("scroll caption en: " + captionFor({ action: "scroll", direction: "down" }, "en"));
+}
+if (captionFor({ action: "scroll", direction: "down" }, "zh-tw") !== "滾動 down") {
+  fail("scroll caption zh-tw: " + captionFor({ action: "scroll", direction: "down" }, "zh-tw"));
+}
 if (captionFor({ action: "wait", ms: 100 }, "en") !== null) {
   fail("a wait step is not captioned");
 }
@@ -779,6 +797,9 @@ if (captionFor(click, "ja") !== "More information \u3092\u30af\u30ea\u30c3\u30af
 }
 if (captionFor({ action: "press", keys: "Control+k" }, "ja") !== "Ctrl + K \u3092\u62bc\u3059") {
   fail("ja press caption: " + captionFor({ action: "press", keys: "Control+k" }, "ja"));
+}
+if (captionFor({ action: "scroll", direction: "down" }, "ja") !== "down \u3092\u30b9\u30af\u30ed\u30fc\u30eb") {
+  fail("ja scroll caption: " + captionFor({ action: "scroll", direction: "down" }, "ja"));
 }
 if (resolveCaptionLocale({ captionLocale: "JA" }) !== "ja") {
   fail("a locale should resolve case-insensitively");

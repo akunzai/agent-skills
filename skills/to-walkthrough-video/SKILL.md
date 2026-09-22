@@ -53,6 +53,7 @@ When missing, ask the user for confirmation before installing:
     { "action": "wait", "ms": 800 },
     { "action": "click", "role": "link", "name": "More information" },
     { "action": "press", "keys": "Control+k" },
+    { "action": "scroll", "direction": "down", "amount": 500 },
     { "action": "type", "role": "textbox", "name": "Search", "text": "SSH", "pause": 1800 },
     { "action": "select", "role": "combobox", "name": "Language", "value": "English" }
   ]
@@ -66,8 +67,10 @@ the page's rendered text; within dynamic search results or lists where links sha
 names, use a scoped `selector` (e.g. `.result a`) to avoid false matches. A `click` waits up to 15 seconds for
 its target to be visible (`timeout` changes that per step). To wait for
 something without touching it, such as the row a submit just added, use
-`{ "action": "expect", "text": "Saved" }`; `state` may be `"hidden"`. A
-`wait`, `expect` or `goto` shows a `caption` only when given one, and holds it
+`{ "action": "expect", "text": "Saved" }`; `state` may be `"hidden"`. To scroll
+the page or a viewport without requiring element focus, use
+`{ "action": "scroll", "direction": "down", "amount": 500 }` (`direction` may be `"down"`, `"up"`, `"left"`, or `"right"`). A
+`wait`, `expect`, `scroll` or `goto` shows a `caption` only when given one, and holds it
 across reloads, so say what the viewer is watching happen. When a
 step fails the error names it (`step 3 of 5 {...}`) and `<out>.failure.png` and
 `<out>.failure.aria.txt` show what the page looked like. When the
@@ -99,6 +102,9 @@ otherwise starts in `en-US`, so set it whenever the site is localized.
 
 ```bash
 node scripts/record.mjs --scenario scenario.json --out demo.mp4
+
+# Attach to an existing browser window (scenario.url omitted; waits up to 3m for auth.expect):
+node scripts/record.mjs --connect http://127.0.0.1:9222 --scenario scenario.json --out demo.mp4
 ```
 
 The `--out` extension picks the container. Default to `.mp4` (smallest, and

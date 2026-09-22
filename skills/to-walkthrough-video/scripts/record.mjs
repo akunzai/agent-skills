@@ -650,6 +650,7 @@ const CAPTION_TEMPLATES = {
     type: "Type {}",
     select: "Select {}",
     press: "Press {}",
+    scroll: "Scroll {}",
   },
   "zh-tw": {
     click: "\u9ede\u64ca {}",
@@ -657,6 +658,7 @@ const CAPTION_TEMPLATES = {
     type: "\u8f38\u5165 {}",
     select: "\u9078\u64c7 {}",
     press: "\u6309\u4e0b {}",
+    scroll: "\u6efe\u52d5 {}",
   },
   ja: {
     click: "{} \u3092\u30af\u30ea\u30c3\u30af",
@@ -664,6 +666,7 @@ const CAPTION_TEMPLATES = {
     type: "{} \u3068\u5165\u529b",
     select: "{} \u3092\u9078\u629e",
     press: "{} \u3092\u62bc\u3059",
+    scroll: "{} \u3092\u30b9\u30af\u30ed\u30fc\u30eb",
   },
 };
 
@@ -707,6 +710,9 @@ function captionSubject(step, action, masked) {
   }
   if (action === "press") {
     return formatKeys(step.keys);
+  }
+  if (action === "scroll") {
+    return String(step.direction ?? "down");
   }
   return String(step.name ?? step.label ?? step.text ?? step.selector ?? "");
 }
@@ -1300,6 +1306,26 @@ async function runSteps(page, scenario, log, state) {
       await hideCaption(pressCaption);
       continue;
     }
+    if (action === "scroll") {
+      const scrollCaption = await showCaption(page, state, step);
+      const direction = step.direction ?? "down";
+      const amount = Number(step.amount ?? step.distance ?? 500);
+      let deltaX = 0;
+      let deltaY = 0;
+      if (direction === "up") {
+        deltaY = -Math.abs(amount);
+      } else if (direction === "down") {
+        deltaY = Math.abs(amount);
+      } else if (direction === "left") {
+        deltaX = -Math.abs(amount);
+      } else if (direction === "right") {
+        deltaX = Math.abs(amount);
+      }
+      await page.mouse.wheel(deltaX, deltaY);
+      await sleep(resolvePauseMs(step, state));
+      await hideCaption(scrollCaption);
+      continue;
+    }
     const locator = locatorFor(page, step);
     await locator.first().waitFor({ state: "visible", timeout: step.timeout ?? STEP_TIMEOUT_MS });
     const box = await scrollToTarget(page, locator.first());
@@ -1591,6 +1617,16 @@ export function validateScenario(scenario, options = {}) {
   for (let index = 0; index < steps.length; index += 1) {
     if (resolveAction(steps[index]) === "press" && !steps[index].keys) {
       problems.push(`steps[${index}] is a press step without keys`);
+    }
+    if (resolveAction(steps[index]) === "scroll") {
+      const direction = steps[index].direction;
+      if (direction !== undefined && !["up", "down", "left", "right"].includes(direction)) {
+        problems.push(`steps[${index}].direction must be "up", "down", "left" or "right"`);
+      }
+      const amount = steps[index].amount ?? steps[index].distance;
+      if (amount !== undefined && !(Number.isFinite(amount) && amount > 0)) {
+        problems.push(`steps[${index}].amount must be a positive number of pixels`);
+      }
     }
     if (resolveAction(steps[index]) === "expect" && !["visible", "hidden", undefined].includes(steps[index].state)) {
       problems.push(`steps[${index}].state must be "visible" or "hidden"`);
