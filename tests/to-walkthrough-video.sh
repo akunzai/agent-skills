@@ -103,7 +103,7 @@ fi
 node --input-type=module <<EOF || fail "record helper exports"
 import fs from "node:fs";
 import path from "node:path";
-import { bringOverlayToFront, findTopLayerHost, parseArgs, resolveContextOptions, resolveViewport, resolvePauseMs, checkPrereqs, getGlobalNodeDirs, loadPlaywright, getFfmpegInstallAdvice, pickLatestDevice, resolveDevice, targetPoint } from "file://${RECORD}";
+import { bringOverlayToFront, findTopLayerHost, parseArgs, resolveContextOptions, resolveViewport, resolvePauseMs, checkPrereqs, getGlobalNodeDirs, loadPlaywright, getFfmpegInstallAdvice, pickLatestDevice, resolveDevice, targetPoint, ensureSignedIn } from "file://${RECORD}";
 
 const fail = (message) => {
   console.error(message);
@@ -411,6 +411,7 @@ import {
   samePage,
   storageStateProblems,
   validateScenario,
+  ensureSignedIn,
 } from "file://${RECORD}";
 
 const fail = (message) => {
@@ -518,6 +519,22 @@ if (!validateScenario({ steps: [] }, { sessionMode: "attached" })[0].includes("-
 }
 if (validateScenario(signedIn, { sessionMode: "attached" }).length !== 0) {
   fail("--connect with auth.expect should pass");
+}
+
+// Attaching to a window waits for the person to sign in if not already in.
+let attachedWaitErr = null;
+const fakePage = {
+  url: () => "http://127.0.0.1:9222",
+  locator: () => ({ first: () => ({ waitFor: async () => { throw new Error("timed out"); } }) }),
+  getByRole: () => ({ first: () => ({ waitFor: async () => { throw new Error("timed out"); } }) }),
+};
+try {
+  await ensureSignedIn(fakePage, signedIn, { attached: true });
+} catch (err) {
+  attachedWaitErr = err.message;
+}
+if (!attachedWaitErr || !attachedWaitErr.includes("nobody signed in before the wait ran out")) {
+  fail("ensureSignedIn with attached should report sign in wait timeout: " + attachedWaitErr);
 }
 
 // An expect step only waits, so its state and any step timeout are checked up front.
