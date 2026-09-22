@@ -744,17 +744,23 @@ const NARROW_VIEWPORT = 640;
 // scenario author knows, so "auto" can be overridden per step.
 export const CAPTION_PLACEMENTS = ["auto", "above", "below", "bottom"];
 
+// About one line of caption, padding included.
+const CAPTION_LINE_PX = 56;
+
 // A caption wraps at a known width instead of running on in one line, so it
 // can be centred where its widest line still stays inside a phone's viewport.
-export function captionPosition(anchor, viewport = DEFAULT_VIEWPORT, placement = "auto") {
+// topInset is the status bar's height: a caption above a target that bar would
+// cover goes below it instead.
+export function captionPosition(anchor, viewport = DEFAULT_VIEWPORT, placement = "auto", topInset = 0) {
   const maxWidth = Math.min(CAPTION_MAX_WIDTH, viewport.width - 2 * CAPTION_GUTTER);
   if (!anchor || placement === "bottom") {
     return { left: viewport.width / 2, bottom: 24, maxWidth };
   }
   const half = maxWidth / 2 + CAPTION_GUTTER;
   const left = Math.min(Math.max(anchor.x, half), viewport.width - half);
-  const below = anchor.y + 44;
-  if (placement === "above" || (placement !== "below" && below > viewport.height - 56)) {
+  const below = Math.max(anchor.y + 44, topInset + CAPTION_GUTTER);
+  const underBar = topInset > 0 && anchor.y - 12 - CAPTION_LINE_PX < topInset;
+  if (!underBar && (placement === "above" || (placement !== "below" && below > viewport.height - CAPTION_LINE_PX))) {
     // Held by its bottom edge, so a wrapped line grows away from the target.
     return { left, bottom: viewport.height - anchor.y + 12, maxWidth };
   }
@@ -763,8 +769,8 @@ export function captionPosition(anchor, viewport = DEFAULT_VIEWPORT, placement =
 
 // anchor and viewport are in screen pixels; scale is pageScale(), and the
 // caption is emitted in the page's CSS pixels so it reads the same size either way.
-export function captionHtml(text, anchor, viewport = DEFAULT_VIEWPORT, placement = "auto", scale = 1) {
-  const { left, top, bottom, maxWidth } = captionPosition(anchor, viewport, placement);
+export function captionHtml(text, anchor, viewport = DEFAULT_VIEWPORT, placement = "auto", scale = 1, topInset = 0) {
+  const { left, top, bottom, maxWidth } = captionPosition(anchor, viewport, placement, topInset);
   const css = (px) => `${px / scale}px`;
   const vertical = top === undefined ? `bottom: ${css(bottom)}` : `top: ${css(top)}`;
   const origin = top === undefined ? "50% 100%" : "50% 0";
@@ -804,7 +810,7 @@ async function showCaption(page, state, step, anchor, masked = false) {
   const screen = page.viewportSize() ?? DEFAULT_VIEWPORT;
   const scale = pageScale(screen, await cssViewport(page, screen));
   const onScreen = anchor ? { x: anchor.x * scale, y: anchor.y * scale } : undefined;
-  const html = captionHtml(text, onScreen, screen, step.captionPlacement, scale);
+  const html = captionHtml(text, onScreen, screen, step.captionPlacement, scale, state.statusBarInset ?? 0);
   const overlay = await page.screencast.showOverlay(html).catch(() => null);
   if (!overlay) {
     return null;
@@ -825,6 +831,188 @@ async function hideCaption(caption) {
   }
   caption.page.off("domcontentloaded", caption.dispose);
   await caption.dispose();
+}
+
+// Parameters whose value opens a session or proves who someone is. A
+// recording lands in pull requests, so their values never reach a frame.
+export const SENSITIVE_URL_PARAMS = [
+  "token", "access_token", "id_token", "refresh_token", "code", "key",
+  "api_key", "secret", "password", "sig", "signature", "session",
+];
+
+export function resolveStatusBar(scenario) {
+  const given = scenario?.statusBar;
+  if (given === undefined || given === false) {
+    return null;
+  }
+  if (given === true) {
+    return { label: "", mask: [...SENSITIVE_URL_PARAMS] };
+  }
+  if (given === null || typeof given !== "object" || Array.isArray(given)) {
+    throw new Error("scenario.statusBar must be true or an object with label and mask");
+  }
+  for (const key of Object.keys(given)) {
+    if (key !== "label" && key !== "mask") {
+      throw new Error(`unknown statusBar key: ${key}; known keys are label, mask`);
+    }
+  }
+  if (given.label !== undefined && typeof given.label !== "string") {
+    throw new Error("statusBar.label must be a string");
+  }
+  const extra = given.mask ?? [];
+  if (!Array.isArray(extra) || !extra.every((name) => typeof name === "string" && name)) {
+    throw new Error("statusBar.mask must be an array of parameter names");
+  }
+  return {
+    label: given.label ?? "",
+    mask: [...SENSITIVE_URL_PARAMS, ...extra.map((name) => name.toLowerCase())],
+  };
+}
+
+function maskParams(query, names) {
+  return query
+    .split("&")
+    .map((pair) => {
+      const eq = pair.indexOf("=");
+      if (eq < 0) {
+        return pair;
+      }
+      let name = pair.slice(0, eq);
+      try {
+        name = decodeURIComponent(name.replace(/\+/g, " "));
+      } catch {}
+      return names.includes(name.toLowerCase()) ? `${pair.slice(0, eq + 1)}${MASKED_TEXT}` : pair;
+    })
+    .join("&");
+}
+
+// The address is shown as the page has it, percent-escapes and all, since
+// that is often the evidence; only secret values and credentials are replaced.
+export function maskUrl(href, names = SENSITIVE_URL_PARAMS) {
+  const text = String(href).replace(/^([a-z][a-z\d+.-]*:\/\/)[^/?#@]*@/i, `$1${MASKED_TEXT}@`);
+  const hashAt = text.indexOf("#");
+  let head = hashAt < 0 ? text : text.slice(0, hashAt);
+  let hash = hashAt < 0 ? null : text.slice(hashAt + 1);
+  const queryAt = head.indexOf("?");
+  if (queryAt >= 0) {
+    head = head.slice(0, queryAt + 1) + maskParams(head.slice(queryAt + 1), names);
+  }
+  if (hash !== null) {
+    // A hash router keeps its own query after "#/path?"; an OAuth implicit
+    // grant puts its parameters straight after "#".
+    const hashQueryAt = hash.indexOf("?");
+    if (hashQueryAt >= 0) {
+      hash = hash.slice(0, hashQueryAt + 1) + maskParams(hash.slice(hashQueryAt + 1), names);
+    } else if (hash.includes("=")) {
+      hash = maskParams(hash, names);
+    }
+  }
+  return hash === null ? head : `${head}#${hash}`;
+}
+
+const STATUS_BAR_LINE_PX = 18;
+const STATUS_BAR_PAD_Y = 6;
+const STATUS_BAR_PAD_X = 12;
+// A 13px monospace glyph is about 0.6em (7.8px) wide; a little more errs
+// toward a taller bar, which only moves a caption further clear of it.
+const STATUS_BAR_CHAR_PX = 7.9;
+export const STATUS_BAR_URL_LINES = 3;
+
+// A monospace address wraps at a predictable count, so how tall the bar is can
+// be worked out here, for captions to keep clear of it. Three lines are enough
+// to watch an address grow without hiding the page under it.
+export function statusBarLayout(url, label, viewport = DEFAULT_VIEWPORT) {
+  const perLine = Math.max(1, Math.floor((viewport.width - 2 * STATUS_BAR_PAD_X) / STATUS_BAR_CHAR_PX));
+  const urlLines = Math.min(STATUS_BAR_URL_LINES, Math.max(1, Math.ceil(String(url).length / perLine)));
+  const lines = urlLines + (label ? 1 : 0);
+  return { urlLines, height: 2 * STATUS_BAR_PAD_Y + lines * STATUS_BAR_LINE_PX };
+}
+
+// Laid out in screen pixels and scaled back, like a caption.
+export function statusBarHtml(url, label, viewport = DEFAULT_VIEWPORT, scale = 1) {
+  const labelHtml = label ? `<div class="tvr-status-label">${escapeHtml(label)}</div>` : "";
+  return `<style>
+    .tvr-status {
+      position: absolute; left: 0; top: 0; width: ${viewport.width}px; box-sizing: border-box;
+      transform: scale(${1 / scale}); transform-origin: 0 0;
+      padding: ${STATUS_BAR_PAD_Y}px ${STATUS_BAR_PAD_X}px; background: rgba(17,18,22,.9); color: #fff;
+      font: 13px/${STATUS_BAR_LINE_PX}px ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    }
+    .tvr-status-label {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tvr-status-url {
+      color: #cfe3ff; word-break: break-all; overflow: hidden;
+      display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: ${STATUS_BAR_URL_LINES};
+    }
+  </style>
+  <div class="tvr-status">${labelHtml}<div class="tvr-status-url">${escapeHtml(url)}</div></div>`;
+}
+
+// Playwright records the viewport, never the browser's address bar, so the
+// address is drawn into the page and redrawn whenever the main frame
+// navigates. framenavigated fires for a history or hash change too, so
+// nothing has to poll. The overlay belongs to the page, so a reload leaves
+// it standing.
+export async function startStatusBar(page, state) {
+  const bar = state.statusBar;
+  if (!bar) {
+    return null;
+  }
+  let overlay = null;
+  let drawn = null;
+  let stopped = false;
+  let queue = Promise.resolve();
+  const draw = () => {
+    queue = queue.then(async () => {
+      const url = maskUrl(page.url(), bar.mask);
+      if (stopped || url === drawn) {
+        return;
+      }
+      const screen = page.viewportSize() ?? DEFAULT_VIEWPORT;
+      const scale = pageScale(screen, await cssViewport(page, screen));
+      const next = await page.screencast.showOverlay(statusBarHtml(url, bar.label, screen, scale)).catch(() => null);
+      if (!next) {
+        return;
+      }
+      await page.evaluate(bringOverlayToFront).catch(() => {});
+      // The new bar is up before the old one goes, so no frame is without one.
+      await overlay?.[Symbol.asyncDispose]?.().catch(() => {});
+      overlay = next;
+      drawn = url;
+      state.statusBarInset = statusBarLayout(url, bar.label, screen).height;
+    });
+    return queue;
+  };
+  const onNavigated = (frame) => {
+    if (frame === page.mainFrame()) {
+      draw();
+    }
+  };
+  page.on("framenavigated", onNavigated);
+  await draw();
+  return {
+    async stop() {
+      page.off("framenavigated", onNavigated);
+      stopped = true;
+      await queue;
+      await overlay?.[Symbol.asyncDispose]?.().catch(() => {});
+    },
+  };
+}
+
+// Auto-zoom crops to a window around each click, and the bar sits at the top
+// edge, outside most of those windows.
+export function statusBarWarnings(statusBar, zoomed, zoomDoc) {
+  const regions = zoomDoc?.suggestions?.length ?? 0;
+  if (!statusBar || !zoomed || regions === 0) {
+    return [];
+  }
+  return [
+    `the status bar sits at the top of the page, and ${regions} zoomed region(s) can crop it out; ` +
+      "set effects.zoom to false to keep it on screen throughout",
+  ];
 }
 
 export function resolveAction(step) {
@@ -1281,10 +1469,12 @@ export async function recordWalkthrough(options) {
         : POST_CLICK_MS,
     effects,
     captionLocale: resolveCaptionLocale(scenario),
+    statusBar: resolveStatusBar(scenario),
     failureStem: outPath.replace(/\.(mp4|webm)$/i, ""),
     touch: Boolean(contextOptions.hasTouch),
   };
   const rawPath = path.join(tmp, "raw.webm");
+  let statusBar = null;
 
   try {
     if (!attached) {
@@ -1309,6 +1499,7 @@ export async function recordWalkthrough(options) {
     }
     await page.locator("h1").first().waitFor({ state: "visible", timeout: 15_000 }).catch(() => {});
     await sleep(500);
+    statusBar = await startStatusBar(page, state);
     // Capture starts where the click timeline starts, so nothing has to be
     // trimmed back off later.
     await page.screencast.start({ path: rawPath, size: viewport });
@@ -1318,6 +1509,7 @@ export async function recordWalkthrough(options) {
     await sleep(600);
   } catch (error) {
     await page.screencast.stop().catch(() => {});
+    await statusBar?.stop();
     if (!attached) {
       await context.close().catch(() => {});
     }
@@ -1328,6 +1520,7 @@ export async function recordWalkthrough(options) {
 
   const stoppedAt = Date.now();
   await page.screencast.stop();
+  await statusBar?.stop();
   if (!attached) {
     await context.close();
   }
@@ -1360,6 +1553,9 @@ export async function recordWalkthrough(options) {
       zoomDoc = suggestZooms(clicks, Math.max(1, stoppedAt - state.startedAt));
     }
     fs.writeFileSync(zoomsPath, `${JSON.stringify(zoomDoc, null, 2)}\n`);
+    for (const warning of statusBarWarnings(state.statusBar, Boolean(ffmpeg && effects.zoom), zoomDoc)) {
+      process.stderr.write(`warning: ${warning}\n`);
+    }
 
     return {
       out: outPath,
@@ -1413,6 +1609,11 @@ export function validateScenario(scenario, options = {}) {
   }
   try {
     resolveEffects(scenario);
+  } catch (error) {
+    problems.push(error.message);
+  }
+  try {
+    resolveStatusBar(scenario);
   } catch (error) {
     problems.push(error.message);
   }

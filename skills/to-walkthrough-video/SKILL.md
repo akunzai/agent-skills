@@ -78,7 +78,9 @@ field the page does not mark as a password (an API key) gets
 Pointer, captions and auto-zoom are on; `effects` turns any off. Set
 `captionLocale` to the language of the conversation asking for the
 recording, or, for evidence on an issue or request, to the language the
-repo writes those in. See `references/effects.md`.
+repo writes those in. When the address itself is the evidence (a redirect
+or reload loop), set `"statusBar": true`, or `{ "label": "Before" }`, to
+draw it live across the top. See `references/effects.md`.
 
 For mobile/tablet, set `scenario.device` to `"phone"` (newest iPhone Pro) or
 `"tablet"` (iPad Mini, narrower than iPad Pro so a collapsed nav still shows

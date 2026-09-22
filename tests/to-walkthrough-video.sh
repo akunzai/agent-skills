@@ -570,11 +570,18 @@ import {
   captionHtml,
   captionPosition,
   formatKeys,
+  SENSITIVE_URL_PARAMS,
+  STATUS_BAR_URL_LINES,
+  maskUrl,
   pageScale,
   resolveCaptionLocale,
   resolveEffects,
   resolveInput,
   resolvePointerIcon,
+  resolveStatusBar,
+  statusBarHtml,
+  statusBarLayout,
+  statusBarWarnings,
   validateScenario,
 } from "file://${RECORD}";
 
@@ -804,6 +811,85 @@ const phoneCaption = captionHtml("Check the agreement before you continue to the
 if (!phoneCaption.includes("max-width: 358px") || phoneCaption.includes("nowrap")) {
   fail("a caption on a phone should wrap inside the viewport: " + phoneCaption);
 }
+
+// The status bar is off unless the scenario asks for it, and a typo in it is
+// refused before a browser opens.
+same(resolveStatusBar({}), null, "no status bar by default");
+same(resolveStatusBar({ statusBar: false }), null, "statusBar false");
+same(resolveStatusBar({ statusBar: true }), { label: "", mask: SENSITIVE_URL_PARAMS }, "statusBar true");
+same(
+  resolveStatusBar({ statusBar: { label: "Before (main)", mask: ["Ticket"] } }),
+  { label: "Before (main)", mask: [...SENSITIVE_URL_PARAMS, "ticket"] },
+  "statusBar with a label and extra masked names",
+);
+for (const [statusBar, wanted] of [
+  ["yes", "statusBar must be true or an object"],
+  [{ showUrl: true }, "unknown statusBar key: showUrl"],
+  [{ label: 1 }, "statusBar.label must be a string"],
+  [{ mask: "ticket" }, "statusBar.mask must be an array"],
+  [{ mask: [""] }, "statusBar.mask must be an array"],
+]) {
+  const problems = validateScenario({ statusBar, steps: [] });
+  if (problems.length !== 1 || !problems[0].includes(wanted)) {
+    fail("statusBar " + JSON.stringify(statusBar) + " should be refused with " + wanted + ": " + JSON.stringify(problems));
+  }
+}
+same(validateScenario({ statusBar: { label: "After" }, steps: [] }), [], "a valid statusBar");
+
+// The address is shown as the page has it, escapes and all; only secret
+// values and credentials are replaced, in the query and in the fragment.
+const masked = "\u2022".repeat(8);
+same(maskUrl("https://example.test/?foo=bar%23%2F%23%2F#/"), "https://example.test/?foo=bar%23%2F%23%2F#/", "an ordinary address is left alone");
+same(maskUrl("https://example.test/cb?code=abc&state=xyz"), "https://example.test/cb?code=" + masked + "&state=xyz", "a query secret");
+same(maskUrl("https://example.test/?Access_Token=abc"), "https://example.test/?Access_Token=" + masked, "parameter names match in any case");
+same(maskUrl("https://example.test/?api%5Fkey=abc"), "https://example.test/?api%5Fkey=" + masked, "an escaped parameter name");
+same(maskUrl("https://example.test/#/reset?token=abc&step=2"), "https://example.test/#/reset?token=" + masked + "&step=2", "a hash router's query");
+same(maskUrl("https://example.test/cb#id_token=abc&state=s"), "https://example.test/cb#id_token=" + masked + "&state=s", "an implicit grant fragment");
+same(maskUrl("https://user:pw@example.test/"), "https://" + masked + "@example.test/", "credentials in the address");
+same(maskUrl("https://example.test/?ticket=abc&token", ["ticket"]), "https://example.test/?ticket=" + masked + "&token", "a scenario's own names");
+
+// The bar grows with the address up to three lines, and knows its height so a
+// caption can keep clear of it.
+const short = statusBarLayout("https://example.test/", "", vp);
+const labelled = statusBarLayout("https://example.test/", "Before", vp);
+const long = statusBarLayout("https://example.test/?" + "x".repeat(5000), "Before", vp);
+if (short.urlLines !== 1 || labelled.height <= short.height || long.urlLines !== STATUS_BAR_URL_LINES) {
+  fail("the status bar should grow with its address up to " + STATUS_BAR_URL_LINES + " lines: " + JSON.stringify({ short, labelled, long }));
+}
+if (statusBarLayout("https://example.test/?" + "x".repeat(200), "", phoneVp).urlLines <= statusBarLayout("https://example.test/?" + "x".repeat(200), "", vp).urlLines) {
+  fail("a narrower viewport should wrap the address onto more lines");
+}
+const bar = statusBarHtml("https://example.test/?q=<b>", "Before & after", vp);
+if (!bar.includes("?q=&lt;b&gt;") || !bar.includes("Before &amp; after") || !bar.includes("-webkit-line-clamp: " + STATUS_BAR_URL_LINES)) {
+  fail("the status bar should escape what it draws and clamp the address: " + bar);
+}
+if (statusBarHtml("https://example.test/", "", vp).includes("class=\"tvr-status-label\"")) {
+  fail("a status bar without a label should draw only the address");
+}
+if (!statusBarHtml("https://example.test/", "", vp, 0.5).includes("scale(2)")) {
+  fail("a status bar on a zoomed-out page should be scaled back up");
+}
+
+// A caption above a target the bar would cover goes below it instead; with no
+// bar, above stays above as before.
+same(captionPosition({ x: 350, y: 90 }, vp, "above"), { left: 376, bottom: 642, maxWidth: 720 }, "above without a bar");
+same(captionPosition({ x: 350, y: 90 }, vp, "above", 48), { left: 376, top: 134, maxWidth: 720 }, "above a target under the bar");
+same(captionPosition({ x: 350, y: 300 }, vp, "above", 48), { left: 376, bottom: 432, maxWidth: 720 }, "above a target clear of the bar");
+same(captionPosition({ x: 350, y: 10 }, vp, "below", 84), { left: 376, top: 100, maxWidth: 720 }, "below a target inside the bar");
+if (!captionHtml("Menu", { x: 350, y: 90 }, vp, "above", 1, 48).includes("top: 134px")) {
+  fail("captionHtml should keep clear of the status bar");
+}
+
+// Auto-zoom can crop the bar out, which is worth saying only when it zoomed.
+const zooms = { status: "ok", suggestions: [{ start: 0, end: 1000 }] };
+if (statusBarWarnings({ label: "" }, true, zooms).length !== 1) {
+  fail("a status bar under auto-zoom should warn");
+}
+for (const [statusBar, zoomed, doc] of [[null, true, zooms], [{ label: "" }, false, zooms], [{ label: "" }, true, { status: "no-interactions", suggestions: [] }]]) {
+  if (statusBarWarnings(statusBar, zoomed, doc).length !== 0) {
+    fail("no warning without a status bar, a zoom, or a zoomed region: " + JSON.stringify([statusBar, zoomed, doc]));
+  }
+}
 EOF
 
 # --- real browser --------------------------------------------------------------
@@ -812,7 +898,7 @@ EOF
 
 if [ "$check_status" -eq 0 ]; then
   node --input-type=module <<EOF || fail "real browser steps"
-import { loadPlaywright, runScenario } from "file://${RECORD}";
+import { loadPlaywright, resolveStatusBar, runScenario, startStatusBar } from "file://${RECORD}";
 
 const fail = (message) => {
   console.error(message);
@@ -1054,8 +1140,10 @@ try {
       "/slow": '<button>Stay</button><script defer src="/slow.js"></script>',
       "/loop": "<h1>Loading</h1><script>setTimeout(() => location.reload(), 300)</script>",
       "/late": '<script>setTimeout(() => { document.body.insertAdjacentHTML("beforeend", "<p>Ready</p>"); }, 600)</script>',
+      "/spa": '<script>setTimeout(() => history.pushState({}, "", "/spa/next"), 200); setTimeout(() => { location.hash = "#/done"; }, 500)</script>',
     };
-    res.end(pages[req.url] ?? '<a href="/next">Continue</a> <a href="/slow">Slow</a>');
+    const growing = '<body style="margin:0; background:#fff"><script>setTimeout(() => location.replace(location.href + "%23%2F"), 250)</script></body>';
+    res.end(req.url.startsWith("/grow?") ? growing : pages[req.url] ?? '<a href="/next">Continue</a> <a href="/slow">Slow</a>');
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   try {
@@ -1181,6 +1269,68 @@ try {
       fail("captions off should draw no wait caption: " + JSON.stringify(shown.slice(before)));
     }
     await watching.close();
+
+    // The status bar follows every address the page goes through, reloads and
+    // history changes included, never shows a secret, and stays on screen
+    // throughout: each new bar is up before the old one goes.
+    const barred = await browser.newPage({ viewport });
+    const bars = [];
+    const showBarOverlay = barred.screencast.showOverlay.bind(barred.screencast);
+    barred.screencast.showOverlay = async (html) => {
+      const overlay = await showBarOverlay(html);
+      const entry = { url: html.match(/tvr-status-url">([^<]*)/)?.[1], removed: false };
+      bars.push(entry);
+      return {
+        async [Symbol.asyncDispose]() {
+          entry.removed = true;
+          await overlay[Symbol.asyncDispose]();
+        },
+      };
+    };
+    const barState = stateFor(viewport, { statusBar: resolveStatusBar({ statusBar: { label: "Before" } }) });
+    await barred.goto(origin + "/grow?token=s3cret&foo=bar");
+    const statusBar = await startStatusBar(barred, barState);
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const urls = bars.map((entry) => entry.url);
+    if (urls.length < 3 || urls.some((url, i) => i > 0 && url.length <= urls[i - 1].length)) {
+      fail("the status bar should redraw each longer address: " + JSON.stringify(urls));
+    }
+    if (urls.some((url) => url.includes("s3cret") || !url.includes("token=\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022&amp;foo=bar")) || !urls.at(-1).endsWith("%23%2F%23%2F")) {
+      fail("the status bar should mask a secret and keep the escapes: " + JSON.stringify(urls));
+    }
+    if (bars.filter((entry) => !entry.removed).length !== 1) {
+      fail("exactly one status bar should be up at a time: " + JSON.stringify(bars));
+    }
+    if (!(barState.statusBarInset > 0)) {
+      fail("the status bar should tell captions how tall it is: " + barState.statusBarInset);
+    }
+    // What the viewer sees: a dark bar across the top of a white page.
+    const { spawnSync } = await import("node:child_process");
+    if (spawnSync("ffmpeg", ["-version"]).status === 0) {
+      const png = await barred.screenshot();
+      const pixels = spawnSync("ffmpeg", ["-v", "error", "-i", "pipe:0", "-f", "rawvideo", "-pix_fmt", "gray", "pipe:1"], { input: png }).stdout;
+      const at = (x, y) => pixels[y * viewport.width + x];
+      if (!(at(5, 5) < 80) || !(at(5, 400) > 200)) {
+        fail("the status bar should be drawn across the top of the page: " + JSON.stringify({ top: at(5, 5), page: at(5, 400) }));
+      }
+    }
+    await statusBar.stop();
+    if (bars.some((entry) => !entry.removed)) {
+      fail("stopping the status bar should take it down");
+    }
+    const history = [];
+    barred.screencast.showOverlay = async (html) => {
+      history.push(html.match(/tvr-status-url">([^<]*)/)?.[1]);
+      return showBarOverlay(html);
+    };
+    await barred.goto(origin + "/spa");
+    const spaBar = await startStatusBar(barred, barState);
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    await spaBar.stop();
+    if (!history.some((url) => url?.endsWith("/spa/next")) || !history.some((url) => url?.endsWith("/spa/next#/done"))) {
+      fail("the status bar should follow history and hash changes: " + JSON.stringify(history));
+    }
+    await barred.close();
   } finally {
     server.close();
   }

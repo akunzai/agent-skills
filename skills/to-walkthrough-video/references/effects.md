@@ -109,6 +109,38 @@ shown as written, so it names the field rather than the value:
 A combination key is rendered as key symbols rather than Playwright's syntax:
 `Meta+Shift+p` reads as `⌘ + ⇧ + P`.
 
+## Status bar
+
+Playwright records the viewport, never the browser's address bar. When the
+address is the evidence — a redirect loop, a query that keeps growing, a
+route a click should have changed — `statusBar` draws it across the top of
+the page. It is off unless the scenario asks:
+
+```json
+{ "statusBar": true }
+{ "statusBar": { "label": "Before (main)", "mask": ["ticket"] } }
+```
+
+`label` is a fixed first line, handy for telling a before and an after
+recording apart. The address below it is redrawn every time the page
+navigates, a reload or a history or hash change included, and is shown
+exactly as the page has it: `%23%2F` stays `%23%2F`. A long one wraps and is
+cut off after three lines.
+
+The value of any parameter named `token`, `access_token`, `id_token`,
+`refresh_token`, `code`, `key`, `api_key`, `secret`, `password`, `sig`,
+`signature` or `session`, in any case, is drawn as eight dots, in the query
+and in the fragment alike (`#/reset?token=…`, `#access_token=…`), and so is
+any `user:password@`. `mask` adds names of your own. A secret in the path
+itself, such as `/reset/<token>`, is not recognised: record such a page
+without the bar, or start from an address that carries none.
+
+The bar covers the top of the page, and a caption that would sit above a
+target under it goes below instead. Auto-zoom crops to a window around each
+click, which usually leaves the bar out; the recorder warns whenever a
+recording with the bar zooms, and `"effects": { "zoom": false }` keeps it on screen throughout. A
+walkthrough that only waits and reloads has no click to zoom on anyway.
+
 ## The `press` step
 
 ```json
