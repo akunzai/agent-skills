@@ -61,7 +61,9 @@ When missing, ask the user for confirmation before installing:
 
 Prefer `role` + `name` over `selector`: a caption falls back to the raw
 selector text (`Click nav a[href…]`) when a step has no name, label or text, so
-give a `selector` step its own `caption`. A `click` waits up to 15 seconds for
+give a `selector` step its own `caption`. On localized sites, `name` must match
+the page's rendered text; within dynamic search results or lists where links share
+names, use a scoped `selector` (e.g. `.result a`) to avoid false matches. A `click` waits up to 15 seconds for
 its target to be visible (`timeout` changes that per step). To wait for
 something without touching it, such as the row a submit just added, use
 `{ "action": "expect", "text": "Saved" }`; `state` may be `"hidden"`. A

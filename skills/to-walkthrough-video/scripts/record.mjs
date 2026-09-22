@@ -1495,7 +1495,7 @@ export async function recordWalkthrough(options) {
     if (!signIn) {
       await installOverlay(page, state);
     }
-    await ensureSignedIn(page, scenario, { signIn });
+    await ensureSignedIn(page, scenario, { signIn, attached });
     if (signIn) {
       if (!samePage(page.url(), scenario.url)) {
         // Signing in usually lands somewhere of the system's choosing.
@@ -1710,8 +1710,10 @@ export async function ensureSignedIn(page, scenario, options = {}) {
     return;
   }
   const signIn = Boolean(options.signIn);
-  const timeout = signIn ? SIGN_IN_TIMEOUT_MS : AUTH_EXPECT_TIMEOUT_MS;
-  if (signIn) {
+  const attached = Boolean(options.attached);
+  const waitUser = signIn || attached;
+  const timeout = waitUser ? SIGN_IN_TIMEOUT_MS : AUTH_EXPECT_TIMEOUT_MS;
+  if (waitUser) {
     process.stderr.write(
       `Sign in yourself in the browser window now, at ${page.url()}. ` +
         `Recording starts once you are in, and waits up to ${Math.round(timeout / 60_000)} minutes.\n`,
@@ -1720,7 +1722,7 @@ export async function ensureSignedIn(page, scenario, options = {}) {
   try {
     await locatorFor(page, expect).first().waitFor({ state: "visible", timeout });
   } catch {
-    if (signIn) {
+    if (waitUser) {
       throw new Error(
         "nobody signed in before the wait ran out, so there is nothing to record",
       );

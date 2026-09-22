@@ -161,7 +161,8 @@ list means the browser did not come up.
 `record.mjs` records the page that is open, at the window's own size, and
 never navigates, reloads or closes it. `scenario.url` is not opened (and can
 be omitted under `--connect`), so the first step must be reachable from the
-screen you leave the window on, and `auth.expect` must already be visible there. Anything you clicked through while
+screen you leave the window on. Recording waits up to three minutes for
+`auth.expect` to appear, so you can start recording before or during sign-in. Anything you clicked through while
 exploring is still in the window: data you added is on screen, and the start
 frame is wherever you stopped. Put the window on the screen you want as the
 first frame, by clicking, before recording. `--connect` cannot be combined
