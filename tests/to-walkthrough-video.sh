@@ -41,6 +41,22 @@ status=$?
 set -e
 [ "$status" -eq 2 ] || fail "record with no args should exit 2, got $status"
 
+# Missing url in scenario without --connect should fail with error
+echo '{"steps":[]}' > "$TMP_DIR/no-url.json"
+set +e
+node "$RECORD" --scenario "$TMP_DIR/no-url.json" --out "$TMP_DIR/out.mp4" >/dev/null 2>"$TMP_DIR/no-url-err"
+status=$?
+set -e
+[ "$status" -ne 0 ] || fail "record with scenario lacking url should exit non-zero"
+grep -q -- "scenario.json needs a url" "$TMP_DIR/no-url-err" || fail "missing url error should be reported"
+
+# Missing url in scenario with --connect should not fail with "scenario.json needs a url"
+set +e
+node "$RECORD" --scenario "$TMP_DIR/no-url.json" --out "$TMP_DIR/out.mp4" --connect "http://127.0.0.1:9222" >/dev/null 2>"$TMP_DIR/connect-no-url-err"
+set -e
+grep -q -- "scenario.json needs a url" "$TMP_DIR/connect-no-url-err" \
+  && fail "--connect should not require scenario.url"
+
 node "$SUGGEST" --help >"$TMP_DIR/help"
 grep -q -- "--clicks" "$TMP_DIR/help" || fail "suggest-zooms --help missing --clicks"
 
