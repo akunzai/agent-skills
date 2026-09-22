@@ -64,7 +64,9 @@ selector text (`Click nav a[href…]`) when a step has no name, label or text, s
 give a `selector` step its own `caption`. A `click` waits up to 15 seconds for
 its target to be visible (`timeout` changes that per step). To wait for
 something without touching it, such as the row a submit just added, use
-`{ "action": "expect", "text": "Saved" }`; `state` may be `"hidden"`. When a
+`{ "action": "expect", "text": "Saved" }`; `state` may be `"hidden"`. A
+`wait`, `expect` or `goto` shows a `caption` only when given one, and holds it
+across reloads, so say what the viewer is watching happen. When a
 step fails the error names it (`step 3 of 5 {...}`) and `<out>.failure.png` and
 `<out>.failure.aria.txt` show what the page looked like. When the
 flow creates data, do it once while exploring and note where it lands (a later

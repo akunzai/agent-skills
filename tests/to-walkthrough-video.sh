@@ -695,6 +695,16 @@ if (captionFor(click, "zh-tw") !== "\u9ede\u64ca More information") {
 if (captionFor({ action: "type", text: "SSH" }, "en") !== "Type SSH") {
   fail("type caption");
 }
+// A wait, expect or goto step has nothing to name, so it is captioned only
+// when the scenario says what it shows.
+for (const step of [{ action: "wait", ms: 800 }, { wait: 800 }, { action: "expect", text: "Saved" }, { action: "goto", url: "/next" }]) {
+  if (captionFor(step, "en") !== null) {
+    fail("an uncaptioned " + JSON.stringify(step) + " should draw nothing");
+  }
+  if (captionFor({ ...step, caption: "The page keeps reloading" }, "en") !== "The page keeps reloading") {
+    fail("a captioned " + JSON.stringify(step) + " should show its caption");
+  }
+}
 // A secret is captioned as a fixed row of dots, which gives away neither the
 // value nor its length. A caption the author wrote is still theirs.
 const dots = "Type \u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
@@ -1042,6 +1052,8 @@ try {
     const pages = {
       "/next": "<h1>Next page</h1>",
       "/slow": '<button>Stay</button><script defer src="/slow.js"></script>',
+      "/loop": "<h1>Loading</h1><script>setTimeout(() => location.reload(), 300)</script>",
+      "/late": '<script>setTimeout(() => { document.body.insertAdjacentHTML("beforeend", "<p>Ready</p>"); }, 600)</script>',
     };
     res.end(pages[req.url] ?? '<a href="/next">Continue</a> <a href="/slow">Slow</a>');
   });
@@ -1101,6 +1113,74 @@ try {
       fail("an earlier step's late page load should not remove this step's caption: " + JSON.stringify(lifetimes));
     }
     await slow.close();
+
+    // A wait, expect or goto step is there to watch the page change, so its
+    // caption outlives every reload until the step ends, and a goto's is up
+    // before the page it opens goes blank.
+    const watching = await browser.newPage({ viewport });
+    const origin = "http://127.0.0.1:" + server.address().port;
+    const shown = [];
+    let loads = 0;
+    let committedAt = 0;
+    watching.on("domcontentloaded", () => { loads += 1; });
+    watching.on("framenavigated", (frame) => {
+      if (frame === watching.mainFrame() && frame.url().endsWith("/loop")) {
+        committedAt ||= Date.now();
+      }
+    });
+    const showWatchingOverlay = watching.screencast.showOverlay.bind(watching.screencast);
+    watching.screencast.showOverlay = async (html) => {
+      const overlay = await showWatchingOverlay(html);
+      const entry = { text: html.match(/tvr-caption">([^<]*)/)?.[1], shownAt: Date.now(), loadsAtShow: loads };
+      shown.push(entry);
+      return {
+        async [Symbol.asyncDispose]() {
+          entry.removedAt ||= Date.now();
+          entry.loadsAtRemove ??= loads;
+          await overlay[Symbol.asyncDispose]();
+        },
+      };
+    };
+    await watching.goto(origin + "/");
+    await runScenario(watching, {
+      steps: [
+        { action: "goto", url: origin + "/loop", caption: "Open the looping page", pause: 200 },
+        { action: "wait", ms: 1500, caption: "It keeps reloading" },
+        { action: "wait", ms: 100 },
+        { action: "goto", url: origin + "/late" },
+        { action: "expect", text: "Ready", caption: "Wait for it" },
+      ],
+    }, () => {}, stateFor(viewport, { effects: { ...quiet, captions: true }, captionLocale: "en" }));
+    const [opened, waited, expected] = shown;
+    if (shown.length !== 3 || opened.text !== "Open the looping page" || waited.text !== "It keeps reloading" || expected.text !== "Wait for it") {
+      fail("only a captioned wait, expect or goto should draw one: " + JSON.stringify(shown));
+    }
+    if (!(opened.shownAt <= committedAt)) {
+      fail("a goto caption should be up before its page loads: " + JSON.stringify({ opened, committedAt }));
+    }
+    if (!(waited.loadsAtRemove - waited.loadsAtShow >= 2) || !(waited.removedAt - waited.shownAt >= 1500)) {
+      fail("a wait caption should hold across the reloads it waits through: " + JSON.stringify(waited));
+    }
+    if (!(expected.removedAt - expected.shownAt >= 400)) {
+      fail("an expect caption should show while the element is still missing: " + JSON.stringify(expected));
+    }
+    // A watching step that fails takes its caption down with it.
+    const before = shown.length;
+    await runScenario(watching, {
+      steps: [{ action: "expect", text: "Never there", timeout: 200, caption: "Waiting in vain" }],
+    }, () => {}, stateFor(viewport, { effects: { ...quiet, captions: true }, captionLocale: "en" }))
+      .then(() => fail("an expect on a missing element should fail"), () => {});
+    if (shown.length !== before + 1 || !shown.at(-1).removedAt) {
+      fail("a failing expect should remove its caption: " + JSON.stringify(shown.slice(before)));
+    }
+    // With captions off, a watching step draws nothing, caption or not.
+    await runScenario(watching, {
+      steps: [{ action: "wait", ms: 50, caption: "Hidden" }],
+    }, () => {}, stateFor(viewport));
+    if (shown.length !== before + 1) {
+      fail("captions off should draw no wait caption: " + JSON.stringify(shown.slice(before)));
+    }
+    await watching.close();
   } finally {
     server.close();
   }

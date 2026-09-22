@@ -783,6 +783,10 @@ export function captionHtml(text, anchor, viewport = DEFAULT_VIEWPORT, placement
   <div class="tvr-caption">${escapeHtml(text)}</div>`;
 }
 
+// These steps are there to watch the page change, reloads included, so a
+// caption the scenario gives one holds until the step ends.
+const WATCHING_ACTIONS = ["wait", "expect", "goto"];
+
 async function showCaption(page, state, step, anchor, masked = false) {
   if (!state.effects?.captions) {
     return null;
@@ -809,7 +813,9 @@ async function showCaption(page, state, step, anchor, masked = false) {
   // The overlay belongs to the page, not the document, so a step that
   // navigates would otherwise go on captioning the page it lands on.
   const dispose = () => overlay[Symbol.asyncDispose]?.().catch(() => {});
-  page.once("domcontentloaded", dispose);
+  if (!WATCHING_ACTIONS.includes(resolveAction(step))) {
+    page.once("domcontentloaded", dispose);
+  }
   return { page, dispose };
 }
 
@@ -1045,21 +1051,44 @@ async function runSteps(page, scenario, log, state) {
     state.stepIndex = index;
     const step = steps[index];
     const action = resolveAction(step);
+    // No navigation takes these captions down, so a step that fails must.
     if (action === "wait") {
-      await sleep(Number(step.ms ?? step.wait ?? 0));
+      const waitCaption = await showCaption(page, state, step);
+      try {
+        await sleep(Number(step.ms ?? step.wait ?? 0));
+      } finally {
+        await hideCaption(waitCaption);
+      }
       continue;
     }
     if (action === "goto") {
-      await page.goto(step.url, { waitUntil: "domcontentloaded" });
-      await installOverlay(page, state);
+      // Shown before the page goes blank, so the viewer knows what is loading.
+      const gotoCaption = await showCaption(page, state, step);
+      try {
+        await page.goto(step.url, { waitUntil: "domcontentloaded" });
+        await installOverlay(page, state);
+        // Only a caption needs the pause to be read; an uncaptioned goto
+        // moves straight on, as it always has.
+        if (gotoCaption) {
+          await sleep(Number(step.pause ?? 0));
+        }
+      } finally {
+        await hideCaption(gotoCaption);
+      }
       continue;
     }
     if (action === "expect") {
-      // Waits without touching the page: no pointer, no caption, no click.
-      await locatorFor(page, step)
-        .first()
-        .waitFor({ state: step.state ?? "visible", timeout: step.timeout ?? STEP_TIMEOUT_MS });
-      await sleep(Number(step.pause ?? 0));
+      // Waits without touching the page: no pointer and no click. The element
+      // may not exist yet, so a caption has no anchor to sit under.
+      const expectCaption = await showCaption(page, state, step);
+      try {
+        await locatorFor(page, step)
+          .first()
+          .waitFor({ state: step.state ?? "visible", timeout: step.timeout ?? STEP_TIMEOUT_MS });
+        await sleep(Number(step.pause ?? 0));
+      } finally {
+        await hideCaption(expectCaption);
+      }
       continue;
     }
     if (action === "press") {

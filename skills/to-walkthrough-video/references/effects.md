@@ -40,15 +40,30 @@ click leaves no ring — only `click` and `dblclick` do.
 ## Captions
 
 Every interaction step is captioned: `click`, `dblclick`, `type`, `select`
-and `press`. `wait`, `expect` and `goto` are not. The caption holds for the whole step,
-so an instant keypress still stays on screen long enough to read. It appears
-once the pointer reaches the target, before the click, and a step that loads
-another page removes it then, rather than leaving it over the page it lands on.
+and `press`. The caption holds for the whole step, so an instant keypress
+still stays on screen long enough to read. It appears once the pointer
+reaches the target, before the click, and a step that loads another page
+removes it then, rather than leaving it over the page it lands on.
+
+`wait`, `expect` and `goto` have nothing to name, so they are captioned only
+when the step carries its own `caption`. Such a caption holds until the step
+ends, however many times the page reloads meanwhile: these steps are where
+the viewer watches the page change, and a reload loop or a slow redirect is
+often the very thing the recording shows. A `goto` caption is up before the
+page it opens goes blank and stays through that page's `pause`, which a
+`goto` without a caption does not wait out; an `expect` caption shows while
+the element is still missing.
+
+```json
+{ "action": "goto", "url": "https://example.com/?q=1", "caption": "Open a URL with a query", "pause": 1500 },
+{ "action": "wait", "ms": 8000, "caption": "The page keeps reloading" }
+```
 
 A caption sits just under the element the step acts on, not at the bottom of
 the page. Auto-zoom crops a 1.5x window around the click, and a caption pinned
 to the bottom edge falls outside that crop exactly when the viewer is looking
-hardest. A step with no element — `press` — centres its caption instead.
+hardest. A step with no element — `press`, `wait`, `goto`, and `expect`,
+whose element may not exist yet — centres its caption at the bottom instead.
 
 A long caption wraps rather than running off the edge: it is at most 720px
 wide, or the viewport less a 16px gutter each side on a phone, and it moves
