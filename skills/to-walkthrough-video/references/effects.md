@@ -40,15 +40,30 @@ click leaves no ring — only `click` and `dblclick` do.
 ## Captions
 
 Every interaction step is captioned: `click`, `dblclick`, `type`, `select`
-and `press`. `wait`, `expect` and `goto` are not. The caption holds for the whole step,
-so an instant keypress still stays on screen long enough to read. It appears
-once the pointer reaches the target, before the click, and a step that loads
-another page removes it then, rather than leaving it over the page it lands on.
+and `press`. The caption holds for the whole step, so an instant keypress
+still stays on screen long enough to read. It appears once the pointer
+reaches the target, before the click, and a step that loads another page
+removes it then, rather than leaving it over the page it lands on.
+
+`wait`, `expect` and `goto` have nothing to name, so they are captioned only
+when the step carries its own `caption`. Such a caption holds until the step
+ends, however many times the page reloads meanwhile: these steps are where
+the viewer watches the page change, and a reload loop or a slow redirect is
+often the very thing the recording shows. A `goto` caption is up before the
+page it opens goes blank and stays through that page's `pause`, which a
+`goto` without a caption does not wait out; an `expect` caption shows while
+the element is still missing.
+
+```json
+{ "action": "goto", "url": "https://example.com/?q=1", "caption": "Open a URL with a query", "pause": 1500 },
+{ "action": "wait", "ms": 8000, "caption": "The page keeps reloading" }
+```
 
 A caption sits just under the element the step acts on, not at the bottom of
 the page. Auto-zoom crops a 1.5x window around the click, and a caption pinned
 to the bottom edge falls outside that crop exactly when the viewer is looking
-hardest. A step with no element — `press` — centres its caption instead.
+hardest. A step with no element — `press`, `wait`, `goto`, and `expect`,
+whose element may not exist yet — centres its caption at the bottom instead.
 
 A long caption wraps rather than running off the edge: it is at most 720px
 wide, or the viewport less a 16px gutter each side on a phone, and it moves
@@ -93,6 +108,38 @@ shown as written, so it names the field rather than the value:
 
 A combination key is rendered as key symbols rather than Playwright's syntax:
 `Meta+Shift+p` reads as `⌘ + ⇧ + P`.
+
+## Status bar
+
+Playwright records the viewport, never the browser's address bar. When the
+address is the evidence — a redirect loop, a query that keeps growing, a
+route a click should have changed — `statusBar` draws it across the top of
+the page. It is off unless the scenario asks:
+
+```json
+{ "statusBar": true }
+{ "statusBar": { "label": "Before (main)", "mask": ["ticket"] } }
+```
+
+`label` is a fixed first line, handy for telling a before and an after
+recording apart. The address below it is redrawn every time the page
+navigates, a reload or a history or hash change included, and is shown
+exactly as the page has it: `%23%2F` stays `%23%2F`. A long one wraps and is
+cut off after three lines.
+
+The value of any parameter named `token`, `access_token`, `id_token`,
+`refresh_token`, `code`, `key`, `api_key`, `secret`, `password`, `sig`,
+`signature` or `session`, in any case, is drawn as eight dots, in the query
+and in the fragment alike (`#/reset?token=…`, `#access_token=…`), and so is
+any `user:password@`. `mask` adds names of your own. A secret in the path
+itself, such as `/reset/<token>`, is not recognised: record such a page
+without the bar, or start from an address that carries none.
+
+The bar covers the top of the page, and a caption that would sit above a
+target under it goes below instead. Auto-zoom crops to a window around each
+click, which usually leaves the bar out; the recorder warns whenever a
+recording with the bar zooms, and `"effects": { "zoom": false }` keeps it on screen throughout. A
+walkthrough that only waits and reloads has no click to zoom on anyway.
 
 ## The `press` step
 

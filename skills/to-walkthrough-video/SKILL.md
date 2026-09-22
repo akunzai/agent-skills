@@ -64,7 +64,9 @@ selector text (`Click nav a[href…]`) when a step has no name, label or text, s
 give a `selector` step its own `caption`. A `click` waits up to 15 seconds for
 its target to be visible (`timeout` changes that per step). To wait for
 something without touching it, such as the row a submit just added, use
-`{ "action": "expect", "text": "Saved" }`; `state` may be `"hidden"`. When a
+`{ "action": "expect", "text": "Saved" }`; `state` may be `"hidden"`. A
+`wait`, `expect` or `goto` shows a `caption` only when given one, and holds it
+across reloads, so say what the viewer is watching happen. When a
 step fails the error names it (`step 3 of 5 {...}`) and `<out>.failure.png` and
 `<out>.failure.aria.txt` show what the page looked like. When the
 flow creates data, do it once while exploring and note where it lands (a later
@@ -76,7 +78,9 @@ field the page does not mark as a password (an API key) gets
 Pointer, captions and auto-zoom are on; `effects` turns any off. Set
 `captionLocale` to the language of the conversation asking for the
 recording, or, for evidence on an issue or request, to the language the
-repo writes those in. See `references/effects.md`.
+repo writes those in. When the address itself is the evidence (a redirect
+or reload loop), set `"statusBar": true`, or `{ "label": "Before" }`, to
+draw it live across the top. See `references/effects.md`.
 
 For mobile/tablet, set `scenario.device` to `"phone"` (newest iPhone Pro) or
 `"tablet"` (iPad Mini, narrower than iPad Pro so a collapsed nav still shows
