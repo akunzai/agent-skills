@@ -22,7 +22,7 @@ package page, or `dotnet package search`) rather than memory.
 | ADAL | `Microsoft.IdentityModel.Clients.ActiveDirectory` | MSAL (`Microsoft.Identity.Client`) |
 | ELMAH | `Elmah`, `elmah.corelibrary` | `ElmahCore` or the host's logging plus exception middleware |
 | Binary references | `<Reference HintPath=...>` to checked-in DLLs | A maintained package, or retire the feature; each is a task |
-| Old major versions | Quartz 2.x, Lucene.Net 3.x, Common.Logging adapters | Quartz 3.x (API change), Lucene.Net 4.8 (index format change: rebuild indexes), `Microsoft.Extensions.Logging` |
+| Old major versions | Quartz 2.x, Lucene.Net 3.x, Common.Logging adapters | Quartz 3.x (API change), Lucene.Net 4.8 (index format change: rebuild indexes), `Microsoft.Extensions.Logging`. Where the storage schema or format changes, keep old and new side by side (a new table prefix, a new index folder) and create the new one idempotently at startup, so both builds coexist through rollout and rollback without a manual database step |
 | Out-of-support hosts | netcoreapp2.x/3.1, net5–7, ASP.NET Core 2.x | Retarget; follow each version's breaking-change list on learn.microsoft.com |
 
 Keep: Newtonsoft.Json, log4net, NHibernate 5.3+, EF6 6.3+, Dapper, and
