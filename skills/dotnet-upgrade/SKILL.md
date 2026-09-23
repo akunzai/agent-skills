@@ -49,8 +49,9 @@ Then record four findings the table does not show:
    `System.Web`, GAC assemblies, `ref/*.dll` binaries, or Framework-only
    packages builds only under Framework MSBuild. Count these as Framework.
 3. **Verification gap.** What the tests cover versus what the upgrade
-   touches. Web controllers, views, auth, session, and serialization
-   usually have none; these become runtime checks in staging.
+   touches, graded per [`references/verification.md`](references/verification.md):
+   test coupling to the replaced components, host coverage, smoke, and
+   end-to-end triggers.
 4. **Deployment.** How each host ships today (IIS, service, container),
    and what CI can and cannot prove.
 
@@ -69,6 +70,9 @@ that contradicts it is corrected in the same trunk-safe change.
   branch synced from trunk by merge.
 - Acceptance: which gates prove done, including a staging run when tests
   do not cover the runtime surface.
+- Verification strategy: characterization tests, the test seam, smoke,
+  end-to-end, performance parity, and test data, per
+  [`references/verification.md`](references/verification.md).
 - Optional cross-platform build (developers on macOS or Linux build and
   run the app): if chosen, add the phase in
   [`references/cross-platform.md`](references/cross-platform.md).
@@ -80,7 +84,9 @@ milestone, whether it is **trunk-safe** or **branch-only**, and a
 `Done when:` line a reviewer can check without reading code. Order:
 
 1. Prerequisites: SDK pin in `global.json`, CI toolchain, cleanup of dead
-   projects and solution entries.
+   projects and solution entries, and the test foundation (test seam,
+   smoke command, test data) ahead of the first behaviour-touching task;
+   low-risk tasks proceed meanwhile.
 2. SDK-style conversion on the **current** TFM, leaf-first, one project
    per task. Never combine it with a retarget: the two fail differently.
 3. Retarget tier by tier. Libraries with Framework consumers multi-target
@@ -99,7 +105,9 @@ Per task:
    `// STUB:<package-or-api> | task:<id>` marker so `git grep "// STUB:"`
    is the registry of deferred work; each marker becomes its own task.
 4. Gate: the touched projects **and their dependents** build on every
-   target they carry, with no new warnings, and their tests pass. A test
+   target they carry, with no new warnings, and their tests pass, plus the
+   evidence the task's risk tier requires
+   ([`references/verification.md`](references/verification.md)). A test
    that fails where the upgrade did not intend a behaviour change means
    production code is wrong; fix the code, keep the test. When CI is the
    evidence, confirm the job actually ran on the change: path-filtered
@@ -122,5 +130,6 @@ sync: an already-migrated old file changed on trunk means the port is now
 stale.
 
 Cutover is done when every acceptance gate from Decide passes on the
-upgrade branch, the `// STUB:` registry is empty or accepted by the user,
+upgrade branch, smoke and the main end-to-end flows pass on both targets,
+performance stays within its parity threshold, the `// STUB:` registry is empty or accepted by the user,
 and a rollback path to the last old-target release is written down.
