@@ -54,6 +54,15 @@ graders:
         - "(?i)git merge"
 
   - type: text
+    name: guarded-body-rewrite
+    config:
+      regex_match:
+        - "(?i)set -e"
+        - "test -s|\\[ -s "
+        - "(?i)gh pr view (#)?7"
+        - "(?i)gh pr edit (#)?7"
+
+  - type: text
     name: visual-choice
     config:
       contains:

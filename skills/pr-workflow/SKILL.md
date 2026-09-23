@@ -86,3 +86,5 @@ gh pr create --title "<type>(<scope>): <summary>" --body "<description>"
 ```bash
 gh pr edit <pr_number> --title "<updated_title>" --body "<updated_body>"
 ```
+
+**Guard body rewrites**: fetch, edit, and write back a PR/MR/issue body in one `set -euo pipefail` block; never write an empty or shrunken body (`test -s`) — see [body-rewrite.md](references/body-rewrite.md).
