@@ -181,4 +181,7 @@ check, except for the Copilot-unavailable case above, which
 ## Workspace
 
 Tasks run in an isolated Waza workspace. Graders do not verify a
-mutation outside that workspace.
+mutation outside that workspace, so `evals/run-suites.sh` hashes the
+checkout, untracked files included, before and after each suite and fails
+the suite with the changed paths when they differ. Edits already in the tree
+before the run do not count. A bare `waza run` has no such guard.

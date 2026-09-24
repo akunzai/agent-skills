@@ -36,6 +36,12 @@ mkdir -p "$fixture_root/evals/agents-md" "$fixture_root/evals/pr-workflow" "$fak
 cp "$RUN" "$fixture_root/evals/run-suites.sh"
 touch "$fixture_root/evals/agents-md/eval.yaml"
 touch "$fixture_root/evals/pr-workflow/eval.yaml"
+printf 'waza-results/\n' >"$fixture_root/.gitignore"
+printf 'original\n' >"$fixture_root/AGENTS.md"
+git -C "$fixture_root" init -q
+git -C "$fixture_root" add -A
+git -C "$fixture_root" -c user.name=test -c user.email=test@example.invalid \
+  commit -q -m fixture
 
 cat >"$fake_bin/waza" <<'FAKE_WAZA'
 #!/usr/bin/env bash
@@ -58,6 +64,12 @@ while [[ $# -gt 0 ]]; do
 done
 
 case ${FAKE_WAZA_MODE:-pass} in
+  escape)
+    # an agent writing to the checkout by absolute path, then passing
+    printf 'mise trust\n' >>"$FAKE_WAZA_CHECKOUT/AGENTS.md"
+    printf 'note\n' >"$FAKE_WAZA_CHECKOUT/escaped.md"
+    printf '%s\n' '{"tasks": [{"runs": [{"status": "passed"}]}]}' >"$output"
+    ;;
   quota)
     printf '%s\n' '{
       "tasks": [{
@@ -184,6 +196,40 @@ status=$?
 set -e
 [ "$status" -eq 1 ] \
   || fail "a later quota error must not hide an earlier grader failure"
+
+# --- a suite that writes to the checkout fails even when its graders pass,
+# and names what it wrote; edits already in the tree before the run do not
+# count, but a further write to an already-modified file does. ---
+escape_run() {
+  rm -rf "$fixture_root/waza-results" "$fixture_root/escaped.md"
+  git -C "$fixture_root" checkout -q -- AGENTS.md
+  [ -z "${1:-}" ] || printf '%s\n' "$1" >>"$fixture_root/AGENTS.md"
+  set +e
+  escape_out=$(FAKE_WAZA_MODE=$2 FAKE_WAZA_CHECKOUT=$fixture_root \
+    PATH="$fake_bin:$PATH" "$fixture_root/evals/run-suites.sh" pr-workflow 2>&1)
+  escape_status=$?
+  set -e
+}
+
+escape_run '' escape
+[ "$escape_status" -eq 1 ] \
+  || fail "a suite writing to the checkout should exit 1, got $escape_status"
+printf '%s\n' "$escape_out" | grep -q 'pr-workflow wrote outside its Waza workspace' \
+  || fail "the escape should name the suite: $escape_out"
+printf '%s\n' "$escape_out" | grep -q 'M.*AGENTS.md' \
+  || fail "the escape should list the modified file: $escape_out"
+printf '%s\n' "$escape_out" | grep -q 'A.*escaped.md' \
+  || fail "the escape should list the new untracked file: $escape_out"
+
+escape_run 'local edit' pass
+[ "$escape_status" -eq 0 ] \
+  || fail "an edit made before the run should not count, got $escape_status: $escape_out"
+
+escape_run 'local edit' escape
+[ "$escape_status" -eq 1 ] \
+  || fail "a write to an already-modified file should still fail, got $escape_status"
+git -C "$fixture_root" checkout -q -- AGENTS.md
+rm -f "$fixture_root/escaped.md"
 
 # --- the empty `${extra[@]}` expansion (only populated by --baseline)
 # crashed /bin/bash 3.2 under `set -u`; run both the empty and populated
