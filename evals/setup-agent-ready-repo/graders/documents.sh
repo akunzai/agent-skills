@@ -47,29 +47,6 @@ done
 # fire and bury the single real finding.
 [ "$missing" -eq 0 ] || exit 1
 
-# --- the documents are English throughout ---
-# The skill's Phase 1 rule: the language answer governs what an agent later
-# types into the forge, never the language of the file recording that rule.
-# Asserting it directly beats inferring it from whether some English word
-# happens to survive further down the file.
-# Matches the UTF-8 byte range for CJK ideographs. A backtick span is a
-# quoted literal per SKILL.md's Phase 1 rule -- a label, a path, the
-# language's own name -- so it is stripped before the scan rather than
-# naming specific literals here, the same rule install-templates.sh --check
-# applies.
-cjk=$'[\xe4-\xe9][\x80-\xbf][\x80-\xbf]'
-english_throughout() {
-  local f=$1 stray
-  # shellcheck disable=SC2016  # backticks are literal, not command substitution
-  stray=$(sed -E 's/`[^`]*`//g' "$f" \
-    | LC_ALL=C grep -nE "$cjk" | head -n 1 || true)
-  [ -z "$stray" ] \
-    || fail "$f is not English throughout (first offending line: ${stray:0:80})"
-}
-for f in "$pr" "$issues" "$verification"; do
-  english_throughout "$f"
-done
-
 # --- no unresolved template placeholder reaches the repo ---
 # Every template opens with "Replace every <angle placeholder>". A bare
 # <language> or an alternation such as <gh | glab> is a template artefact;

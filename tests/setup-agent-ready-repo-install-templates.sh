@@ -111,42 +111,16 @@ case "$OUT" in
   *"PLACEHOLDER"*) fail "--check flagged the template's own author instructions as an unresolved placeholder: $OUT" ;;
 esac
 
-# --- check catches CJK, and passes a resolved English document ---
-CJK_DIR="$TMP_DIR/cjk"
-mkdir -p "$CJK_DIR/docs/agents"
-printf '# Issue tracker\n\nWrite issue bodies in English.\n' > "$CJK_DIR/docs/agents/issue-tracker.md"
+# --- check leaves the document's language alone ---
+MIXED_DIR="$TMP_DIR/mixed"
+mkdir -p "$MIXED_DIR/docs/agents"
+printf '# Issue tracker: GitHub\n\nWrite issue titles and descriptions in **Traditional Chinese** (繁體中文).\n標籤：個資與資安議題。\n' \
+  > "$MIXED_DIR/docs/agents/issue-tracker.md"
 # A stub document is behind on guarantees, so the run exits non-zero; what
 # this case pins is that its language is not what --check objects to.
-OUT="$("$SCRIPT" --check "$CJK_DIR" 2>&1 || true)"
+OUT="$("$SCRIPT" --check "$MIXED_DIR" 2>&1 || true)"
 case "$OUT" in
-  *"NOT ENGLISH"*) fail "--check called a clean English document not English: $OUT" ;;
-esac
-printf '# 問題追蹤\n' > "$CJK_DIR/docs/agents/issue-tracker.md"
-if "$SCRIPT" --check "$CJK_DIR" >/dev/null 2>&1; then
-  fail "--check passed a document written in Chinese"
-fi
-OUT="$("$SCRIPT" --check "$CJK_DIR" 2>&1 || true)"
-case "$OUT" in
-  *"NOT ENGLISH"*) ;;
-  *) fail "--check did not name the language defect: $OUT" ;;
-esac
-
-# --- a backtick span is a literal, not a translation, whatever it quotes ---
-# shellcheck disable=SC2016  # backticks are literal, not command substitution
-printf '# Issue tracker: GitHub\n\nWrite issue titles and descriptions in **Traditional Chinese** (`繁體中文`).\nLabel: `個資與資安議題`. Path: `docs/認識產品/入門.md`.\n' \
-  > "$CJK_DIR/docs/agents/issue-tracker.md"
-OUT="$("$SCRIPT" --check "$CJK_DIR" 2>&1 || true)"
-case "$OUT" in
-  *"NOT ENGLISH"*) fail "--check flagged backtick-quoted literals as not English: $OUT" ;;
-esac
-
-# --- CJK outside a backtick span still fails, even the language's own name ---
-printf '# Issue tracker: GitHub\n\nWrite issue titles and descriptions in **Traditional Chinese** (繁體中文).\n' \
-  > "$CJK_DIR/docs/agents/issue-tracker.md"
-OUT="$("$SCRIPT" --check "$CJK_DIR" 2>&1 || true)"
-case "$OUT" in
-  *"NOT ENGLISH"*) ;;
-  *) fail "--check let CJK outside backticks through: $OUT" ;;
+  *"NOT ENGLISH"*) fail "--check objected to a document mixing languages: $OUT" ;;
 esac
 
 # --- check reports a guarantee the document has lost, by name and origin ---
@@ -237,7 +211,7 @@ esac
 
 # --- check flags @path in any docs/agents/*.md, not only the template docs ---
 # gistui-style domain docs (architecture.md, conventions.md) are outside the
-# four installed names, so CJK/placeholder/guarantee checks never see them.
+# four installed names, so placeholder/guarantee checks never see them.
 AT_DIR="$TMP_DIR/atpath"
 mkdir -p "$AT_DIR/docs/agents"
 cat > "$AT_DIR/docs/agents/architecture.md" <<'DOC'

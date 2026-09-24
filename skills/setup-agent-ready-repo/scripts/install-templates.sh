@@ -2,15 +2,14 @@
 set -euo pipefail
 
 # Copies this skill's document templates into a target repository, and checks
-# installed documents for what an instruction cannot prevent: prose that is not
-# English, an unresolved <angle placeholder>, a guarantee the current
+# installed documents for what an instruction cannot prevent: an unresolved
+# <angle placeholder>, a guarantee the current
 # templates pin that the document no longer carries, and an @path file
 # reference in any docs/agents/*.md.
 #
 # Copying is the point. A model asked to write a document from a template
-# regenerates it, and regeneration follows the conversation's language, which
-# is how a Chinese `# 提交請求` reached a generated pull-request.md. Copying the
-# bytes and editing the placeholders in place has no such pull.
+# regenerates it, rewording the sentences guarantees.tsv matches. Copying the
+# bytes and editing the placeholders in place keeps them.
 
 usage() {
   cat >&2 <<'USAGE'
@@ -21,7 +20,7 @@ usage: install-templates.sh --forge <github|gitlab|none> [--force] [DIR]
             github writes pull-request.md, gitlab writes merge-request.md,
             none writes verification.md alone (no remote)
   --force   overwrite a destination that already exists
-  --check   scan installed documents for stray CJK, unresolved placeholders,
+  --check   scan installed documents for unresolved placeholders,
             guarantees the current templates pin but the document lost, and
             @path file references in any docs/agents/*.md;
             exits non-zero when it finds any
@@ -65,21 +64,6 @@ DIR="${DIR:-.}"
 [ -d "$DIR" ] || { echo "not a directory: $DIR" >&2; exit 2; }
 DIR="$(cd "$DIR" && pwd)"
 DEST="$DIR/docs/agents"
-
-# Matches the UTF-8 byte range for CJK ideographs, the same test the eval
-# grader applies, so the skill and its grader cannot disagree.
-CJK=$'[\xe4-\xe9][\x80-\xbf][\x80-\xbf]'
-
-# A backtick span is a value quoted character for character -- a label,
-# a path, the language's own name -- not prose to translate, so SKILL.md
-# tells the author to show a literal that way and this strips it before
-# the scan. Stripping the span rather than naming specific literals means
-# any repo-specific value quoted this way is covered without the check
-# knowing what it says.
-strip_literals() {
-  # shellcheck disable=SC2016  # backticks are literal, not command substitution
-  sed -E 's/`[^`]*`//g'
-}
 
 # Markdown hard-wraps prose and indents continuation lines, so a guarantee
 # spanning more than a few words straddles a line break and picks up the
@@ -156,15 +140,10 @@ check_at_path_refs() {
 }
 
 check_docs() {
-  local found=0 f stray leftover kind
+  local found=0 f leftover kind
   for f in "$DEST/issue-tracker.md" "$DEST/pull-request.md" \
            "$DEST/merge-request.md" "$DEST/verification.md"; do
     [ -f "$f" ] || continue
-    stray=$(strip_literals < "$f" | LC_ALL=C grep -nE "$CJK" | head -n 1 || true)
-    if [ -n "$stray" ]; then
-      printf 'NOT ENGLISH %s (first offending line: %s)\n' "${f#"$DIR"/}" "${stray:0:80}"
-      found=1
-    fi
     # A placeholder inside a sample command (`gh issue view <number>`) is not a
     # template artefact; a bare <language> or an alternation such as
     # <gh | glab> is. `placeholder:...` and a ```placeholder fence are the
@@ -191,8 +170,8 @@ check_docs() {
     done
   fi
   if [ "$found" -eq 0 ]; then
-    echo "documents are English, carry no unresolved placeholder, no @path file"
-    echo "reference, and are level with every guarantee the current templates pin"
+    echo "documents carry no unresolved placeholder, no @path file reference,"
+    echo "and are level with every guarantee the current templates pin"
   fi
   return "$found"
 }
@@ -233,4 +212,4 @@ case "$FORGE" in
 esac
 
 echo "Now edit the copies in place: replace every <angle placeholder>, delete"
-echo "the lines that do not apply, and leave the English prose alone."
+echo "the lines that do not apply, and leave the template's own sentences alone."

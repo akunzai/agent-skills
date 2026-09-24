@@ -64,12 +64,10 @@ Run [install-templates.sh](scripts/install-templates.sh) `--forge
 markers `--check` and `check-drift.sh` read. Then edit the copies in
 place: replace `<angle placeholder>` and `placeholder` marks, delete
 what does not apply, leave every `drift:` HTML comment, and leave the
-English prose alone.
-Writing a document from a template regenerates it, and regeneration
-follows the conversation's language; copying bytes does not.
+template's own sentences alone: `--check` matches their wording.
 
-`--check` scans the installed documents for stray CJK, for a placeholder
-nobody replaced, for any guarantee in
+`--check` scans the installed documents for a placeholder nobody
+replaced, for any guarantee in
 [guarantees.tsv](references/guarantees.tsv) the document no longer
 carries, and for `@path` file references in any `docs/agents/*.md`. Run
 it before asking for confirmation. On any finding, fix the file and rerun
@@ -102,28 +100,14 @@ because they live in history and get searched by tooling. Each rule is
 written into the document it governs; no language table goes into
 `AGENTS.md`.
 
-The same answer picks the capture locale: when the UI ships that language
-(`locales/`, i18n), `verification.md` records its code, such as `zh-TW` for
-Traditional Chinese, not the `en-US` browser default.
+The same answer picks the capture locale: when the UI ships the language
+issues and PR/MR bodies use (`locales/`, i18n), `verification.md` records
+its code, such as `zh-TW` for Traditional Chinese, not the `en-US` browser
+default.
 
-**The documents you write are English throughout** — headings, prose,
-and the placeholder text inside a sample block alike. They are read by
-models, and one language means one reading. The answer names the
-language an agent later types into the forge; it never changes the
-language of the file that records the rule. `pull-request.md` is a
-document about pull requests, not a pull request, so "requests are in
-<language>" leaves the file English and puts `<language>` inside the
-sentence the file states. Translating the document is the failure to
-avoid here, and it looks like obedience while you do it.
-
-The exception is a **literal**: a string reproduced character for
-character, such as a label or a citation a reader has to match. Show a
-literal inside backticks — a value quoted from outside the document,
-never a wrapper for translated prose — and write everything the agent
-reads rather than copies in English. `--check` skips a backtick span and
-holds everything outside one to the rule above. Where a forge-native
-template already dictates structure, that template wins; nothing else
-does.
+What you add to a document may be in that language, English, or a mix.
+Where a forge-native template already dictates structure, that template
+wins.
 
 Then propose rather than interview. Probe and offer a concrete default
 the developer confirms or edits: the source paths whose changes must
@@ -176,9 +160,8 @@ document already states: [capture.md](references/capture.md).
 **Done when** `verification.md` exists, carries its `drift:` markers and a
 `UI locale:` line (the language requests are written in when the UI ships
 it, else the UI default), the entrypoint has run clean or
-its failure is recorded as a named gap, all three documents are English
-prose (other languages only inside backticks), and `AGENTS.md` carries
-the pointers. Where `AGENTS.md` does not exist, hand that off to the
+its failure is recorded as a named gap, and `AGENTS.md` carries the
+pointers. Where `AGENTS.md` does not exist, hand that off to the
 `agents-md` skill. Where it is not installed, write a minimal `AGENTS.md`
 holding a one-line project description and the three pointers, and say
 in the hand-back that `agents-md` should audit it.

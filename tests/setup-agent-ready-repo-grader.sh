@@ -3,9 +3,9 @@ set -euo pipefail
 
 # The Waza `documents` grader decides whether a live Copilot run passed, so a
 # defect in it reads as a flaky skill. These cases pin its contract offline: a
-# compliant workspace passes, a document translated out of English fails and
-# says so, and every failing assertion is reported in one run rather than the
-# first one encountered.
+# compliant workspace passes, a document mixing languages passes too, and every
+# failing assertion is reported in one run rather than the first one
+# encountered.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GRADER="$ROOT_DIR/evals/setup-agent-ready-repo/graders/documents.sh"
@@ -60,7 +60,6 @@ cat > "$WS/docs/agents/issue-tracker.md" <<'DOC'
 # Issue tracker: GitHub
 
 Write issue titles and descriptions in **Traditional Chinese** (`繁體中文`).
-This file is English throughout, sample blocks included.
 
 Use the `gh` CLI: `gh issue create --title "..." --body "..."`.
 
@@ -93,7 +92,7 @@ cat > "$WS/docs/agents/pull-request.md" <<'DOC'
 
 Write pull request titles and descriptions in **Traditional Chinese**
 (`繁體中文`). Git commit messages are English, imperative, subject under 72
-characters. This file is English throughout.
+characters.
 
 Open the request with `gh pr create`, and never without the developer asking.
 
@@ -182,54 +181,16 @@ fi
 grep -q "does not record zh-TW as the UI locale" "$TMP_DIR/locale.err" \
   || fail "missing capture locale was rejected without naming it: $(cat "$TMP_DIR/locale.err")"
 
-# --- a document translated out of English is named as such ---
-WS_ZH="$TMP_DIR/translated"
-cp -R "$WS" "$WS_ZH"
-cat > "$WS_ZH/docs/agents/pull-request.md" <<'DOC'
-# Pull requests
-
-PR 的標題與描述請使用繁體中文。Git commit message 仍然使用英文。
-
-使用 `gh pr create` 開啟 PR，必要時先開 draft。
-
-## 描述結構
-
-流程或狀態轉換：Mermaid `flowchart`。任何附件都不得含有個資。
-
-## 測試
-
-例外：文件與 CI 設定。
-DOC
-
-if WAZA_WORKSPACE_DIR="$WS_ZH" bash "$GRADER" 2>"$TMP_DIR/zh.err"; then
-  fail "a pull-request.md written in Chinese was accepted"
-fi
-grep -q "pull-request.md is not English throughout" "$TMP_DIR/zh.err" \
-  || fail "translated document was rejected without naming the language rule: $(cat "$TMP_DIR/zh.err")"
-
-# --- a backtick-quoted literal is exempt, whatever it quotes, but bare CJK
-# next to it still is not ---
-WS_LITERAL="$TMP_DIR/literal"
-cp -R "$WS" "$WS_LITERAL"
-cat >> "$WS_LITERAL/docs/agents/issue-tracker.md" <<'DOC'
-
-Label: `個資與資安議題`. Path: `docs/認識產品/入門.md`.
-DOC
-if ! WAZA_WORKSPACE_DIR="$WS_LITERAL" bash "$GRADER" 2>"$TMP_DIR/literal.err"; then
-  fail "backtick-quoted CJK literals were rejected: $(cat "$TMP_DIR/literal.err")"
-fi
-
-WS_BARE="$TMP_DIR/bare-cjk"
-cp -R "$WS" "$WS_BARE"
-cat >> "$WS_BARE/docs/agents/issue-tracker.md" <<'DOC'
+# --- the ticket language beside the template's English sentences is accepted ---
+WS_MIXED="$TMP_DIR/mixed"
+cp -R "$WS" "$WS_MIXED"
+cat >> "$WS_MIXED/docs/agents/issue-tracker.md" <<'DOC'
 
 標籤：個資與資安議題。
 DOC
-if WAZA_WORKSPACE_DIR="$WS_BARE" bash "$GRADER" 2>"$TMP_DIR/bare.err"; then
-  fail "CJK prose outside backticks was accepted"
+if ! WAZA_WORKSPACE_DIR="$WS_MIXED" bash "$GRADER" 2>"$TMP_DIR/mixed.err"; then
+  fail "a document mixing English and Chinese was rejected: $(cat "$TMP_DIR/mixed.err")"
 fi
-grep -q "issue-tracker.md is not English throughout" "$TMP_DIR/bare.err" \
-  || fail "bare CJK was rejected without naming the language rule: $(cat "$TMP_DIR/bare.err")"
 
 # --- every failing assertion is reported, not just the first ---
 WS_MULTI="$TMP_DIR/multi"
