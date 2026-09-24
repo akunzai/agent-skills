@@ -36,10 +36,6 @@ npx skills add akunzai/agent-skills
 
 The interactive picker groups the catalog as **Charley Skills**.
 
-If you previously installed the `charley-skills` plugin, uninstall it from
-the runtime and run `skills add` instead. Plugin-installed skills are
-prefixed (`charley-skills:to-memory`) and named lookup misses them.
-
 ### Engineering
 
 #### [`setup-agent-ready-repo`](skills/setup-agent-ready-repo/SKILL.md)

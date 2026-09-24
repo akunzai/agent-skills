@@ -72,9 +72,7 @@ the file; English is the shared language across harnesses.
 
 Also add `./skills/<name>` to the `skills` array in
 `.claude-plugin/plugin.json` so `skills add` / `npx skills add` groups it under
-**Charley Skills**. Do not add a catalog skill to the marketplace: plugin
-install prefixes the name (`charley-skills:to-memory`) and named lookup
-misses it.
+**Charley Skills**.
 
 ### Manual-only skills
 
