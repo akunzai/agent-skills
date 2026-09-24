@@ -135,6 +135,28 @@ both marketplace files. Root `.claude-plugin/plugin.json` is only the
 `skills add` / `npx skills add` catalog (name kebab-cases to **Charley
 Skills**); it has no `version` and is not installable as a plugin.
 
+## Catalog releases
+
+Catalog skills under `skills/` share one repository version, a semver tag
+`vMAJOR.MINOR.PATCH`. Installers track the branch by content hash, not by
+tag, so a release exists for readers: pushing a tag that points at `main`
+runs `.github/workflows/release.yml`, which publishes a GitHub Release with
+notes grouped by pull-request label. `.github/workflows/pr-labeler.yml`
+derives that label from the branch prefix (`feat/`, `fix/`, `docs/`, `ci/`,
+`refactor/`, `test/`, `chore/`) and adds `breaking` when the title carries a
+Conventional Commit `!`.
+
+- **Major**: a skill is renamed or removed, loses a trigger, or changes where
+  or how it stores data — anything an installed user must act on. Add a
+  README migration note with the exact commands, and declare the old name
+  with `metadata.replaces` in the renamed skill's frontmatter.
+- **Minor**: a new skill, or a new capability or trigger in an existing one.
+- **Patch**: fixes, wording, tests, and evals.
+
+```bash
+git tag v1.2.0 origin/main && git push origin v1.2.0
+```
+
 ## Code Style
 
 - All shell scripts must pass **ShellCheck** with no warnings.

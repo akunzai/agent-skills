@@ -1,0 +1,86 @@
+name: "PR Auto Labeler"
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  labeler:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apply labels based on branch name prefix and title
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const issue = { owner: context.repo.owner, repo: context.repo.repo, issue_number: pr.number };
+            const currentLabels = (pr.labels || []).map(l => l.name);
+
+            // A Conventional Commit "!" in the title marks a breaking change.
+            const breaking = /^[a-z]+(\([^)]*\))?!:/i.test(pr.title || "");
+            if (breaking && !currentLabels.includes("breaking")) {
+              await github.rest.issues.addLabels({ ...issue, labels: ["breaking"] });
+              console.log(`Added label "breaking" to PR #${pr.number}`);
+            } else if (!breaking && currentLabels.includes("breaking")) {
+              await github.rest.issues.removeLabel({ ...issue, name: "breaking" });
+              console.log(`Removed label "breaking" from PR #${pr.number}`);
+            }
+
+            const branch = pr.head.ref || "";
+            const match = branch.match(/^([a-zA-Z]+)\//);
+            if (!match) {
+              console.log(`No recognized prefix in branch name: "${branch}"`);
+              return;
+            }
+
+            const prefixMap = {
+              feat: "enhancement",
+              feature: "enhancement",
+              fix: "bug",
+              bug: "bug",
+              docs: "documentation",
+              doc: "documentation",
+              ci: "ci",
+              build: "ci",
+              chore: "chore",
+              release: "chore",
+              refactor: "refactor",
+              test: "tests",
+              tests: "tests",
+              perf: "enhancement",
+            };
+
+            const primaryCategoryLabels = [
+              "enhancement",
+              "bug",
+              "documentation",
+              "ci",
+              "chore",
+              "refactor",
+              "tests",
+              "dependencies",
+            ];
+
+            const targetLabel = prefixMap[match[1].toLowerCase()];
+            if (!targetLabel) return;
+
+            // Remove other conflicting primary category labels
+            for (const oldLabel of currentLabels) {
+              if (oldLabel !== targetLabel && primaryCategoryLabels.includes(oldLabel)) {
+                try {
+                  await github.rest.issues.removeLabel({ ...issue, name: oldLabel });
+                  console.log(`Removed conflicting label "${oldLabel}" from PR #${pr.number}`);
+                } catch (err) {
+                  console.log(`Failed to remove label "${oldLabel}": ${err.message}`);
+                }
+              }
+            }
+
+            if (!currentLabels.includes(targetLabel)) {
+              await github.rest.issues.addLabels({ ...issue, labels: [targetLabel] });
+              console.log(`Added label "${targetLabel}" to PR #${pr.number}`);
+            }
