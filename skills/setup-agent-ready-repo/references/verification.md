@@ -88,6 +88,27 @@ layer over the entrypoint, never a second implementation of it:
 `verification.md` names both: the script for people, the check for
 agents.
 
+## Container engine
+
+A compose file this skill adds — mocks, or anything else — runs under
+both `docker compose` and `podman compose`:
+
+- **Fully qualified image names** (`docker.io/<owner>/<image>:<tag>`).
+  Podman may prompt for a registry on a short name, which breaks the
+  never-prompt rule. Take the tag from the registry, not from memory.
+- **`:z` on every bind mount**, or containers on an SELinux host cannot
+  read the mounted files. Docker accepts the same option.
+
+The entrypoint picks the engine in order: an explicit variable such as
+`CONTAINER_ENGINE`, then the same key in the gitignored `.env`, then
+whichever engine answers `<engine> info`. Any other value exits non-zero;
+an engine that is installed but stopped exits naming how to start it.
+
+Prove the engine rather than assume it: bring the file up under each
+engine available and confirm a mounted file is served, not only that the
+containers run. An engine this machine lacks goes under the unverified
+section.
+
 ## Ports, with several agents at once
 
 Two strategies, chosen by how the project is reached.
