@@ -100,10 +100,9 @@ writes into the workspace, and their wording is the author's, not the skill's.
 The line it has to hold:
 
 - **Assert what the skill or its templates pin**, and assert it directly. The
-  documents being English throughout is a Phase 1 rule, so the grader tests for
-  stray CJK rather than inferring the language from whether the English word
-  `exempt` survived further down the file. A proxy assertion fails for the right
-  reason only by luck, and names the wrong defect when it does.
+  capture locale is a Phase 1 rule, so the grader reads the `UI locale:` line
+  rather than inferring the locale from other prose. A proxy assertion fails
+  for the right reason only by luck, and names the wrong defect when it does.
 - **Assert a section's existence, not its prose.** That a diagram table, an
   exempt-paths list, or a `drift:` marker another script parses is present is
   pinned by `references/templates/`; the sentences around them are not. Every
@@ -124,8 +123,8 @@ disagree about what a document must carry. What varies by forge, by task, or by
 the language answer stays in the grader, which knows what it asked for.
 
 `tests/setup-agent-ready-repo-grader.sh` pins that contract offline: a compliant
-workspace passes, a translated one fails naming the language rule, and a
-workspace missing three guarantees reports all three. It needs no Copilot, so a
+workspace passes, one mixing languages passes too, and a workspace missing
+three guarantees reports all three. It needs no Copilot, so a
 grader edit is verified before any premium request is spent.
 
 ## Spec (replaces `skills-ref validate`)

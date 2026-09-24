@@ -1,9 +1,6 @@
 <!-- Template. Replace every <angle placeholder>, every inline `placeholder`
      span, and every ```placeholder fence; delete sections that do not
      apply. -->
-<!-- Write the file in English, whatever language the repo chose for its
-     tickets: that answer governs what an agent types into the forge, not the
-     documents recording the conventions. -->
 
 # Verification
 

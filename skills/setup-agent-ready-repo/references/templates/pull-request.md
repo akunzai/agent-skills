@@ -1,17 +1,8 @@
 <!-- Template. Name the file pull-request.md on GitHub, merge-request.md on GitLab. -->
 <!-- Replace every <angle placeholder> and every inline `placeholder` span;
      delete lines that do not apply. -->
-<!-- Write the file in English, whatever <language> turns out to be: a
-     document about requests is not a request. <language> is the English
-     name of a language, substituted into a sentence, never an instruction
-     to translate what surrounds it. Write that name in English too: the
-     first non-English word in the file is what pulls the rest of it
-     across. -->
 
 # <Pull | Merge> requests
-
-**This file is English throughout**, sample blocks included, whatever
-language the repo chose for its requests.
 
 Write <PR | MR> titles, descriptions, and comments in **<language>**.
 **Git commit messages are English**, imperative, subject under 72

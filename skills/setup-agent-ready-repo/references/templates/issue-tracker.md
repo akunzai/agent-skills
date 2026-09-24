@@ -1,15 +1,7 @@
 <!-- Template. Replace every <angle placeholder> and every inline
      `placeholder` span; delete lines that do not apply. -->
-<!-- Write the file in English, whatever <language> turns out to be: a
-     document about issues is not an issue. <language> is the English name
-     of a language, substituted into a sentence, never an instruction to
-     translate what surrounds it. Write that name in English too: the first
-     non-English word in the file is what pulls the rest of it across. -->
 
 # Issue tracker: <GitHub | GitLab | other>
-
-**This file is English throughout**, sample blocks included, so it reads
-one way to every model, whatever language the repo chose for its issues.
 
 Issues live as `placeholder:forge` issues. Use the `<gh | glab>` CLI for all
 operations; it infers the repo when run inside a clone.
