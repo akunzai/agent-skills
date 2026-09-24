@@ -5,7 +5,7 @@ description: |
   exact AGENTS.md addition, then writes it after the follow-up yes.
 
 tags:
-  - to-memory
+  - agents-memory
   - memory
 
 inputs:

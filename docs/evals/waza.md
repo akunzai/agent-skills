@@ -6,7 +6,7 @@ The three worker-routing suites use `gemini-3.8-flash`; the remaining suites
 use their own pinned model. Skills remain usable in other assistants; those
 runtimes are not the effectiveness instrument.
 
-Covered: `agents-md`, `mise`, `aube`, `tidy-commits`, `to-memory`,
+Covered: `agents-md`, `mise`, `aube`, `tidy-commits`, `agents-memory`,
 `backfill-unit-tests`, `pr-workflow`, `write-e2e-tests`, `github-epic`,
 `gitlab-epic`, `to-walkthrough-video`, `setup-agent-ready-repo`.
 Not covered here: `agentsview-extract`, `agentsview-resume` — a suite

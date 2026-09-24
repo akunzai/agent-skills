@@ -1,8 +1,8 @@
-name: to-memory-eval
+name: agents-memory-eval
 description: |
-  Isolated-workspace suite for to-memory. After explicit confirmation,
+  Isolated-workspace suite for agents-memory. After explicit confirmation,
   the agent writes one project long-term note into AGENTS.md.
-skill: to-memory
+skill: agents-memory
 schemaVersion: "1.0"
 version: "1.0"
 

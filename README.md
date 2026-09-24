@@ -127,18 +127,26 @@ Use it when you want to:
   place them where whoever would break them must pass (enforced in code,
   commented at the site, or in a referenced topic doc)
 
-#### [`to-memory`](skills/to-memory/SKILL.md)
+#### [`agents-memory`](skills/agents-memory/SKILL.md)
 
-Explicitly record something worth remembering — decides scope (global vs.
-project) and tier (short-term candidate vs. long-term durable), then writes it.
+Explicitly record, recall, or forget something worth remembering — decides
+scope (global vs. project) and tier (short-term candidate vs. long-term
+durable) when recording.
 Autonomous recurrence-prevention after solving a problem stays with `agents-md`'s
 Prevent Recurrence mechanism.
 
 > **Migration:** The original `memory` skill was split into the `mem-*` family
 > (`mem-auto`, `mem-clean`, `mem-promote`, `mem-recall`, `mem-setup`, and
-> `mem-sync`), then consolidated into `to-memory`. These legacy names may remain
-> visible in public registries because of historical install data, but are no longer
-> maintained.
+> `mem-sync`), then consolidated into `to-memory`, now renamed `agents-memory`.
+> These legacy names may remain visible in public registries because of
+> historical install data, but are no longer maintained. To move off
+> `to-memory`, remove it and add the new name:
+>
+> ```bash
+> skills rm to-memory && skills add akunzai/agent-skills --skill agents-memory
+> # or, with npx skills
+> npx skills remove to-memory && npx skills add akunzai/agent-skills@agents-memory
+> ```
 
 #### [`agentsview-extract`](skills/agentsview-extract/SKILL.md)
 

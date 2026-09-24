@@ -2,10 +2,10 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SCRIPT="$ROOT_DIR/skills/to-memory/scripts/proj-memory-path.sh"
+SCRIPT="$ROOT_DIR/skills/agents-memory/scripts/proj-memory-path.sh"
 
 fail() {
-  echo "to-memory-storage test failed: $*" >&2
+  echo "agents-memory-storage test failed: $*" >&2
   exit 1
 }
 
@@ -101,4 +101,4 @@ if [ "$SPACE_MAIN_MEM_PATH" != "$SPACE_WORKTREE_MEM_PATH" ]; then
   fail "Space-in-path worktree memory path ($SPACE_WORKTREE_MEM_PATH) does not match main repo memory path ($SPACE_MAIN_MEM_PATH)"
 fi
 
-echo "to-memory-storage tests passed"
+echo "agents-memory-storage tests passed"

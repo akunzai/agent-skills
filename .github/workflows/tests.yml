@@ -31,14 +31,14 @@ jobs:
       - name: Run ShellCheck
         run: mise run lint-shell
 
-  to-memory:
+  agents-memory:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Run to-memory project storage checks
-        run: bash tests/to-memory-storage.sh
+      - name: Run agents-memory project storage checks
+        run: bash tests/agents-memory-storage.sh
 
   write-e2e-tests:
     runs-on: ubuntu-latest

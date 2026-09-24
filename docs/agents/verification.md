@@ -119,7 +119,7 @@ for the developer to run, not an agent.
 
 Not applicable. This repo has no listening service, so several agents can run
 the gate in the same clone at once. Tests that need isolation create their own
-`mktemp -d` HOME and clean it up on exit — see `tests/to-memory-storage.sh`.
+`mktemp -d` HOME and clean it up on exit — see `tests/agents-memory-storage.sh`.
 
 There is no deployed environment, and no credential in this repo. Copilot and
 `gh` read the developer's own login.

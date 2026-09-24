@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPT="$ROOT_DIR/plugins/codexbar-quota-handoff/scripts/quota-reminder.sh"
-PROJ_MEMORY_PATH="$ROOT_DIR/skills/to-memory/scripts/proj-memory-path.sh"
+PROJ_MEMORY_PATH="$ROOT_DIR/skills/agents-memory/scripts/proj-memory-path.sh"
 
 fail() {
   echo "codexbar-quota-handoff quota-reminder check failed: $*" >&2
@@ -13,7 +13,7 @@ fail() {
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-# Isolated HOME so dest probing never sees the developer's real to-memory skill.
+# Isolated HOME so dest probing never sees the developer's real agents-memory skill.
 EMPTY_HOME="$TMP_DIR/empty-home"
 WORK_DIR="$TMP_DIR/work"
 mkdir -p "$EMPTY_HOME" "$WORK_DIR"
@@ -54,8 +54,8 @@ assert_procedure() {
     *) fail "[$label] reminder text does not mention Then stop (got: $stderr_output)" ;;
   esac
   case "$stderr_output" in
-    *"Do not invoke to-memory"*) ;;
-    *) fail "[$label] reminder text does not mention Do not invoke to-memory (got: $stderr_output)" ;;
+    *"Do not invoke agents-memory"*) ;;
+    *) fail "[$label] reminder text does not mention Do not invoke agents-memory (got: $stderr_output)" ;;
   esac
   case "$stderr_output" in
     *'/handoff'*) fail "[$label] reminder text still mentions /handoff (got: $stderr_output)" ;;
@@ -170,58 +170,58 @@ case "$CURSOR_STDERR" in
 esac
 [ ! -f "$CURSOR_FLAG" ] || fail "[cursor] flag file was not cleared after firing"
 
-# --- to-memory present, cwd is not a git repo: global short-term path ---
+# --- agents-memory present, cwd is not a git repo: global short-term path ---
 MEM_HOME="$TMP_DIR/mem-home"
-mkdir -p "$MEM_HOME/.agents/skills/to-memory"
-printf '# to-memory\n' >"$MEM_HOME/.agents/skills/to-memory/SKILL.md"
+mkdir -p "$MEM_HOME/.agents/skills/agents-memory"
+printf '# agents-memory\n' >"$MEM_HOME/.agents/skills/agents-memory/SKILL.md"
 MEM_FLAG="$TMP_DIR/mem/quota-low.json"
 mkdir -p "$(dirname "$MEM_FLAG")"
 printf '%s' "$FIXTURE" >"$MEM_FLAG"
 RC=0
 MEM_STDERR="$(run_reminder "$MEM_HOME" "$WORK_DIR" "$MEM_FLAG" 2>&1 1>/dev/null)" || RC=$?
-[ "$RC" -eq 2 ] || fail "to-memory without git: expected exit 2, got $RC"
-assert_procedure "$MEM_STDERR" "to-memory-global"
+[ "$RC" -eq 2 ] || fail "agents-memory without git: expected exit 2, got $RC"
+assert_procedure "$MEM_STDERR" "agents-memory-global"
 GLOBAL_DEST="$MEM_HOME/.agents/memories/$TODAY-handoff-<topic>.md"
 case "$MEM_STDERR" in
   *"$GLOBAL_DEST"*) ;;
-  *) fail "to-memory without git: expected dest $GLOBAL_DEST (got: $MEM_STDERR)" ;;
+  *) fail "agents-memory without git: expected dest $GLOBAL_DEST (got: $MEM_STDERR)" ;;
 esac
 case "$MEM_STDERR" in
-  *"never a temp dir"*) fail "to-memory dest should not say never a temp dir (got: $MEM_STDERR)" ;;
+  *"never a temp dir"*) fail "agents-memory dest should not say never a temp dir (got: $MEM_STDERR)" ;;
 esac
 [ ! -d "$MEM_HOME/.agents/memories" ] \
   || fail "hook must not create the global memories directory"
 
-# --- to-memory present, cwd is a git repo, proj-memory-path.sh works ---
+# --- agents-memory present, cwd is a git repo, proj-memory-path.sh works ---
 GIT_HOME="$TMP_DIR/git-home"
 GIT_WORK="$TMP_DIR/git-work"
-mkdir -p "$GIT_HOME/.agents/skills/to-memory/scripts" "$GIT_WORK"
-printf '# to-memory\n' >"$GIT_HOME/.agents/skills/to-memory/SKILL.md"
-cp "$PROJ_MEMORY_PATH" "$GIT_HOME/.agents/skills/to-memory/scripts/proj-memory-path.sh"
-chmod +x "$GIT_HOME/.agents/skills/to-memory/scripts/proj-memory-path.sh"
+mkdir -p "$GIT_HOME/.agents/skills/agents-memory/scripts" "$GIT_WORK"
+printf '# agents-memory\n' >"$GIT_HOME/.agents/skills/agents-memory/SKILL.md"
+cp "$PROJ_MEMORY_PATH" "$GIT_HOME/.agents/skills/agents-memory/scripts/proj-memory-path.sh"
+chmod +x "$GIT_HOME/.agents/skills/agents-memory/scripts/proj-memory-path.sh"
 git -C "$GIT_WORK" init -b main >/dev/null
-EXPECTED_PROJ_DIR="$(HOME="$GIT_HOME" "$GIT_HOME/.agents/skills/to-memory/scripts/proj-memory-path.sh" "$GIT_WORK")"
+EXPECTED_PROJ_DIR="$(HOME="$GIT_HOME" "$GIT_HOME/.agents/skills/agents-memory/scripts/proj-memory-path.sh" "$GIT_WORK")"
 [ ! -d "$EXPECTED_PROJ_DIR" ] || fail "resolver without --ensure should not create $EXPECTED_PROJ_DIR"
 GIT_FLAG="$TMP_DIR/git/quota-low.json"
 mkdir -p "$(dirname "$GIT_FLAG")"
 printf '%s' "$FIXTURE" >"$GIT_FLAG"
 RC=0
 GIT_STDERR="$(run_reminder "$GIT_HOME" "$GIT_WORK" "$GIT_FLAG" 2>&1 1>/dev/null)" || RC=$?
-[ "$RC" -eq 2 ] || fail "to-memory git: expected exit 2, got $RC"
-assert_procedure "$GIT_STDERR" "to-memory-git"
+[ "$RC" -eq 2 ] || fail "agents-memory git: expected exit 2, got $RC"
+assert_procedure "$GIT_STDERR" "agents-memory-git"
 PROJ_DEST="$EXPECTED_PROJ_DIR/$TODAY-handoff-<topic>.md"
 case "$GIT_STDERR" in
   *"$PROJ_DEST"*) ;;
-  *) fail "to-memory git: expected dest $PROJ_DEST (got: $GIT_STDERR)" ;;
+  *) fail "agents-memory git: expected dest $PROJ_DEST (got: $GIT_STDERR)" ;;
 esac
 [ ! -d "$EXPECTED_PROJ_DIR" ] \
   || fail "hook must not create the project memory directory ($EXPECTED_PROJ_DIR)"
 
-# --- to-memory present, git repo, but proj-memory-path.sh missing: global ---
+# --- agents-memory present, git repo, but proj-memory-path.sh missing: global ---
 NOSCRIPT_HOME="$TMP_DIR/noscript-home"
 NOSCRIPT_WORK="$TMP_DIR/noscript-work"
-mkdir -p "$NOSCRIPT_HOME/.agents/skills/to-memory" "$NOSCRIPT_WORK"
-printf '# to-memory\n' >"$NOSCRIPT_HOME/.agents/skills/to-memory/SKILL.md"
+mkdir -p "$NOSCRIPT_HOME/.agents/skills/agents-memory" "$NOSCRIPT_WORK"
+printf '# agents-memory\n' >"$NOSCRIPT_HOME/.agents/skills/agents-memory/SKILL.md"
 git -C "$NOSCRIPT_WORK" init -b main >/dev/null
 NOSCRIPT_FLAG="$TMP_DIR/noscript/quota-low.json"
 mkdir -p "$(dirname "$NOSCRIPT_FLAG")"
@@ -229,32 +229,32 @@ printf '%s' "$FIXTURE" >"$NOSCRIPT_FLAG"
 RC=0
 NOSCRIPT_STDERR="$(run_reminder "$NOSCRIPT_HOME" "$NOSCRIPT_WORK" "$NOSCRIPT_FLAG" \
   2>&1 1>/dev/null)" || RC=$?
-[ "$RC" -eq 2 ] || fail "to-memory git without script: expected exit 2, got $RC"
+[ "$RC" -eq 2 ] || fail "agents-memory git without script: expected exit 2, got $RC"
 NOSCRIPT_DEST="$NOSCRIPT_HOME/.agents/memories/$TODAY-handoff-<topic>.md"
 case "$NOSCRIPT_STDERR" in
   *"$NOSCRIPT_DEST"*) ;;
-  *) fail "to-memory git without script: expected dest $NOSCRIPT_DEST (got: $NOSCRIPT_STDERR)" ;;
+  *) fail "agents-memory git without script: expected dest $NOSCRIPT_DEST (got: $NOSCRIPT_STDERR)" ;;
 esac
 
-# --- to-memory present, git repo, proj-memory-path.sh exits 1: global ---
+# --- agents-memory present, git repo, proj-memory-path.sh exits 1: global ---
 FAIL_HOME="$TMP_DIR/fail-home"
 FAIL_WORK="$TMP_DIR/fail-work"
-mkdir -p "$FAIL_HOME/.agents/skills/to-memory/scripts" "$FAIL_WORK"
-printf '# to-memory\n' >"$FAIL_HOME/.agents/skills/to-memory/SKILL.md"
+mkdir -p "$FAIL_HOME/.agents/skills/agents-memory/scripts" "$FAIL_WORK"
+printf '# agents-memory\n' >"$FAIL_HOME/.agents/skills/agents-memory/SKILL.md"
 printf '#!/usr/bin/env bash\nexit 1\n' \
-  >"$FAIL_HOME/.agents/skills/to-memory/scripts/proj-memory-path.sh"
-chmod +x "$FAIL_HOME/.agents/skills/to-memory/scripts/proj-memory-path.sh"
+  >"$FAIL_HOME/.agents/skills/agents-memory/scripts/proj-memory-path.sh"
+chmod +x "$FAIL_HOME/.agents/skills/agents-memory/scripts/proj-memory-path.sh"
 git -C "$FAIL_WORK" init -b main >/dev/null
 FAIL_FLAG="$TMP_DIR/fail/quota-low.json"
 mkdir -p "$(dirname "$FAIL_FLAG")"
 printf '%s' "$FIXTURE" >"$FAIL_FLAG"
 RC=0
 FAIL_STDERR="$(run_reminder "$FAIL_HOME" "$FAIL_WORK" "$FAIL_FLAG" 2>&1 1>/dev/null)" || RC=$?
-[ "$RC" -eq 2 ] || fail "to-memory git with failing script: expected exit 2, got $RC"
+[ "$RC" -eq 2 ] || fail "agents-memory git with failing script: expected exit 2, got $RC"
 FAIL_DEST="$FAIL_HOME/.agents/memories/$TODAY-handoff-<topic>.md"
 case "$FAIL_STDERR" in
   *"$FAIL_DEST"*) ;;
-  *) fail "to-memory git with failing script: expected dest $FAIL_DEST (got: $FAIL_STDERR)" ;;
+  *) fail "agents-memory git with failing script: expected dest $FAIL_DEST (got: $FAIL_STDERR)" ;;
 esac
 
 # A relative XDG value is invalid by spec; runtime hooks fall back safely.

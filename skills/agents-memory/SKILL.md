@@ -1,11 +1,20 @@
 ---
-name: to-memory
-description: Explicitly record something worth remembering, deciding scope (global vs. project) and tier (short-term candidate vs. long-term durable), then writing it. Use on `/to-memory`, "remember this", or `$to-memory`. Autonomous knowledge capture after solving a problem is agents-md's Prevent Recurrence, not this skill.
+name: agents-memory
+description: >-
+  Record, recall, or forget notes in the agent's global or project memory,
+  deciding scope (global vs. project) and tier (short-term candidate vs.
+  long-term durable) when recording. Use on `/agents-memory`,
+  `$agents-memory`, "remember this", "what did I note about X", "recall",
+  or "forget X". Autonomous knowledge capture after solving a problem is
+  agents-md's Prevent Recurrence, not this skill.
+metadata:
+  replaces: to-memory
 ---
 
-# to-memory — Explicit Memory Capture
+# agents-memory — Explicit Memory
 
-Records one thing the user explicitly asked to remember.
+Records one thing the user explicitly asked to remember, and recalls or
+forgets short-term notes on request.
 
 ## Scope and tier
 
