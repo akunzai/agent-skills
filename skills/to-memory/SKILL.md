@@ -22,7 +22,9 @@ inference from the request, or by asking when genuinely ambiguous:
 Write directly into the durable target — no intermediate staging or batch review:
 
 - Global: `~/.agents/AGENTS.md`
-- Project: `<repo>/AGENTS.md`
+- Project: `<repo>/AGENTS.md`, where `<repo>` is the git root of the current
+  working directory (the directory itself outside git) — never the directory
+  this skill was loaded from.
 
 Before writing, hold the note to this bar:
 
