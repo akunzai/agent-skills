@@ -60,6 +60,7 @@ graders:
           or 'alternative' in output.lower()
           or 'prefer' in output.lower()
           or 'offload' in output.lower()
+          or 'replace' in output.lower()
         - "'@docs/release-checklist' in output.lower()"
         - >-
           bool(re.search(r'(?<!@)`docs/release-checklist\.md`', output))
