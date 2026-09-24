@@ -2,13 +2,13 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SUGGEST="$ROOT_DIR/skills/to-walkthrough-video/scripts/suggest-zooms.mjs"
-RENDER="$ROOT_DIR/skills/to-walkthrough-video/scripts/render-auto-zoom.mjs"
-RECORD="$ROOT_DIR/skills/to-walkthrough-video/scripts/record.mjs"
-SERVE="$ROOT_DIR/skills/to-walkthrough-video/examples/site/serve.mjs"
+SUGGEST="$ROOT_DIR/skills/record-walkthrough/scripts/suggest-zooms.mjs"
+RENDER="$ROOT_DIR/skills/record-walkthrough/scripts/render-auto-zoom.mjs"
+RECORD="$ROOT_DIR/skills/record-walkthrough/scripts/record.mjs"
+SERVE="$ROOT_DIR/skills/record-walkthrough/examples/site/serve.mjs"
 
 fail() {
-  echo "to-walkthrough-video test failed: $*" >&2
+  echo "record-walkthrough test failed: $*" >&2
   exit 1
 }
 
@@ -61,7 +61,7 @@ node "$SUGGEST" --help >"$TMP_DIR/help"
 grep -q -- "--clicks" "$TMP_DIR/help" || fail "suggest-zooms --help missing --clicks"
 
 # Skills are installed as symlinks; invoking through one must still run main().
-ln -s "$ROOT_DIR/skills/to-walkthrough-video" "$TMP_DIR/skill-link"
+ln -s "$ROOT_DIR/skills/record-walkthrough" "$TMP_DIR/skill-link"
 node "$TMP_DIR/skill-link/scripts/record.mjs" --help >"$TMP_DIR/symlink-help" \
   || fail "record.mjs through a symlink should exit 0"
 grep -q -- "--scenario" "$TMP_DIR/symlink-help" \
@@ -1393,7 +1393,7 @@ const fail = (message) => {
   process.exit(1);
 };
 
-const scenario = JSON.parse(fs.readFileSync("${ROOT_DIR}/skills/to-walkthrough-video/examples/scenario-login.json", "utf8"));
+const scenario = JSON.parse(fs.readFileSync("${ROOT_DIR}/skills/record-walkthrough/examples/scenario-login.json", "utf8"));
 const problems = validateScenario(scenario);
 if (problems.length !== 0) {
   fail("the sign-in example should validate: " + problems.join("; "));
@@ -1565,7 +1565,7 @@ node "$SUGGEST" --clicks "$TMP_DIR/array.json" --duration-ms 20000 --out "$TMP_D
 [ "$(jq_field "$TMP_DIR/array.zooms.json" suggestions.0.start)" = "7500" ] || fail "JSON array start"
 
 if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
-  echo "to-walkthrough-video tests passed (suggest-zooms; ffmpeg not on PATH, render skipped)"
+  echo "record-walkthrough tests passed (suggest-zooms; ffmpeg not on PATH, render skipped)"
   exit 0
 fi
 
@@ -1625,4 +1625,4 @@ node "$RENDER" --video "$TMP_DIR/halves.mp4" --zooms "$TMP_DIR/legacy.zooms.json
   >/dev/null || fail "render-auto-zoom with a focus-only zooms file failed"
 is_red "$(center_rgb "$TMP_DIR/legacy.mp4" 1.0)" || fail "a focus-only region should zoom on its focus"
 
-echo "to-walkthrough-video tests passed"
+echo "record-walkthrough tests passed"

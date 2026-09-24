@@ -161,11 +161,20 @@ current repository, then stops for your call.
 
 ### Media
 
-#### [`to-walkthrough-video`](skills/to-walkthrough-video/SKILL.md)
+#### [`record-walkthrough`](skills/record-walkthrough/SKILL.md)
 
 Record a website walkthrough as a demo video with auto-zoom on clicks.
 Playwright captures the viewport; a click log drives zoom clusters in the
 rendered video.
+
+> **Migration:** Formerly `to-walkthrough-video`. To move off it, remove it and
+> add the new name:
+>
+> ```bash
+> skills rm to-walkthrough-video && skills add akunzai/agent-skills --skill record-walkthrough
+> # or, with npx skills
+> npx skills remove to-walkthrough-video && npx skills add akunzai/agent-skills@record-walkthrough
+> ```
 
 ## Plugins
 

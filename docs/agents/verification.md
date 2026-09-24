@@ -128,7 +128,7 @@ There is no deployed environment, and no credential in this repo. Copilot and
 
 - Terminal recording: the `tcut` skill. Absent it, paste the command and its
   output in a fenced block inside the description's `<details>` trailer.
-- Website walkthrough: the `to-walkthrough-video` skill.
+- Website walkthrough: the `record-walkthrough` skill.
 - UI locale: not applicable, this repo ships no UI.
 
 **This document is where the capture rules live**, and `docs/agents/pull-request.md`

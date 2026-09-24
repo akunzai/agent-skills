@@ -1,8 +1,8 @@
-name: to-walkthrough-video-eval
+name: record-walkthrough-eval
 description: |
-  Isolated-workspace suite for to-walkthrough-video. The agent writes
+  Isolated-workspace suite for record-walkthrough. The agent writes
   scenario.json from a brief and does not open a browser or record.
-skill: to-walkthrough-video
+skill: record-walkthrough
 schemaVersion: "1.0"
 version: "1.0"
 
@@ -49,7 +49,7 @@ graders:
       args:
         - -c
         - |
-          for script in evals/to-walkthrough-video/graders/scenario-json.sh \
+          for script in evals/record-walkthrough/graders/scenario-json.sh \
             graders/scenario-json.sh; do
             if [ -f "$script" ]; then
               exec bash "$script"
@@ -64,7 +64,7 @@ graders:
     config:
       expected_files:
         - path: BRIEF.txt
-          snapshot: evals/to-walkthrough-video/fixtures/BRIEF.txt
+          snapshot: evals/record-walkthrough/fixtures/BRIEF.txt
 
 tasks:
   - "tasks/*.yaml"

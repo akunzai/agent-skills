@@ -16,10 +16,10 @@
     "./skills/gitlab-epic",
     "./skills/mise",
     "./skills/pr-workflow",
+    "./skills/record-walkthrough",
     "./skills/setup-agent-ready-repo",
     "./skills/tech-lead",
     "./skills/tidy-commits",
-    "./skills/to-walkthrough-video",
     "./skills/write-e2e-tests"
   ]
 }

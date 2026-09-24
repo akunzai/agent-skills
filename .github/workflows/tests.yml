@@ -49,7 +49,7 @@ jobs:
       - name: Run write-e2e-tests scan-secrets checks
         run: bash tests/write-e2e-tests-scan-secrets.sh
 
-  to-walkthrough-video:
+  record-walkthrough:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -58,8 +58,8 @@ jobs:
       - name: Install ffmpeg
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
-      - name: Run to-walkthrough-video checks
-        run: bash tests/to-walkthrough-video.sh
+      - name: Run record-walkthrough checks
+        run: bash tests/record-walkthrough.sh
 
   setup-agent-ready-repo:
     runs-on: ubuntu-latest
