@@ -66,6 +66,28 @@ and a transcript is not a place a secret can be taken back from — the
 remedy is rotation, paid by whoever owns the credential. This applies to
 every `.env` line, not only the ones that look secret.
 
+### A setup script for people
+
+Built only when the developer asks, with the `wizard` skill. It is a
+layer over the entrypoint, never a second implementation of it:
+
+- **The entrypoint owns every check.** Give it a check subcommand (a
+  `doctor` task, say) that reports each prerequisite as passing or
+  failing without prompting. The wizard walks only what needs a person —
+  opening a token page, hidden entry, a choice between installed tools —
+  then finishes by running that same check. A wizard with checks of its
+  own drifts from the ones agents run.
+- **It refuses to run without a person.** Apply the layered mode
+  detection above; in non-interactive mode it exits non-zero naming the
+  check command agents run instead. The wizard template ships no such
+  guard, so add it below the template's stages marker.
+- **A choice persists where the check reads it**, such as a key in a
+  gitignored `.env`, so an agent's later run uses the person's choice
+  without asking.
+
+`verification.md` names both: the script for people, the check for
+agents.
+
 ## Ports, with several agents at once
 
 Two strategies, chosen by how the project is reached.

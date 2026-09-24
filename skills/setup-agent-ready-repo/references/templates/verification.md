@@ -56,7 +56,8 @@ Run once, by a person. The start command fails until they are done.
 - [ ] `placeholder:obtain credentials`
 
 <!-- If the wizard skill is available, suggest turning this list into an
-interactive script. Do not have an agent run that script. -->
+interactive script that finishes by running the check above. Do not have
+an agent run that script. -->
 
 ## Ports
 

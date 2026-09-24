@@ -141,8 +141,9 @@ Human-only prerequisites — installing tools, trusting a certificate,
 anything needing sudo, obtaining credentials — go into the document as a
 checklist. The entrypoint exits non-zero naming them; it never
 prompts. When the `wizard` skill is installed, suggest the developer use
-it to turn that checklist into an interactive script. Do not produce or
-run one here.
+it to turn that checklist into an interactive script; this pass never
+runs one. Built on request, it walks only the human steps and finishes on
+the entrypoint's own check, so people and agents share one check.
 
 Then run it. Three outcomes. It comes up; or its entrypoint needs a TTY,
 and the non-TTY readiness subcommand the project ships counts as coming
