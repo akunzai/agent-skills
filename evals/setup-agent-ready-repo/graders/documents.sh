@@ -65,7 +65,9 @@ if [ -f docs/agents/merge-request.md ]; then
   fail "wrote merge-request.md for a GitHub repo"
 fi
 require "$pr" 'pull request' "$pr never says pull request"
-require "$pr" '(^|[^a-z])gh ' "$pr does not use the gh CLI"
+# `gh` followed by a space, a backtick, or punctuation: `gh pr create` and
+# "the `gh` CLI" both name it, while a hyphen (gh-pages) does not.
+require "$pr" '(^|[^a-z-])gh([^a-z-]|$)' "$pr does not use the gh CLI"
 # A passing mention of GitLab's term is fine; leading with it is not.
 if head -n 15 "$pr" | grep -qiE 'merge request'; then
   fail "$pr opens with GitLab vocabulary"

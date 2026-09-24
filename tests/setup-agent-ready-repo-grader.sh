@@ -95,6 +95,7 @@ Write pull request titles and descriptions in **Traditional Chinese**
 characters.
 
 Open the request with `gh pr create`, and never without the developer asking.
+Update it with `gh pr edit`.
 
 ## Description shape
 
@@ -190,6 +191,37 @@ cat >> "$WS_MIXED/docs/agents/issue-tracker.md" <<'DOC'
 DOC
 if ! WAZA_WORKSPACE_DIR="$WS_MIXED" bash "$GRADER" 2>"$TMP_DIR/mixed.err"; then
   fail "a document mixing English and Chinese was rejected: $(cat "$TMP_DIR/mixed.err")"
+fi
+
+# --- the request CLI survives deleting the optional sections, and a document
+# that loses it anyway is named by the grader and --check alike ---
+# The attach line and the deployed-only draft are both sections a repo may
+# delete; the Preparing line naming the CLI is not.
+WS_CLI="$TMP_DIR/cli"
+cp -R "$WS" "$WS_CLI"
+grep -v -e 'draft' "$WS/docs/agents/pull-request.md" \
+  > "$WS_CLI/docs/agents/pull-request.md"
+if ! WAZA_WORKSPACE_DIR="$WS_CLI" bash "$GRADER" 2>"$TMP_DIR/cli.err"; then
+  fail "deleting the deployed-only draft section lost the gh CLI: $(cat "$TMP_DIR/cli.err")"
+fi
+grep -v 'gh pr' "$WS/docs/agents/pull-request.md" > "$WS_CLI/docs/agents/pull-request.md"
+if WAZA_WORKSPACE_DIR="$WS_CLI" bash "$GRADER" 2>"$TMP_DIR/cli.err"; then
+  fail "a pull-request.md naming no CLI command was accepted"
+fi
+grep -q "does not use the gh CLI" "$TMP_DIR/cli.err" \
+  || fail "a missing gh CLI was rejected without naming it: $(cat "$TMP_DIR/cli.err")"
+"$ROOT_DIR/skills/setup-agent-ready-repo/scripts/install-templates.sh" --check "$WS_CLI" \
+  >"$TMP_DIR/cli-check.out" 2>&1 || true
+grep -q "the CLI that opens and updates requests" "$TMP_DIR/cli-check.out" \
+  || fail "--check did not report the lost request CLI the grader rejects: $(cat "$TMP_DIR/cli-check.out")"
+
+# --- "the `gh` CLI" names the CLI as well as a full command does ---
+# shellcheck disable=SC2016  # backticks are literal, not command substitution
+printf '%s\n' 'Use the `gh` CLI for every request.' >>"$WS_CLI/docs/agents/pull-request.md"
+if WAZA_WORKSPACE_DIR="$WS_CLI" bash "$GRADER" 2>"$TMP_DIR/cli.err"; then
+  :
+elif grep -q "does not use the gh CLI" "$TMP_DIR/cli.err"; then
+  fail "the gh CLI named in backticks was not recognised: $(cat "$TMP_DIR/cli.err")"
 fi
 
 # --- every failing assertion is reported, not just the first ---

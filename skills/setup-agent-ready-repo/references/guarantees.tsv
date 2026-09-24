@@ -37,6 +37,7 @@ request	which diagram belongs to which change	mermaid|flowchart|sequencediagram|
 request	the rule against personally identifiable information	personally identifiable|\bPII\b	pull-request.md, Description shape
 request	the paths exempt from landing with tests	exempt|excluded	pull-request.md, Tests land with the behaviour
 request	that a request is opened only when asked for	only when asked|developer ask	pull-request.md, Preparing
+request	the CLI that opens and updates requests	(gh pr|glab mr) (create|edit|update)	pull-request.md, Preparing
 verification	the entrypoint marker check-drift.sh reads	drift:entrypoint	verification.md, Starting the environment
 verification	the forge marker check-drift.sh reads	drift:forge	verification.md, Starting the environment
 verification	the proof that the entrypoint came up	[*][*]proof	verification.md, Starting the environment
