@@ -23,6 +23,8 @@ is authoritative on structure. What follows only adds what it does not say. -->
   there is no tracked issue, drop the section — never leave an unlinked
   `Closes #` or empty issue marker.
 - **Do not open a request, draft included, without the developer asking.**
+- Open a request with `<gh pr create | glab mr create>` and update it with
+  `<gh pr edit | glab mr update>`.
 
 ## Description shape
 
