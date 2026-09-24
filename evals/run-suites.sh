@@ -154,13 +154,36 @@ if ((baseline)); then
   extra+=(--baseline)
 fi
 
+# Tasks run in an isolated Waza workspace, but an agent can still write to this
+# checkout by absolute path (to-memory did, #273). The graders only read the
+# workspace, so they report a missing pattern rather than the escape. Hash the
+# whole tree, untracked files included, before and after each suite.
+checkout_tree() {
+  local index
+  index=$(mktemp)
+  cp "$(git rev-parse --git-path index)" "$index"
+  GIT_INDEX_FILE=$index git add -A .
+  GIT_INDEX_FILE=$index git write-tree
+  rm -f "$index"
+}
+
 failed=0
 mkdir -p waza-results
 for name in "${selected[@]}"; do
   printf '==> %s\n' "$name"
   result_file="waza-results/${name}.json"
-  if ! waza run "evals/${name}/eval.yaml" \
-    --output "$result_file" ${extra[@]+"${extra[@]}"}; then
+  before=$(checkout_tree)
+  status=0
+  waza run "evals/${name}/eval.yaml" \
+    --output "$result_file" ${extra[@]+"${extra[@]}"} || status=$?
+  after=$(checkout_tree)
+  if [[ $before != "$after" ]]; then
+    printf '%s wrote outside its Waza workspace:\n' "$name" >&2
+    git diff --name-status "$before" "$after" >&2
+    failed=1
+    continue
+  fi
+  if ((status != 0)); then
     if ((failed == 0)) && copilot_unavailable_result "$result_file"; then
       message="Copilot quota or subscription is unavailable; skipping remaining Waza suites."
       if [[ ${GITHUB_ACTIONS:-} == true ]]; then
