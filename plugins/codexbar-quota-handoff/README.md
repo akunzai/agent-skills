@@ -8,7 +8,7 @@ every plugin runtime.
 - If the session has unfinished work a later session cannot reconstruct, the
   agent asks before writing a handoff document, then replies with the file
   path.
-- With `to-memory` at `~/.agents/skills/to-memory`, the reminder names that
+- With `agents-memory` at `~/.agents/skills/agents-memory`, the reminder names that
   short-term directory; otherwise the file goes in the current working
   directory, never a temp dir.
 - Each agent consumes only its own provider flag.

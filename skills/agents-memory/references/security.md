@@ -1,6 +1,6 @@
 # Memory Security Specifications
 
-Strict security restrictions and quality constraints for what `to-memory` may
+Strict security restrictions and quality constraints for what `agents-memory` may
 write, at either tier.
 
 ## 1. Strictly Prohibited Data

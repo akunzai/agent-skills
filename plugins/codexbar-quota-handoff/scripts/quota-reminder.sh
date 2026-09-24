@@ -123,13 +123,13 @@ if [[ "$reset_at" != "unknown" ]]; then
 fi
 
 # Destination for a handoff document, if the user later agrees to write one.
-# Probe only the Skills Manager master copy (~/.agents/skills/to-memory).
+# Probe only the Skills Manager master copy (~/.agents/skills/agents-memory).
 # Do not --ensure: the user has not agreed yet, so create no directories.
 resolve_handoff_dest() {
   local today skill_md proj_script resolved
   today="$(date +%Y-%m-%d)"
-  skill_md="${HOME}/.agents/skills/to-memory/SKILL.md"
-  proj_script="${HOME}/.agents/skills/to-memory/scripts/proj-memory-path.sh"
+  skill_md="${HOME}/.agents/skills/agents-memory/SKILL.md"
+  proj_script="${HOME}/.agents/skills/agents-memory/scripts/proj-memory-path.sh"
 
   if [[ -f "$skill_md" ]]; then
     resolved=""
@@ -158,7 +158,7 @@ message="$(
     "$window" "$pct_display" "$reset_at"
   printf 'Finish in-flight tools. Then, from this conversation only (no extra tools), before your next user-facing reply: if unfinished work a later session could not reconstruct from git/issues/PRs/docs, ask whether to write a handoff document (one-line summary; would go to %s); if none, do not ask or write. That reply is only the quota facts plus that question if any. Then stop.\n' \
     "$dest_spec"
-  printf 'If they agree: create a new file at that path (replace <topic> if present; pick a non-colliding name; do not overwrite). Redact secrets; no transcript; reference artifacts; include goal, done, next, suggested skills if any, and this quota reset. Do not invoke to-memory. Reply with the path. If they decline, do not write.\n'
+  printf 'If they agree: create a new file at that path (replace <topic> if present; pick a non-colliding name; do not overwrite). Redact secrets; no transcript; reference artifacts; include goal, done, next, suggested skills if any, and this quota reset. Do not invoke agents-memory. Reply with the path. If they decline, do not write.\n'
   printf x
 )"
 message="${message%x}"

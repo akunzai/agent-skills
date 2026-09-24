@@ -2,16 +2,16 @@ id: author-scenario
 name: Author a walkthrough scenario.json from a brief
 description: |
   The agent writes scenario.json from BRIEF.txt using the
-  to-walkthrough-video skill. It does not browse or record.
+  record-walkthrough skill. It does not browse or record.
 
 tags:
-  - to-walkthrough-video
+  - record-walkthrough
   - walkthrough
 
 inputs:
   prompt: |
     Write scenario.json for the walkthrough in BRIEF.txt using the
-    to-walkthrough-video skill. Locators are already in the brief.
+    record-walkthrough skill. Locators are already in the brief.
 
     The brief describes a site that needs a sign-in. Handle that the way
     the skill says to.

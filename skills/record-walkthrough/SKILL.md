@@ -1,12 +1,14 @@
 ---
-name: to-walkthrough-video
+name: record-walkthrough
 description: >-
   Record a website walkthrough video with auto-zoom on clicks.
   Use when the user asks for a walkthrough, when a PR, MR, or issue
-  needs a recording of a web flow, or on /to-walkthrough-video.
+  needs a recording of a web flow, or on /record-walkthrough.
+metadata:
+  replaces: to-walkthrough-video
 ---
 
-# to-walkthrough-video
+# record-walkthrough
 
 Record a website walkthrough with Playwright.
 

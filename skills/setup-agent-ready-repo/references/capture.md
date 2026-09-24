@@ -10,7 +10,7 @@ fallback into the document, so a later agent knows which path is live.
 
 | Project | Recording | Stills |
 | --- | --- | --- |
-| Website | `to-walkthrough-video`, else Playwright's built-in video | Playwright screenshots, before/after and at breakpoints |
+| Website | `record-walkthrough`, else Playwright's built-in video | Playwright screenshots, before/after and at breakpoints |
 | Terminal or TUI | `tcut`, else asciinema | `tcut` frame export |
 | Electron | Playwright's Electron support — treat as a website | same |
 | iOS simulator | `xcrun simctl io booted recordVideo` | `xcrun simctl io booted screenshot` |

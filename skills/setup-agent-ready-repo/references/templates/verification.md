@@ -92,12 +92,12 @@ Credentials come from `placeholder:vault or variable name`.
 
 ## Capturing evidence
 
-- Recording: `<to-walkthrough-video | tcut | tool>` — `placeholder:fallback if absent`
+- Recording: `<record-walkthrough | tcut | tool>` — `placeholder:fallback if absent`
 - Screenshots: `placeholder:tool`
 - UI locale: **`placeholder:the locale of the language requests are written in when the UI ships it (check locales/, i18n), else the UI default; e.g. zh-TW`**. The app picks it from
   `placeholder:what it reads, in order`; `placeholder:anything that overrides the browser, such as a cookie or query parameter`.
   Browser automation defaults to `en-US`, so set it on every capture:
-  `"locale"` in a `to-walkthrough-video` scenario, `locale` on the
+  `"locale"` in a `record-walkthrough` scenario, `locale` on the
   Playwright browser context for screenshots. Captions and narration
   follow the language requests are written in (`"captionLocale"`).
 

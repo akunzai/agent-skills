@@ -6,6 +6,7 @@
   },
   "skills": [
     "./skills/agents-md",
+    "./skills/agents-memory",
     "./skills/agentsview-extract",
     "./skills/agentsview-resume",
     "./skills/aube",
@@ -15,11 +16,10 @@
     "./skills/gitlab-epic",
     "./skills/mise",
     "./skills/pr-workflow",
+    "./skills/record-walkthrough",
     "./skills/setup-agent-ready-repo",
     "./skills/tech-lead",
     "./skills/tidy-commits",
-    "./skills/to-memory",
-    "./skills/to-walkthrough-video",
     "./skills/write-e2e-tests"
   ]
 }

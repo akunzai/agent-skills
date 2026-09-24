@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Offline fixture for to-walkthrough-video: a public page, a sign-in form, and
+// Offline fixture for record-walkthrough: a public page, a sign-in form, and
 // a cookie-gated page. Static files cannot carry a session cookie, so the
 // signed-in half of the skill needs a real origin rather than file://.
 import fs from "node:fs";

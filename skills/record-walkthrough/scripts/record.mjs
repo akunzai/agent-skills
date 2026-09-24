@@ -1456,7 +1456,7 @@ export async function recordWalkthrough(options) {
   const playwright = options.playwright ?? (await loadPlaywright());
   const device = resolveDevice(playwright, scenario);
   let viewport = resolveViewport(scenario, options, device);
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "to-walkthrough-video-"));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "record-walkthrough-"));
   // --connect records a page somebody already signed in on, so the browser and
   // its context are theirs: nothing here launches them, navigates them or closes
   // them, and the window keeps the size it already has.

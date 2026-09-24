@@ -7,7 +7,7 @@ This project uses mise for the toolchain and task runner.
 ## Pointers
 
 - When writing a skill or plugin, or matching shell and CI style, read `CONTRIBUTING.md`
-- Gold-standard test spec: `tests/to-memory-storage.sh`
+- Gold-standard test spec: `tests/agents-memory-storage.sh`
 - When adding or renaming a skill, read `tests/skill-catalog-sync.sh`
 - When filing or triaging an issue, read `docs/agents/issue-tracker.md`
 - When opening a pull or merge request, read `docs/agents/pull-request.md`

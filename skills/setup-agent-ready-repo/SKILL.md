@@ -191,5 +191,5 @@ version of this skill wrote, and migrating `@path` pointers:
 ## Related
 
 `agents-md` for `AGENTS.md` itself. `pr-workflow`, `github-epic`,
-`gitlab-epic` at runtime. `to-walkthrough-video` and `tcut` for capture.
+`gitlab-epic` at runtime. `record-walkthrough` and `tcut` for capture.
 `wizard` for the human prerequisite script.
