@@ -19,7 +19,9 @@ Check scope/durability with the user unless settled.
 
 Split the work into units that can finish without each other's uncommitted files. For every pair that shares a path (in-review included), record whether the overlap is semantic (same meaning) or mechanical (lockfile regeneration).
 
-**Done** when each slice has a name, the files it may touch, a parallel/serial mark and durability answer.
+Slice no finer than parallelism pays for. A serial slice that lands in the same review as the one it waits on merges into it, and a shared interface stays in one slice with the consumers that shape it; split apart, the brief would fix the interface before its callers could inform it. Ask how many PRs/MRs the user wants to review: that groups slices, it does not split them.
+
+**Done** when each slice has a name, the files it may touch, a parallel/serial mark and durability answer, and earns its own implementer by running in parallel or needing a different role or model.
 
 ## 2. Confirm parallelism
 
