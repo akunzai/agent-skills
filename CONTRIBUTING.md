@@ -43,6 +43,12 @@ mise run lint
 | [zizmor](https://github.com/zizmorcore/zizmor) | GitHub Actions security linting (`mise run lint-workflows`) |
 | [waza](https://github.com/microsoft/waza) | Skill spec + eval schema (`mise run lint-skills`) |
 | [agentsview](https://github.com/kenn-io/agentsview) | CLI surface the `agentsview-*` skills cite (`mise run test-agentsview-contract`) |
+| [SkillSpector](https://github.com/NVIDIA/SkillSpector) | Static security scan of every published skill and plugin (`mise run lint-skill-security`) |
+
+To accept a new SkillSpector finding as a false positive or already-documented
+behaviour, add an entry with a one-line reason to `.skillspector-baseline.yaml`
+(a genuine issue gets fixed instead, not suppressed) and re-run
+`mise run lint-skill-security` to confirm it is clear.
 
 ## Writing a Skill
 

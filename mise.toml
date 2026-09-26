@@ -69,3 +69,57 @@ run = "bash tests/agentsview-cli-contract.sh"
 [tasks.waza]
 description = "Run Waza suites (all, --changed, or named)"
 run = "bash evals/run-suites.sh"
+
+# Scoped to this task, not `mise run lint`, so the other lint/test jobs do
+# not pull SkillSpector (a git-installed uv tool, not a mise registry tool)
+# on every run. Pinned by commit SHA (not the v2.12.0 tag) per this repo's
+# GitHub Actions convention of pinning to an exact, immutable revision.
+# Static analysis only (--no-llm): no LLM provider credentials are read or
+# required. Gates on MEDIUM+ severity because SkillSpector's own exit code
+# only fires past risk_score 50 (HIGH/CRITICAL) or, with --fail-on-findings,
+# on every finding including LOW/INFO; neither matches "medium or above", so
+# the task filters `.issues[].severity` itself instead.
+[tasks.lint-skill-security]
+description = "Scan published skills and plugins for security issues with SkillSpector (static analysis only)"
+run = '''
+set +e
+set -u
+set -o pipefail
+SKILLSPECTOR_REF="c7958a3268d9498644b22edb75d0f051bbc8cbfc" # v2.12.0
+SKILLSPECTOR="uvx --python 3.12 --from git+https://github.com/NVIDIA/skillspector.git@${SKILLSPECTOR_REF} skillspector"
+BASELINE=".skillspector-baseline.yaml"
+exit_code=0
+for d in skills/*/ plugins/*/; do
+  d="${d%/}"
+  report="$(mktemp)"
+  $SKILLSPECTOR scan "$d" --no-llm --format json --baseline "$BASELINE" --output "$report" >/dev/null
+  rc=$?
+  if [ "$rc" -eq 2 ]; then
+    printf 'ERROR: %s (SkillSpector scan failed, see output above)\n' "$d"
+    exit_code=1
+    rm -f "$report"
+    continue
+  fi
+  # Read the report straight off disk with jq; never round-trip it through
+  # `echo`, whose backslash-escape handling differs by shell (POSIX sh
+  # interprets `\n`/`\t` by default) and can turn a validly JSON-escaped
+  # multi-line match into raw control bytes that jq then refuses to parse.
+  count="$(jq '[.issues[] | select(.severity=="MEDIUM" or .severity=="HIGH" or .severity=="CRITICAL")] | length' "$report")"
+  jq_rc=$?
+  if [ "$jq_rc" -ne 0 ]; then
+    printf 'ERROR: %s (could not parse SkillSpector JSON report)\n' "$d"
+    exit_code=1
+    rm -f "$report"
+    continue
+  fi
+  if [ "$count" -gt 0 ]; then
+    printf 'FAIL: %s (%s finding(s) at MEDIUM+ severity not covered by the baseline)\n' "$d" "$count"
+    jq -r '.issues[] | select(.severity=="MEDIUM" or .severity=="HIGH" or .severity=="CRITICAL") | "  [\(.severity)] \(.id): \(.location.file):\(.location.start_line // "?")"' "$report"
+    exit_code=1
+  else
+    printf 'PASS: %s\n' "$d"
+  fi
+  rm -f "$report"
+done
+exit $exit_code
+'''
