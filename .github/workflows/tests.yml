@@ -145,6 +145,9 @@ jobs:
       - name: Run skill capabilities checks
         run: bash tests/skill-capabilities.sh
 
+      - name: Run skill frontmatter checks
+        run: bash tests/skill-frontmatter.sh
+
       - name: Run interactive plugin setup checks
         run: bash tests/plugin-setup.sh
 
