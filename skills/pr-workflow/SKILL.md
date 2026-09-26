@@ -46,6 +46,12 @@ dispatch and report the ambiguity; do not retry or duplicate that workload.
 - **Branch Guard**: Stay on feature branches; never push or merge directly into the default base branch without explicit approval.
 - **Base Discovery**: Detect the base branch dynamically from repo evidence (`origin/HEAD`, PR target).
 - **Fork Safety**: Confirm with user before opening PRs on upstream or third-party forks.
+- **Stacked PRs**: Prefer native stacks over hand-set feature-branch bases —
+  GitHub `gh stack` (public preview; official
+  [`github/gh-stack` skill](https://github.com/github/gh-stack)), GitLab
+  `glab stack` (experimental; bundled `glab-stack` skill). Hand-stacked: merge
+  bottom-up, retargeting each PR onto the default branch first — closing
+  keywords only fire there.
 
 ## Commit Hygiene
 
