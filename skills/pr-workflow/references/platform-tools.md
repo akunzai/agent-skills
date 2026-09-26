@@ -24,6 +24,16 @@ Consult the installed `glab` skill for:
 - Non-interactive pitfalls (avoiding editor hangs, `--input` HTTP 415 errors)
 - Posting descriptions or notes whose body contains backticks or starts with `@`
 
+### Stacked MRs (Experimental)
+
+`glab stack` (`create`, `save`, `sync`, `amend`, …) manages stacked merge
+requests but is officially experimental — see the
+[GitLab CLI stack docs](https://docs.gitlab.com/cli/stack/) and the
+[stacked diffs feature docs](https://docs.gitlab.com/user/project/merge_requests/stacked_diffs/).
+The core `glab` skill does not cover it: install the bundled `glab-stack`
+skill (`glab skills install glab-stack --global`) and consult it for command
+usage; do not duplicate it here.
+
 ## 2. Gitea / Forgejo (`tea`)
 
 - **Create PR**:
