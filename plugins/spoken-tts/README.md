@@ -11,6 +11,11 @@ Claude Code lists the skill as `/spoken-tts:spoken`.
   CLI `test` and `speak` wait until playback finishes; the Stop hook does not.
 - Providers: `edge-tts` (recommended) and macOS `say`.
 
+Its `Stop`, `UserPromptSubmit`, and `PreInvocation` hooks run every turn; while
+a conversation is on they inject speech rules and read the transcript, and with
+`edge-tts` any spoken text goes to Microsoft's cloud text-to-speech service; see
+[SECURITY.md](../../SECURITY.md#plugin-hooks).
+
 ## Install
 
 Requires `jq`. Native TTS needs `say` (macOS). Setup recommends `edge-tts`;
