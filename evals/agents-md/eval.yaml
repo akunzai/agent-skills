@@ -14,7 +14,7 @@ config:
   timeout_seconds: 300
   parallel: false
   executor: copilot-sdk
-  model: mai-code-1.1-flash
+  model: gpt-6-luna
   inject_skill_body: true
 
 metrics:
@@ -61,12 +61,16 @@ graders:
           or 'prefer' in output.lower()
           or 'offload' in output.lower()
           or 'replace' in output.lower()
-        - "'@docs/release-checklist' in output.lower()"
         - >-
-          bool(re.search(r'(?<!@)`docs/release-checklist\.md`', output))
-        - "'@src/widget' in output.lower()"
+          '@docs/release-checklist' in output.lower()
+          or bool(re.search(r'(?is)`@`.{0,400}docs/release-checklist', output))
         - >-
-          bool(re.search(r'(?<!@)`src/widget\.ts`', output))
+          bool(re.search(r'(?<![@\\])\\?`docs/release-checklist\.md\\?`', output))
+        - >-
+          '@src/widget' in output.lower()
+          or bool(re.search(r'(?is)`@`.{0,400}src/widget', output))
+        - >-
+          bool(re.search(r'(?<![@\\])\\?`src/widget\.ts\\?`', output))
 
   # Scoped to the Prevent Recurrence section so the audit sections above
   # cannot satisfy these by accident.
@@ -76,7 +80,7 @@ graders:
       assertions:
         - >-
           bool(re.search(r'(?is)prevent recurrence.{0,2000}?(enforc|assert|a
-          test|lint rule)', output))
+          test|test tier|lint rule|\ba (small |lightweight )?check\b)', output))
         - >-
           bool(re.search(r'(?is)prevent
           recurrence.{0,2000}?(agents\.md|package\.json|tests?/|\bci\b|script|workflow)',

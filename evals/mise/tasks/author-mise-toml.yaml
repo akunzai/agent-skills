@@ -23,7 +23,8 @@ inputs:
 
     Also say how CI should call this file with jdx/mise-action. Do not
     invent extra files beyond mise.toml and an edit to package.json if
-    you remove packageManager. Do not edit the Makefile.
+    you remove packageManager. Do not edit the Makefile. Do not run
+    mise install or the tasks; only the file contents are checked.
   files:
     - path: Makefile
     - path: package.json
