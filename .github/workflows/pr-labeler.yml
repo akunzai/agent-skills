@@ -1,6 +1,6 @@
 name: "PR Auto Labeler"
 
-on:
+on:  # zizmor: ignore[dangerous-triggers] no checkout of PR content; only calls the GitHub API (add/remove labels) with the elevated token
   pull_request_target:
     types: [opened, reopened, synchronize, edited]
 
