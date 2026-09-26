@@ -116,6 +116,9 @@ jobs:
       - name: Run skill-catalog-sync checks
         run: bash tests/skill-catalog-sync.sh
 
+      - name: Run skill capabilities checks
+        run: bash tests/skill-capabilities.sh
+
       - name: Run interactive plugin setup checks
         run: bash tests/plugin-setup.sh
 

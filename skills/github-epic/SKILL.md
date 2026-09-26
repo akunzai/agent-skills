@@ -1,6 +1,8 @@
 ---
 name: github-epic
 description: Use ONLY when a git repository is hosted on GitHub to create, structure, or link GitHub epics, sub-issues, and dependency relationships.
+metadata:
+  capabilities: shell, network, forge-writes
 ---
 
 # GitHub Epic & Sub-issues

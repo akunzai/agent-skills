@@ -6,6 +6,8 @@ description: >-
   netstandard libraries that only pretend to be portable. Use to assess,
   plan, execute, or resume a long-running upgrade while product work keeps
   shipping on the main branch.
+metadata:
+  capabilities: shell, network, git-history, forge-writes, runs-repo-commands
 ---
 
 # .NET Upgrade

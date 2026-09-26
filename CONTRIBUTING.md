@@ -71,8 +71,17 @@ The file must start with YAML frontmatter:
 name: my-skill
 description: >-
   One-line description of when and how to use this skill.
+metadata:
+  capabilities: shell, network
 ---
 ```
+
+`metadata.capabilities` is required: a comma-separated list of what the
+skill can make the agent do, drawn from the vocabulary in
+[SECURITY.md](SECURITY.md#capabilities), or `none` alone. Derive it from
+the `SKILL.md`, references, and scripts, not the skill's name.
+`tests/skill-capabilities.sh` enforces it. Do not use `allowed-tools`; it
+pre-approves tools rather than restricting them.
 
 Write `SKILL.md` in **English**, including `description`. Agents follow
 the file; English is the shared language across harnesses.

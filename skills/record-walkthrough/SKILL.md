@@ -5,6 +5,7 @@ description: >-
   Use when the user asks for a walkthrough, when a PR, MR, or issue
   needs a recording of a web flow, or on /record-walkthrough.
 metadata:
+  capabilities: shell, network, installs-tools, browser
   replaces: to-walkthrough-video
 ---
 

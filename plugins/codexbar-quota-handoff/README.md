@@ -16,6 +16,10 @@ every plugin runtime.
   race safely, so each crossing is reported once.
 - The default threshold is 90% used and can be changed during setup.
 
+The `Stop` and `PostToolUse` hooks run after every turn and tool call and, once
+CodexBar flags the quota, inject wrap-up instructions into the model's context;
+see [SECURITY.md](../../SECURITY.md#plugin-hooks).
+
 ## Setup
 
 Requirements: `jq`, CodexBar, and a checkout of this repository.
