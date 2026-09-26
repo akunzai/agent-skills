@@ -82,7 +82,8 @@ Before writing the request body, read the repo's `docs/agents/pull-request.md`
 templates) and follow its description shape and visual table, keying the
 visual to the user-visible change — a CLI or UI output change wins over an
 internal flowchart even when one exists. Where the table asks for a
-before/after pair, show both states, not just the after.
+before/after pair, show both states, not just the after. Keep a multi-line
+text capture in a fenced block of its own under its Before or After label.
 
 ### Create PR
 ```bash

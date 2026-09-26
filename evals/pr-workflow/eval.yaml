@@ -69,8 +69,9 @@ graders:
         - "Before"
         - "After"
       regex_match:
-        # Paired Before/After fences, or one terminal capture fence holding both.
-        - "(?is)before.{0,40}```.{0,400}after.{0,40}```|```[^`\\n]*\\n[^`]{0,120}before[^`]{0,600}after[^`]{0,600}```"
+        # Paired Before/After fences, one terminal capture fence holding both,
+        # or a Before/After pair of images or recordings.
+        - "(?is)before.{0,40}```.{0,400}after.{0,40}```|```[^`\\n]*\\n[^`]{0,120}before[^`]{0,600}after[^`]{0,600}```|!?\\[[^\\]\\n]*before[^\\]\\n]*\\]\\([^)\\s]+\\).{0,600}?!?\\[[^\\]\\n]*after[^\\]\\n]*\\]\\([^)\\s]+\\)"
       regex_not_match:
         - "(?is)```mermaid"
 
