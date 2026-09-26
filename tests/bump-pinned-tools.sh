@@ -30,7 +30,9 @@ mkdir -p "$REPO/scripts" "$REPO/.github/workflows" \
 
 cp "$SCRIPT" "$REPO/scripts/bump-pinned-tools.sh"
 chmod +x "$REPO/scripts/bump-pinned-tools.sh"
-cp "$ROOT_DIR/mise.toml" "$REPO/mise.toml"
+# The copy starts without a gitleaks pin whatever the repo pins today, so
+# the absent-pin case below always has something to test.
+grep -v '^gitleaks = ' "$ROOT_DIR/mise.toml" >"$REPO/mise.toml"
 cp "$ROOT_DIR/.github/workflows/waza-eval.yml" "$REPO/.github/workflows/waza-eval.yml"
 cp "$ROOT_DIR/skills/agentsview-extract/SKILL.md" "$REPO/skills/agentsview-extract/SKILL.md"
 cp "$ROOT_DIR/skills/agentsview-resume/SKILL.md" "$REPO/skills/agentsview-resume/SKILL.md"
@@ -82,8 +84,8 @@ field() {
 # a no-op that leaves the file untouched (the "already current" case).
 printf 'v1.30.1\n' >"$FIXTURES/zizmorcore_zizmor.tags"
 
-# gitleaks: not pinned in mise.toml yet (a separate, unmerged slice adds it).
-# No fixture needed for the first (absent) assertion below.
+# gitleaks: starts unpinned in the copy; the first assertion below needs no
+# fixture.
 printf 'v8.30.1\nv8.31.0\n' >"$FIXTURES/gitleaks_gitleaks.tags"
 
 # waza: includes a non-semver release tag (the azd extension release the

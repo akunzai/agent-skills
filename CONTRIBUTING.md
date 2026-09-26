@@ -41,6 +41,7 @@ mise run lint
 | [ShellCheck](https://www.shellcheck.net/) | Shell linting (`mise run lint-shell`) |
 | [actionlint](https://github.com/rhysd/actionlint) | GitHub Actions linting (`mise run lint-actions`) |
 | [zizmor](https://github.com/zizmorcore/zizmor) | GitHub Actions security linting (`mise run lint-workflows`) |
+| [gitleaks](https://github.com/gitleaks/gitleaks) | Secret scanning across git history (`mise run lint-secrets`) |
 | [waza](https://github.com/microsoft/waza) | Skill spec + eval schema (`mise run lint-skills`) |
 | [agentsview](https://github.com/kenn-io/agentsview) | CLI surface the `agentsview-*` skills cite (`mise run test-agentsview-contract`) |
 | [SkillSpector](https://github.com/NVIDIA/SkillSpector) | Static security scan of every published skill and plugin (`mise run lint-skill-security`) |

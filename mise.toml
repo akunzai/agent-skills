@@ -9,6 +9,11 @@ jq = "latest"
 # an unrelated tool bump.
 zizmor = "1.30.1"
 
+# Pinned exact for the same reason as zizmor: gitleaks' own detection rules
+# can change between releases, so a scan that passes today must not start
+# failing CI on an unrelated tool bump.
+gitleaks = "8.30.1"
+
 # Pin the CLI tag. GitHub /releases/latest is the azd-ext release, and
 # mise 2026.8.6 cannot resolve latest+version_prefix=v (empty version list).
 [tools."github:microsoft/waza"]
@@ -53,9 +58,17 @@ run = "bash tests/waza-spec.sh"
 description = "Audit GitHub Actions workflows for security issues with zizmor"
 run = "zizmor --offline .github/workflows"
 
+[tasks.lint-secrets]
+description = "Scan the full git history for leaked secrets with gitleaks"
+run = "gitleaks git --redact --no-banner ."
+
+[tasks.lint-unicode]
+description = "Scan tracked text files for hidden/invisible Unicode characters"
+run = "bash scripts/check-hidden-unicode.sh"
+
 [tasks.lint]
 description = "Run all linters"
-depends = ["lint-shell", "lint-actions", "lint-skills", "lint-workflows"]
+depends = ["lint-shell", "lint-actions", "lint-skills", "lint-workflows", "lint-secrets", "lint-unicode"]
 
 # The AgentsView CLI is scoped to this task so the other mise jobs do not
 # pull a 42 MB binary. Its Homebrew formula is a macOS-only cask, but the
