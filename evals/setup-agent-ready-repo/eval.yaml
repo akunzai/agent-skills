@@ -13,7 +13,7 @@ config:
   timeout_seconds: 600
   parallel: false
   executor: copilot-sdk
-  model: mai-code-1.1-flash
+  model: gpt-6-luna
   inject_skill_body: true
 
 metrics:
