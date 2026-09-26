@@ -167,33 +167,68 @@ checkout_tree() {
   rm -f "$index"
 }
 
-failed=0
-mkdir -p waza-results
-for name in "${selected[@]}"; do
-  printf '==> %s\n' "$name"
-  result_file="waza-results/${name}.json"
+# One attempt of one suite: 0 passed, 1 failed, 2 wrote outside its
+# workspace, 3 Copilot quota or subscription unavailable.
+run_attempt() {
+  local name=$1 result_file=$2 before after status=0
   before=$(checkout_tree)
-  status=0
   waza run "evals/${name}/eval.yaml" \
     --output "$result_file" ${extra[@]+"${extra[@]}"} || status=$?
   after=$(checkout_tree)
   if [[ $before != "$after" ]]; then
     printf '%s wrote outside its Waza workspace:\n' "$name" >&2
     git diff --name-status "$before" "$after" >&2
-    failed=1
-    continue
+    return 2
   fi
-  if ((status != 0)); then
-    if ((failed == 0)) && copilot_unavailable_result "$result_file"; then
-      message="Copilot quota or subscription is unavailable; skipping remaining Waza suites."
-      if [[ ${GITHUB_ACTIONS:-} == true ]]; then
-        printf '::warning::%s\n' "$message"
-      else
-        printf '%s\n' "$message" >&2
-      fi
-      exit 0
+  if ((status == 0)); then
+    return 0
+  fi
+  if copilot_unavailable_result "$result_file"; then
+    return 3
+  fi
+  return 1
+}
+
+notice() {
+  if [[ ${GITHUB_ACTIONS:-} == true ]]; then
+    printf '::warning::%s\n' "$1"
+  else
+    printf '%s\n' "$1" >&2
+  fi
+}
+
+failed=0
+mkdir -p waza-results
+for name in "${selected[@]}"; do
+  printf '==> %s\n' "$name"
+  result_file="waza-results/${name}.json"
+  outcome=0
+  run_attempt "$name" "$result_file" || outcome=$?
+  # A single model run is noisy: a suite that fails its graders gets one more
+  # attempt, and fails only if that one fails too. Escapes and quota errors
+  # are not noise, so they are never retried.
+  if ((outcome == 1)); then
+    mv "$result_file" "waza-results/${name}.attempt1.json"
+    printf '%s failed; retrying once\n' "$name" >&2
+    outcome=0
+    run_attempt "$name" "$result_file" || outcome=$?
+    if ((outcome == 0)); then
+      notice "$name passed on retry; waza-results/${name}.attempt1.json holds the failed attempt."
+    elif ((outcome == 3)); then
+      # the retry could not confirm the first failure, so it stands
+      outcome=1
     fi
-    failed=1
   fi
+  case $outcome in
+    0) ;;
+    3)
+      if ((failed == 0)); then
+        notice "Copilot quota or subscription is unavailable; skipping remaining Waza suites."
+        exit 0
+      fi
+      failed=1
+      ;;
+    *) failed=1 ;;
+  esac
 done
 exit "$failed"

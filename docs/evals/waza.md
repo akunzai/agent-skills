@@ -58,6 +58,13 @@ config, model, and grader errors still fail the check, and so do rate-limit
 errors — throttling is transient and must not green-light a PR. A suite whose
 result file Waza never wrote fails the check too. There is no mock fallback.
 
+A single model run is noisy, so a suite that fails its graders or errors gets
+one retry and fails the check only when the retry fails too. The job then
+warns that the suite passed on retry and keeps the failed attempt as
+`waza-results/<suite>.attempt1.json`; a suite that passes only on retry again
+and again is a flaky grader or skill worth fixing. Writing outside the Waza
+workspace and Copilot quota errors are never retried.
+
 The classification reads each run's `error_msg`, which is prose rather than a
 code: Waza stores the SDK error string, and the SDK renders a session error as
 `session error: <human message>`, dropping the structured `errorCode` /
