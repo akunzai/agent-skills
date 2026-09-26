@@ -1,0 +1,191 @@
+# SkillSpector baseline for this repo's published skills and plugins.
+#
+# Generated against skillspector@2.12.0 (commit c7958a3268d9498644b22edb75d0f051bbc8cbfc),
+# static analysis only (--no-llm), by scanning every skills/*/ and plugins/*/
+# directory independently (`mise run lint-skill-security`).
+#
+# Every entry below was triaged by hand and is either a false positive of
+# keyword/pattern-based static analysis, or an already-accepted, documented
+# behaviour of the skill/plugin it lives in. No entry here suppresses a
+# genuine, unresolved vulnerability. See docs/SUPPRESSION.md (upstream) for
+# the file format, and CONTRIBUTING.md for how to update this file when a
+# new finding is accepted.
+#
+# `rules` glob on rule id / path / message and are drift-tolerant (they
+# survive line-number churn and rewording), which is why this file uses them
+# instead of `skillspector baseline`'s auto-generated exact fingerprints: a
+# spot-check found the fingerprint generator silently drops findings that
+# share matched text across files within one directory (it wrote only 2 of 3
+# identical `chmod` findings for plugins/cheap-dev-workers, keyed by an
+# internal match fingerprint that ignores the file), which would have left a
+# real finding unsuppressed and undetected. Hand-written rules, verified
+# against an actual scan, do not have that gap.
+#
+# Each skill/plugin directory is scanned independently (not recursively from
+# the repo root), so `path` below is relative to that directory, e.g. every
+# skill's own top-level instructions is just "SKILL.md". That means a rule
+# scoped only by `id` + `path` can, in principle, also suppress an unrelated
+# future finding that happens to share the same rule id and relative path in
+# a different skill. Entries below add a `message` glob to narrow this
+# wherever the finding has distinctive matched text; where it does not
+# (`finding` is null in the JSON report — true for RP1, LP3, AE1, EA2, BH1,
+# AS3, RA2, most PE2 hits), the entry is scoped by `path` alone and the risk
+# is accepted for this first-cut baseline.
+version: 2
+scanner_version: "2.12.0"
+
+rules:
+  # --- Global: informational by the rule's own definition, not a vulnerability signal ---
+  - id: "AE1"
+    reason: >-
+      Static-only (--no-llm) analysis marks a SKILL.md's own referenced
+      script/reference sections as "partially inspected"; this is a scan-mode
+      coverage note (AE1's own definition), never itself a vulnerability.
+  - id: "LP3"
+    reason: >-
+      This skill format (Claude/Codex/OpenCode Skills) has no
+      declared-permissions manifest concept; fires uniformly on every skill
+      in this repo, not a per-skill gap.
+
+  # --- plugins/cheap-dev-workers ---
+  - id: "PE2"
+    path: "scripts/install-codex-agents.sh"
+    reason: "chmod 644 sets a stricter, non-executable mode on an installed file; not privilege escalation."
+  - id: "PE2"
+    path: "scripts/render-roles.sh"
+    reason: "chmod 644 sets a stricter, non-executable mode on a rendered role file; not privilege escalation."
+  - id: "PE2"
+    path: "scripts/sanitize-log.sh"
+    reason: "chmod 600 sets a stricter, owner-only mode on a sanitized log file; not privilege escalation."
+
+  # --- plugins/codexbar-quota-handoff ---
+  - id: "BH1"
+    path: "hooks/hooks.json"
+    reason: "Declares this plugin's own PostToolUse/Stop hook (quota-reminder.sh); its documented, intended lifecycle trigger."
+  - id: "PE2"
+    path: "scripts/configure-host.sh"
+    reason: "chmod 755 sets an executable mode on an installed helper script; not privilege escalation."
+  - id: "RA2"
+    path: "scripts/quota-reminder.sh"
+    reason: "Resolves a handoff-document destination path only after the user agrees to write one; creates no file or directory without consent."
+  - id: "AS3"
+    path: "scripts/quota-reminder.sh"
+    reason: "Interop check for the specific, named agents-memory skill to route a quota handoff; not enumeration of arbitrary peer skills."
+
+  # --- plugins/spoken-tts ---
+  - id: "TM1"
+    path: "scripts/spoken.sh"
+    message: "*SESSIONS_DIR*"
+    reason: "Removes the plugin's own session-state file it created (`rm -f \"$SESSIONS_DIR/$id\"`); routine cleanup, not parameter abuse."
+  - id: "BH1"
+    path: "hooks/hooks.json"
+    reason: "Declares this plugin's own Stop/UserPromptSubmit hook (spoken.sh); its documented, intended playback trigger."
+  - id: "RA2"
+    path: "scripts/spoken.sh"
+    message: "*disown*"
+    reason: "`disown` detaches the background TTS playback job from shell job control for this turn; creates no cron/startup persistence."
+
+  # --- skills/agents-memory ---
+  - id: "PE3"
+    path: "references/security.md"
+    message: "*access tokens*"
+    reason: "Security policy doc listing credential categories the skill must never record; lists the words defensively, does not access credentials."
+  - id: "RA2"
+    path: "SKILL.md"
+    message: "*AGENTS.md*"
+    reason: "Writing notes into AGENTS.md is agents-memory's documented purpose (durable memory), not unauthorized session persistence."
+
+  # --- skills/agentsview-extract and skills/agentsview-resume ---
+  - id: "PE3"
+    path: "references/security.md"
+    message: "*aws*credentials*"
+    reason: "Redaction-rule reference listing credential path patterns (e.g. ~/.aws/credentials) to scrub from transcripts, not code that reads them."
+
+  # --- skills/agentsview-resume ---
+  - id: "P1"
+    path: "references/security.md"
+    message: "*ignore previous instructions*"
+    reason: "Trust-boundary doc quoting a transcript-injection example to teach the agent to distrust it, not an attempt to override instructions."
+  - id: "YR4"
+    path: "references/security.md"
+    message: "*ignore previous instructions*"
+    reason: "Same quoted transcript-injection example as the P1 finding on this file: teaching material in a defensive doc, not an active payload."
+
+  # --- skills/aube ---
+  - id: "PE3"
+    path: "SKILL.md"
+    message: "*.npmrc*"
+    reason: ".npmrc is discussed only as a config file for aube/Dependabot lockfile settings, not credential access."
+
+  # --- skills/backfill-unit-tests ---
+  - id: "EA4"
+    path: "SKILL.md"
+    message: "*loop indefinitely*"
+    reason: "Line reads 'Don't loop indefinitely' — a retry cap, the opposite of unbounded resource consumption."
+
+  # --- skills/mise ---
+  - id: "SC2"
+    path: "SKILL.md"
+    message: "*curl | bash*"
+    reason: "Line cautions against `curl | bash` as an unpinned install ('curl | bash is not a pin'); it is not an instruction to run it."
+  - id: "TM3"
+    path: "SKILL.md"
+    message: "*world-readable*"
+    reason: "'world-readable' documents an intentional container pattern (a uid-dropped runtime user needs read access to a system mise install), not an unsafe default."
+
+  # --- skills/record-walkthrough ---
+  - id: "SC2"
+    path: "scripts/record.mjs"
+    message: "*mise.run*"
+    reason: "Advisory string returned to ask the user's authorization before installing mise via its official script; the code never runs it."
+  - id: "PE2"
+    path: "scripts/record.mjs"
+    reason: "Advisory string suggesting `sudo apt install ffmpeg` as a fallback only after asking the user's authorization; not code that elevates privileges."
+  - id: "RP1"
+    path: "SKILL.md"
+    reason: "Documented `npx playwright ...` commands run only after explicit user authorization; this repo does not version-pin interactively confirmed CLI installs."
+  - id: "RP1"
+    path: "references/auth.md"
+    reason: "Documented `npx playwright open --save-storage=auth.json` capture step, run only after explicit user authorization; same convention as the SKILL.md RP1 entry."
+  - id: "RP1"
+    path: "scripts/record.mjs"
+    reason: "Advisory strings suggesting `npx playwright ...` fallbacks only after asking the user's authorization; not autonomous execution."
+
+  # --- skills/setup-agent-ready-repo ---
+  - id: "AR2"
+    path: "SKILL.md"
+    message: "*do not judge*"
+    reason: "'do not judge whether the finding applies' tells the agent to trust the drift checker's factual output; it does not ask to omit warnings or disclaimers."
+  - id: "P2"
+    path: "references/templates/pull-request.md"
+    reason: "Visible template-authoring HTML comment instructing contributors how to fill the template; not a hidden or malicious directive."
+  - id: "AS3"
+    path: "references/gitlab-cli.md"
+    reason: "Checks for and installs the sibling glab skill (its SKILL.md and a project symlink) as part of this repo's skill-installer flow, not enumeration of arbitrary peer skills."
+  - id: "EA2"
+    path: "references/verification.md"
+    reason: "Describes reading a user's own previously persisted .env choice on a later run, not skipping confirmation for a destructive action."
+  - id: "EA2"
+    path: "scripts/check-drift.sh"
+    reason: "Line literally enforces confirmation ('do not fix it without confirmation'); inverted-polarity false match."
+
+  # --- skills/tidy-commits ---
+  - id: "TM1"
+    path: "SKILL.md"
+    message: "*git *"
+    reason: "`git reset --hard` / `git push --force` are tidy-commits' documented history-cleanup commands, gated by this repo's Git Safety Protocol (explicit user confirmation required)."
+
+  # --- skills/write-e2e-tests ---
+  - id: "RA2"
+    path: "references/ci.md"
+    message: "*add a job to*"
+    reason: "'add a job to' refers to registering a test in .github/workflows/tests.yml, not cron/startup persistence."
+  - id: "RP1"
+    path: "references/setup.md"
+    reason: "Documented `npx playwright`/`npx skills add` setup commands; this repo does not version-pin interactively confirmed CLI installs (see record-walkthrough entries above)."
+  - id: "AS3"
+    path: "references/setup.md"
+    message: "*skills/webwright*"
+    reason: "Checks for the sibling webwright skill's own SKILL.md to locate its workspace paths, not enumeration of arbitrary peer skills."
+
+fingerprints: []
