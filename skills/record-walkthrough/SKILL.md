@@ -43,8 +43,9 @@ When missing, ask the user for confirmation before installing:
    when that command is on PATH; otherwise a Playwright script. Reuse a
    webwright run only when one already exists for this flow — webwright
    launches a fresh, stateless browser each time and cannot carry a
-   signed-in session past a login wall. Leave this step when the file is on
-   disk.
+   signed-in session past a login wall. Leave this step when the file on
+   disk starts at the brief's URL and has one step per action the brief
+   names, in its order and with its values.
 
 ```json
 {
