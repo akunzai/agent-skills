@@ -1,19 +1,21 @@
 # Effects: pointer, captions, auto-zoom
 
-Three things are drawn on top of the real page. All three are on by default,
-and `effects` in `scenario.json` turns any of them off:
+Three things are drawn on top of the real page. All are on by default, and
+`effects` in `scenario.json` turns any of them off, or keeps the pointer from
+hiding itself:
 
 ```json
-{ "effects": { "zoom": false, "cursor": true, "captions": true } }
+{ "effects": { "zoom": false, "cursor": true, "cursorAutoHide": true, "captions": true } }
 ```
 
-Only these three keys are accepted, only booleans, and a key you leave out
+Only these four keys are accepted, only booleans, and a key you leave out
 keeps its default. A typo is refused before a browser opens rather than
 silently ignored.
 
 | Effect | On | Off |
 | --- | --- | --- |
 | `cursor` | A macOS-style arrow travels to each target, swaps to a pointing hand or I-beam while resting on it, fades out when idle, and a click or double-click leaves a fading blue ring | No arrow, and the mouse moves straight to its target instead of sweeping hover states along a path nobody can see |
+| `cursorAutoHide` | The pointer fades when idle and while the keyboard is in use (see Pointer) | The pointer stays on screen throughout |
 | `captions` | A caption names each interaction while it happens | Nothing is drawn |
 | `zoom` | ffmpeg zooms into each click, panning from one to the next when they come close together | No zoom is applied. A `.webm` output is the raw capture; any other container is still re-encoded by ffmpeg. `.clicks.jsonl` and `.zooms.json` are written either way |
 
@@ -44,7 +46,8 @@ click leaves no ring — only `click` and `dblclick` do.
 Like the macOS pointer, it fades out after resting 1.5s, and hides as soon
 as a `type` or `press` step starts using the keyboard; the next move or
 click brings it back. A page that loads mid-step starts with it hidden
-rather than flashing it back where it rested.
+rather than flashing it back where it rested. `"cursorAutoHide": false`
+keeps it on screen instead.
 
 ## Captions
 

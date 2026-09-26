@@ -630,9 +630,9 @@ const same = (a, b, what) => {
 
 // Every effect is on unless the scenario says otherwise, and an unlisted key
 // keeps its default rather than switching off.
-same(EFFECT_DEFAULTS, { zoom: true, cursor: true, captions: true }, "effect defaults");
+same(EFFECT_DEFAULTS, { zoom: true, cursor: true, cursorAutoHide: true, captions: true }, "effect defaults");
 same(resolveEffects({}), EFFECT_DEFAULTS, "no effects field");
-same(resolveEffects({ effects: { zoom: false } }), { zoom: false, cursor: true, captions: true }, "partial effects");
+same(resolveEffects({ effects: { zoom: false } }), { zoom: false, cursor: true, cursorAutoHide: true, captions: true }, "partial effects");
 
 for (const bad of [{ effects: [] }, { effects: null }, { effects: "none" }]) {
   let threw = false;
@@ -1195,7 +1195,7 @@ try {
   await idle.setContent('<button>Go</button><p><label>Name <input></label></p>');
   const awake = () => idle.evaluate(() =>
     document.querySelector("[data-tvr=overlay]").shadowRoot.querySelector(".cursor").classList.contains("awake"));
-  const cursorOnly = stateFor(viewport, { effects: { ...quiet, cursor: true } });
+  const cursorOnly = stateFor(viewport, { effects: { ...quiet, cursor: true, cursorAutoHide: true } });
   await runScenario(idle, { steps: [{ action: "click", role: "button", name: "Go", pause: 0 }] }, () => {}, cursorOnly);
   if (!(await awake())) {
     fail("the pointer should show right after it moves and clicks");
@@ -1209,6 +1209,19 @@ try {
     fail("the pointer should hide while typing");
   }
   await idle.close();
+
+  // cursorAutoHide off keeps the pointer on screen, resting or typing.
+  const stay = await browser.newPage({ viewport });
+  await stay.setContent('<p><label>Name <input></label></p>');
+  await runScenario(stay, { steps: [{ action: "type", role: "textbox", name: "Name", text: "Ada", pause: 0 }] }, () => {},
+    stateFor(viewport, { effects: { ...quiet, cursor: true, cursorAutoHide: false } }));
+  await new Promise((resolve) => setTimeout(resolve, 1800));
+  const stayed = await stay.evaluate(() =>
+    document.querySelector("[data-tvr=overlay]").shadowRoot.querySelector(".cursor").classList.contains("awake"));
+  if (!stayed) {
+    fail("with cursorAutoHide off the pointer should stay visible after typing and resting");
+  }
+  await stay.close();
 
   // A caption ends with its page: one whose step navigates is gone by the time
   // the next document loads, not held over it for the rest of the pause.

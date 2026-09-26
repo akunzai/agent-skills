@@ -433,7 +433,7 @@ export function bringOverlayToFront(doc = globalThis.document) {
   }
 }
 
-function installCursor() {
+function installCursor(autoHide = true) {
   if (window.__tvrCursor?.mount) {
     window.__tvrCursor.mount();
     return;
@@ -582,18 +582,27 @@ function installCursor() {
 
   // Like the macOS pointer, it fades out once it has rested a while and
   // whenever the keyboard takes over, and comes back on the next move. A
-  // fresh overlay starts hidden, so a reload does not flash it back.
+  // fresh overlay starts hidden, so a reload does not flash it back. With
+  // autoHide off it simply stays on screen.
   const IDLE_MS = 1500;
   let idleTimer;
   const hide = () => {
+    if (!autoHide) {
+      return;
+    }
     clearTimeout(idleTimer);
     cursorEl.classList.remove("awake");
   };
   const wake = () => {
     cursorEl.classList.add("awake");
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(hide, IDLE_MS);
+    if (autoHide) {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(hide, IDLE_MS);
+    }
   };
+  if (!autoHide) {
+    wake();
+  }
 
   window.__tvrCursor = {
     mount,
@@ -630,7 +639,7 @@ function installCursor() {
   };
 }
 
-export const EFFECT_DEFAULTS = { zoom: true, cursor: true, captions: true };
+export const EFFECT_DEFAULTS = { zoom: true, cursor: true, cursorAutoHide: true, captions: true };
 
 export function resolveEffects(scenario) {
   const given = scenario?.effects;
@@ -1456,7 +1465,7 @@ async function installOverlay(page, state) {
   if (!state.effects?.cursor) {
     return;
   }
-  await page.evaluate(installCursor).catch(() => {});
+  await page.evaluate(installCursor, Boolean(state.effects.cursorAutoHide)).catch(() => {});
 }
 
 async function syncCursor(page, state) {
@@ -1519,7 +1528,7 @@ export async function recordWalkthrough(options) {
     throw new Error(`no browser context to record at ${options.connect}`);
   }
   if (effects.cursor && !signIn && !attached) {
-    await context.addInitScript(installCursor);
+    await context.addInitScript(installCursor, effects.cursorAutoHide);
   }
   const page = attached ? context.pages().at(-1) : await context.newPage();
   if (!page) {
@@ -1575,7 +1584,7 @@ export async function recordWalkthrough(options) {
         await ensureSignedIn(page, scenario);
       }
       if (effects.cursor) {
-        await context.addInitScript(installCursor);
+        await context.addInitScript(installCursor, effects.cursorAutoHide);
       }
       await installOverlay(page, state);
     }
