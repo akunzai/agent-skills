@@ -55,16 +55,19 @@ jobs:
       - name: Run Waza evaluation
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_SUITE: ${{ inputs.suite }}
+          INPUT_BASELINE: ${{ inputs.baseline }}
         run: |
           set -euo pipefail
           args=()
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          if [ "$EVENT_NAME" = "pull_request" ]; then
             args+=(--changed)
-          elif [ -n "${{ inputs.suite }}" ]; then
-            args+=("${{ inputs.suite }}")
+          elif [ -n "$INPUT_SUITE" ]; then
+            args+=("$INPUT_SUITE")
           fi
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] \
-            && [ "${{ inputs.baseline }}" = "true" ]; then
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] \
+            && [ "$INPUT_BASELINE" = "true" ]; then
             args+=(--baseline)
           fi
           bash evals/run-suites.sh "${args[@]}"
