@@ -433,7 +433,7 @@ export function bringOverlayToFront(doc = globalThis.document) {
   }
 }
 
-function installCursor() {
+function installCursor(autoHide = true) {
   if (window.__tvrCursor?.mount) {
     window.__tvrCursor.mount();
     return;
@@ -455,10 +455,16 @@ function installCursor() {
       :host { pointer-events: none; }
       .cursor {
         position: absolute; left: 0; top: 0; width: 28px; height: 32px;
+        margin: -3px 0 0 -4px;
         transform: scale(var(--tvr-k, 1)); transform-origin: 4px 3px;
-        filter: drop-shadow(0 2px 3px rgba(0,0,0,.38));
+        filter: drop-shadow(0 1px 2px rgba(0,0,0,.35));
+        opacity: 0; transition: opacity 300ms ease;
       }
-      .cursor svg { display: block; position: absolute; left: 0; top: 0; }
+      .cursor.awake { opacity: 1; transition-duration: 80ms; }
+      .cursor svg { display: block; position: absolute; }
+      .shape-arrow { left: 0; top: 0; }
+      .shape-hand { left: -7.9px; top: 1.4px; }
+      .shape-text { left: -2px; top: -9px; }
       .shape { opacity: 0; transition: opacity 130ms ease; }
       .shape-arrow { opacity: 1; }
       .cursor[data-icon="hand"] .shape-arrow { opacity: 0; }
@@ -480,16 +486,22 @@ function installCursor() {
     <div class="effects"></div>
     <div class="cursor">
       <svg class="shape shape-arrow" width="28" height="32" viewBox="0 0 28 32" aria-hidden="true">
-        <path fill="#111" stroke="#fff" stroke-width="1.55" stroke-linejoin="round"
-          d="M3.8 2.6c-.18-.9.82-1.55 1.62-1.08L25.4 13.7c.82.48.62 1.68-.32 1.96l-10.1 3.05c-.24.07-.44.23-.54.46l-4.7 10.4c-.42.92-1.78.68-1.98-.34L3.8 2.6z"/>
+        <path fill="#000" stroke="#fff" stroke-width="2" stroke-linejoin="round"
+          d="M4 3v24l5.8-5.7 3.8 9 4.1-1.7-3.8-8.8h7.8L4 3Z"/>
       </svg>
       <svg class="shape shape-hand" width="26" height="28" viewBox="0 0 26 28" aria-hidden="true">
-        <path fill="#111" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"
+        <path fill="#fff" stroke="#000" stroke-width="1.4" stroke-linejoin="round"
           d="M10 3.5a1.9 1.9 0 0 1 3.8 0v8.4l1.9.4V9.8a1.8 1.8 0 0 1 3.6 0v3.1l1.7.5a1.7 1.7 0 0 1 3.4.4v6.7c0 3.9-2.9 7-6.9 7h-3c-2.1 0-4-1-5.2-2.7l-4-5.6a1.9 1.9 0 0 1 2.9-2.4l1.8 1.7V3.5Z"/>
+        <path fill="none" stroke="#000" stroke-width="1.1" stroke-linecap="round"
+          d="M13.8 13.5v4.5M17.5 13.7v4.3M21 14.3v3.7"/>
       </svg>
-      <svg class="shape shape-text" width="16" height="28" viewBox="0 0 16 28" aria-hidden="true">
-        <path fill="#111" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"
-          d="M4 2h8v3.2H9.6v17.6H12V26H4v-3.2h2.4V5.2H4V2Z"/>
+      <svg class="shape shape-text" width="12" height="24" viewBox="0 0 12 24" aria-hidden="true">
+        <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="#fff" stroke-width="3.6"
+            d="M3 2.5c1.6 0 2.4.6 3 1.5.6-.9 1.4-1.5 3-1.5M6 4v16M3 21.5c1.6 0 2.4-.6 3-1.5.6.9 1.4 1.5 3 1.5"/>
+          <path stroke="#000" stroke-width="1.5"
+            d="M3 2.5c1.6 0 2.4.6 3 1.5.6-.9 1.4-1.5 3-1.5M6 4v16M3 21.5c1.6 0 2.4-.6 3-1.5.6.9 1.4 1.5 3 1.5"/>
+        </g>
       </svg>
     </div>
   `;
@@ -568,13 +580,42 @@ function installCursor() {
     document.addEventListener("DOMContentLoaded", watch, { once: true });
   }
 
+  // Like the macOS pointer, it fades out once it has rested a while and
+  // whenever the keyboard takes over, and comes back on the next move. A
+  // fresh overlay starts hidden, so a reload does not flash it back. With
+  // autoHide off it simply stays on screen.
+  const IDLE_MS = 1500;
+  let idleTimer;
+  const hide = () => {
+    if (!autoHide) {
+      return;
+    }
+    clearTimeout(idleTimer);
+    cursorEl.classList.remove("awake");
+  };
+  const wake = () => {
+    cursorEl.classList.add("awake");
+    if (autoHide) {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(hide, IDLE_MS);
+    }
+  };
+  if (!autoHide) {
+    wake();
+  }
+
   window.__tvrCursor = {
     mount,
-    move(x, y) {
+    hide,
+    // Re-placing it after a navigation is not movement, so it does not wake.
+    move(x, y, { wake: woken = true } = {}) {
       mount();
       const rect = host.getBoundingClientRect();
       cursorEl.style.left = `${x - rect.left}px`;
       cursorEl.style.top = `${y - rect.top}px`;
+      if (woken) {
+        wake();
+      }
     },
     setIcon(icon) {
       mount();
@@ -593,11 +634,12 @@ function installCursor() {
       el.style.top = `${y - rect.top}px`;
       effectsEl.appendChild(el);
       el.addEventListener("animationend", () => el.remove());
+      wake();
     },
   };
 }
 
-export const EFFECT_DEFAULTS = { zoom: true, cursor: true, captions: true };
+export const EFFECT_DEFAULTS = { zoom: true, cursor: true, cursorAutoHide: true, captions: true };
 
 export function resolveEffects(scenario) {
   const given = scenario?.effects;
@@ -1127,6 +1169,15 @@ async function setPointerIcon(page, state, icon) {
   ).catch(() => {});
 }
 
+async function hidePointer(page, state) {
+  if (!state.effects?.cursor) {
+    return;
+  }
+  await page.evaluate(() => {
+    window.__tvrCursor?.hide();
+  }).catch(() => {});
+}
+
 async function firePulses(page, x, y, times) {
   for (let i = 0; i < times; i += 1) {
     if (i > 0) {
@@ -1301,6 +1352,7 @@ async function runSteps(page, scenario, log, state) {
       // The keypress itself is instantaneous, so the caption has to hold for
       // the step's pause or nobody reads it.
       const pressCaption = await showCaption(page, state, step);
+      await hidePointer(page, state);
       await page.keyboard.press(String(step.keys));
       await sleep(resolvePauseMs(step, state));
       await hideCaption(pressCaption);
@@ -1384,6 +1436,7 @@ async function runSteps(page, scenario, log, state) {
       if (action === "type") {
         const typed = typedText(step);
         if (typed) {
+          await hidePointer(page, state);
           await locator.first().pressSequentially(typed, { delay: 90 });
         }
       } else if (action === "select") {
@@ -1412,7 +1465,7 @@ async function installOverlay(page, state) {
   if (!state.effects?.cursor) {
     return;
   }
-  await page.evaluate(installCursor).catch(() => {});
+  await page.evaluate(installCursor, Boolean(state.effects.cursorAutoHide)).catch(() => {});
 }
 
 async function syncCursor(page, state) {
@@ -1421,7 +1474,7 @@ async function syncCursor(page, state) {
   }
   await page.evaluate(
     ([x, y]) => {
-      window.__tvrCursor?.move(x, y);
+      window.__tvrCursor?.move(x, y, { wake: false });
     },
     [state.x, state.y],
   ).catch(() => {});
@@ -1475,7 +1528,7 @@ export async function recordWalkthrough(options) {
     throw new Error(`no browser context to record at ${options.connect}`);
   }
   if (effects.cursor && !signIn && !attached) {
-    await context.addInitScript(installCursor);
+    await context.addInitScript(installCursor, effects.cursorAutoHide);
   }
   const page = attached ? context.pages().at(-1) : await context.newPage();
   if (!page) {
@@ -1531,7 +1584,7 @@ export async function recordWalkthrough(options) {
         await ensureSignedIn(page, scenario);
       }
       if (effects.cursor) {
-        await context.addInitScript(installCursor);
+        await context.addInitScript(installCursor, effects.cursorAutoHide);
       }
       await installOverlay(page, state);
     }
