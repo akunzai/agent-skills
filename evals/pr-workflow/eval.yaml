@@ -30,10 +30,10 @@ graders:
         - "(?is)(named|role).*(unavailable|unsupported|missing|capacity|pre.execution).*generic"
         - "(?is)generic.*(read.only|permission|tool|tracked.source|git.state)"
         - "(?is)(requested|actual|inherited|unknown).*(model|effort)|(model|effort).*(requested|actual|inherited|unknown)"
-        - "(?is)named.{0,200}(capacity|pre.execution).{0,200}generic.{0,200}(permission|tool|read.only|tracked.source|git.state)"
+        - "(?is)(named|check.runner).{0,200}(capacity|pre.execution).{0,200}generic.{0,200}(permission|tool|read.only|tracked.source|git.state)|generic.{0,200}(permission|tool|read.only|tracked.source|git.state).{0,400}(named|check.runner).{0,200}(capacity|pre.execution).{0,200}generic"
         - "(?is)generic.{0,200}(capacity|pre.execution).{0,200}primary"
         - "(?is)((ambiguous|unclear|unknown).{0,200}stop|stop.{0,200}(ambiguity|ambiguous|unclear|unknown))"
-        - "(?is)(once|after|if|when).{0,160}(start|begin|exec).{0,160}(fail|result).{0,160}(final|not.*rerun|no.*rerun)"
+        - "(?is)(once|after|if|when).{0,160}(start|begin|began|begun|exec).{0,160}(fail|result).{0,160}(final|not.*rerun|no.*rerun)"
 
   - type: text
     name: required-plan-structure
@@ -69,8 +69,9 @@ graders:
         - "Before"
         - "After"
       regex_match:
-        # Paired Before/After fences, or one terminal capture fence holding both.
-        - "(?is)before.{0,40}```.{0,400}after.{0,40}```|```[^`\\n]*\\n[^`]{0,120}before[^`]{0,600}after[^`]{0,600}```"
+        # Paired Before/After fences, one terminal capture fence holding both,
+        # or a Before/After pair of images or recordings.
+        - "(?is)before.{0,40}```.{0,400}after.{0,40}```|```[^`\\n]*\\n[^`]{0,120}before[^`]{0,600}after[^`]{0,600}```|!?\\[[^\\]\\n]*before[^\\]\\n]*\\]\\([^)\\s]+\\).{0,600}?!?\\[[^\\]\\n]*after[^\\]\\n]*\\]\\([^)\\s]+\\)"
       regex_not_match:
         - "(?is)```mermaid"
 
