@@ -62,9 +62,13 @@ run = "zizmor --offline .github/workflows"
 description = "Scan the full git history for leaked secrets with gitleaks"
 run = "gitleaks git --redact --no-banner ."
 
+[tasks.lint-unicode]
+description = "Scan tracked text files for hidden/invisible Unicode characters"
+run = "bash scripts/check-hidden-unicode.sh"
+
 [tasks.lint]
 description = "Run all linters"
-depends = ["lint-shell", "lint-actions", "lint-skills", "lint-workflows", "lint-secrets"]
+depends = ["lint-shell", "lint-actions", "lint-skills", "lint-workflows", "lint-secrets", "lint-unicode"]
 
 # The AgentsView CLI is scoped to this task so the other mise jobs do not
 # pull a 42 MB binary. Its Homebrew formula is a macOS-only cask, but the

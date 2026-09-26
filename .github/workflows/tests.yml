@@ -53,6 +53,17 @@ jobs:
       - name: Run gitleaks
         run: mise run lint-secrets
 
+  hidden-unicode:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run hidden-unicode checks
+        run: bash tests/hidden-unicode.sh
+
   shellcheck:
     runs-on: ubuntu-latest
     steps:
@@ -243,6 +254,9 @@ jobs:
 
       - name: Run bump-pinned-tools checks under /bin/bash
         run: /bin/bash tests/bump-pinned-tools.sh
+
+      - name: Run hidden-unicode checks under /bin/bash
+        run: /bin/bash tests/hidden-unicode.sh
 
   spoken:
     runs-on: ubuntu-latest
