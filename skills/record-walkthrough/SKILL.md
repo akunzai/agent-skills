@@ -37,14 +37,15 @@ When missing, ask the user for confirmation before installing:
    already signed in on, so a site you cannot know ahead needs one sign-in
    for both exploring and recording. See `references/auth.md`. Explore
    the live page and write `scenario.json` with the start URL and every
-   click, in order, taken from the user's brief and the live page;
-   `examples/` shows only the file's shape. Each click needs a locator (`role`+`name`, `selector`,
+   click, in order, taken from the user's brief and the live page, in
+   the shape below. Each click needs a locator (`role`+`name`, `selector`,
    `text`, or `label`). Discover locators with `playwright-cli snapshot`
    when that command is on PATH; otherwise a Playwright script. Reuse a
    webwright run only when one already exists for this flow — webwright
    launches a fresh, stateless browser each time and cannot carry a
-   signed-in session past a login wall. Leave this step when the file is on
-   disk.
+   signed-in session past a login wall. Leave this step when the file on
+   disk starts at the brief's URL and has one step per action the brief
+   names, in its order and with its values.
 
 ```json
 {

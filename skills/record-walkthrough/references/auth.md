@@ -122,16 +122,6 @@ than record a login screen.
 rather than failing obscurely. It cannot be combined with `--storage-state`:
 one makes a session, the other loads one.
 
-To check it end to end against the fixture:
-
-```bash
-node examples/site/serve.mjs
-node scripts/record.mjs --scenario examples/scenario-auth.json --out demo.mp4 --sign-in
-```
-
-Sign in with anything, and confirm the first frame of `demo.mp4` is already
-the dashboard.
-
 ## Recording the window you already signed in on
 
 `--connect` records a page you are already signed in on, so a site you know
@@ -197,25 +187,3 @@ person to close.
   `[ -n "${DEMO_PASSWORD:-}" ]`. Error output leaves out what any `type` step
   types, so it is safe to paste. The storage state above keeps the sign-in out
   of the video entirely.
-
-## Trying it offline
-
-`examples/site/` is a fixture with a public page, a sign-in form that accepts
-anything, and a cookie-gated page:
-
-```bash
-node examples/site/serve.mjs                 # http://localhost:4173/
-npx playwright open --save-storage=auth.json http://localhost:4173/login
-node scripts/record.mjs --scenario examples/scenario-auth.json \
-  --out demo.mp4 --storage-state auth.json
-```
-
-`examples/scenario.json` records the public page, for the mode that needs no
-state at all.
-`examples/scenario-login.json` signs in on camera, with the password from
-`DEMO_PASSWORD` and captioned as dots:
-
-```bash
-DEMO_PASSWORD=anything node scripts/record.mjs \
-  --scenario examples/scenario-login.json --out demo.mp4
-```
