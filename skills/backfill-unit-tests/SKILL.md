@@ -7,6 +7,8 @@ description: >-
   under CI, and actually fail on broken code. For interactive feature-first
   development, use the tdd skill instead. Out of scope: integration,
   end-to-end, browser, and performance tests.
+metadata:
+  capabilities: shell, runs-repo-commands
 ---
 
 # Backfill Unit Tests

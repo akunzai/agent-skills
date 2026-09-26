@@ -6,6 +6,8 @@ description: >-
   reconstructing a short handoff and verifying it against the current
   repository.
 disable-model-invocation: true
+metadata:
+  capabilities: shell, network, installs-tools, reads-transcripts
 ---
 
 # agentsview-resume

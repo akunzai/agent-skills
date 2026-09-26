@@ -8,6 +8,7 @@ description: >-
   or "forget X". Autonomous knowledge capture after solving a problem is
   agents-md's Prevent Recurrence, not this skill.
 metadata:
+  capabilities: shell, writes-outside-repo, edits-agent-instructions
   replaces: to-memory
 ---
 

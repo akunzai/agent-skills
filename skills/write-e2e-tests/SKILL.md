@@ -5,6 +5,8 @@ description: >-
   converting a completed webwright run, or unblocking a missing
   Playwright toolchain or webwright run first. Not for API-level end-to-end
   tests.
+metadata:
+  capabilities: shell, network, installs-tools, browser, runs-repo-commands
 ---
 
 # Write E2E Tests

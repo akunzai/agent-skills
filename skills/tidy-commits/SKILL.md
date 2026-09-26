@@ -1,6 +1,8 @@
 ---
 name: tidy-commits
 description: Use when cleaning up local git commit history before review or merge — squashing WIP/fixup noise, reordering, rewording, splitting mixed-concern commits, dropping noise, or fixing unsigned commits.
+metadata:
+  capabilities: shell, network, git-history, runs-repo-commands
 ---
 
 # Tidy Commits
