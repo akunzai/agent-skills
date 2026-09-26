@@ -37,15 +37,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Fetch origin/main
         run: git fetch --no-tags origin main:refs/remotes/origin/main
 
       - name: Set up mise
-        uses: jdx/mise-action@v4
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
           install_args: github:microsoft/waza@0.38.7
 
@@ -55,23 +56,26 @@ jobs:
       - name: Run Waza evaluation
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_SUITE: ${{ inputs.suite }}
+          INPUT_BASELINE: ${{ inputs.baseline }}
         run: |
           set -euo pipefail
           args=()
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          if [ "$EVENT_NAME" = "pull_request" ]; then
             args+=(--changed)
-          elif [ -n "${{ inputs.suite }}" ]; then
-            args+=("${{ inputs.suite }}")
+          elif [ -n "$INPUT_SUITE" ]; then
+            args+=("$INPUT_SUITE")
           fi
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] \
-            && [ "${{ inputs.baseline }}" = "true" ]; then
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] \
+            && [ "$INPUT_BASELINE" = "true" ]; then
             args+=(--baseline)
           fi
           bash evals/run-suites.sh "${args[@]}"
 
       - name: Upload Waza artifacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: waza-evaluation-${{ github.run_id }}
           path: |

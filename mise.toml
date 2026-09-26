@@ -4,6 +4,11 @@ actionlint = "latest"
 uv = "latest"
 jq = "latest"
 
+# Pinned exact (not "latest"): zizmor's own findings can change between
+# releases, so a workflow that passes today must not start failing CI on
+# an unrelated tool bump.
+zizmor = "1.30.1"
+
 # Pin the CLI tag. GitHub /releases/latest is the azd-ext release, and
 # mise 2026.8.6 cannot resolve latest+version_prefix=v (empty version list).
 [tools."github:microsoft/waza"]
@@ -44,9 +49,13 @@ run = "actionlint"
 description = "Validate SKILL.md spec via waza check"
 run = "bash tests/waza-spec.sh"
 
+[tasks.lint-workflows]
+description = "Audit GitHub Actions workflows for security issues with zizmor"
+run = "zizmor --offline .github/workflows"
+
 [tasks.lint]
 description = "Run all linters"
-depends = ["lint-shell", "lint-actions", "lint-skills"]
+depends = ["lint-shell", "lint-actions", "lint-skills", "lint-workflows"]
 
 # The AgentsView CLI is scoped to this task so the other mise jobs do not
 # pull a 42 MB binary. Its Homebrew formula is a macOS-only cask, but the

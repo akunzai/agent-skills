@@ -40,6 +40,7 @@ mise run lint
 | Bash 4+ | Tests and hook scripts |
 | [ShellCheck](https://www.shellcheck.net/) | Shell linting (`mise run lint-shell`) |
 | [actionlint](https://github.com/rhysd/actionlint) | GitHub Actions linting (`mise run lint-actions`) |
+| [zizmor](https://github.com/zizmorcore/zizmor) | GitHub Actions security linting (`mise run lint-workflows`) |
 | [waza](https://github.com/microsoft/waza) | Skill spec + eval schema (`mise run lint-skills`) |
 | [agentsview](https://github.com/kenn-io/agentsview) | CLI surface the `agentsview-*` skills cite (`mise run test-agentsview-contract`) |
 
