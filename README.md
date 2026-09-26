@@ -2,6 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://github.com/akunzai/agent-skills/actions/workflows/tests.yml/badge.svg)](https://github.com/akunzai/agent-skills/actions/workflows/tests.yml)
+[![Skill security](https://github.com/akunzai/agent-skills/actions/workflows/skill-security.yml/badge.svg)](https://github.com/akunzai/agent-skills/actions/workflows/skill-security.yml)
 
 Reusable agent skills — compatible with Antigravity, Claude Code, Codex,
 GitHub Copilot CLI, Cursor CLI, and more.
@@ -231,6 +232,18 @@ entry points; plugin-local scripts are internal post-actions.
 - [`spoken-tts`](plugins/spoken-tts/README.md) — opt-in per-conversation spoken
   summaries (`<spoken>` tags) and a CLI to speak a named passage, using
   `edge-tts` (recommended) or macOS `say`.
+
+## Security
+
+Skills here run with your agent's permissions, so each one declares what it
+can do before you install it: `metadata.capabilities` in its `SKILL.md`
+(network, installs tools, edits agent instructions, …). CI scans every change
+with SkillSpector, gitleaks, zizmor and a hidden-Unicode check; GitHub Actions
+are pinned by SHA, and tool pins get weekly bump pull requests.
+
+See [SECURITY.md](SECURITY.md) for the threat model, the capability
+vocabulary, how each [OWASP Agentic Skills Top 10](https://owasp.github.io/www-project-agentic-skills-top-10/)
+risk is handled here, and how to report a vulnerability.
 
 ## Contributing
 
