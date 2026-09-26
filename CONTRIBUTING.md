@@ -76,8 +76,7 @@ Each skill lives in `skills/<name>/` and must contain at least a `SKILL.md`.
 skills/<name>/
 ├── SKILL.md            # Required — main instructions
 ├── scripts/            # Optional — helper shell scripts
-├── references/         # Optional — supplementary docs
-└── examples/           # Optional — usage examples
+└── references/         # Optional — supplementary docs
 ```
 
 ### SKILL.md Requirements
