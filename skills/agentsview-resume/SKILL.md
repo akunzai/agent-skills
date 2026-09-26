@@ -35,13 +35,12 @@ Leave this step when `command -v agentsview` succeeds.
 If it fails, one confirmation covers every install this run needs.
 After consent:
 
-1. If `command -v uv` succeeds: `uv tool install agentsview`, then
-   `export PATH="$(uv tool dir --bin):$PATH"`.
-2. If `agentsview` is still missing: on Unix run
-   `curl -fsSL https://agentsview.io/install.sh | bash`; on Windows run
-   `powershell -ExecutionPolicy ByPass -c "irm https://agentsview.io/install.ps1 | iex"`.
-   Then `export PATH="${HOME}/.local/bin:$PATH"`.
-3. Recheck. Still missing — stop and report.
+1. If `command -v uv` succeeds: `uv tool install agentsview==0.44.0`,
+   then `export PATH="$(uv tool dir --bin):$PATH"`.
+2. Otherwise, if `command -v mise` succeeds:
+   `mise use -g github:kenn-io/agentsview@v0.44.0`.
+3. Recheck `command -v agentsview`. Still missing — stop and report that
+   `uv` or `mise` is needed; both install the pinned version.
 
 This skill calls the CLI directly; it does not need the
 `agentsview-finding-history` skill. To trace *why* a past decision was

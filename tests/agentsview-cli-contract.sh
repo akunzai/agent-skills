@@ -171,4 +171,16 @@ while IFS= read -r flag; do
     || fail "flag '${flag}' is cited by a skill but checked by nothing; add it to PROSE_FLAGS (with its subcommand) or to FOREIGN_FLAGS"
 done < <(grep -ohE -- '--[a-z][a-z0-9-]*' "${SOURCES[@]}" | sort -u)
 
+# The skills install the same pinned version this check runs against, so a
+# bump in mise.toml cannot leave them installing an unchecked CLI.
+pinned=$(sed -nE 's/.*"github:kenn-io\/agentsview" = "v([0-9.]+)".*/\1/p' "$ROOT_DIR/mise.toml")
+[ -n "$pinned" ] || fail "no github:kenn-io/agentsview pin found in mise.toml"
+for skill in agentsview-extract agentsview-resume; do
+  for install in "uv tool install agentsview==${pinned}" "github:kenn-io/agentsview@v${pinned}"; do
+    grep -qF -- "$install" "$ROOT_DIR/skills/$skill/SKILL.md" \
+      || fail "skills/$skill/SKILL.md should install the pinned CLI with '${install}'"
+    assertions=$((assertions + 1))
+  done
+done
+
 echo "agentsview-cli-contract checks passed ($assertions assertions, $(agentsview --version))"
