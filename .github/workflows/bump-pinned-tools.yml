@@ -1,0 +1,204 @@
+name: Bump pinned tools
+
+# Dependabot cannot see mise-managed pins yet (dependabot-core#12320), and
+# only covers GitHub Actions in this repo. This workflow is a self-written
+# substitute, using only the default GITHUB_TOKEN (no third-party app or
+# bump action): one job per pinned tool opens the PR Dependabot would.
+on:
+  schedule:
+    - cron: "0 6 * * 1" # weekly, Monday 06:00 UTC
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: [zizmor, gitleaks, waza, agentsview, skillspector]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up mise
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+
+      - name: Determine current vs. latest for this tool
+        id: status
+        env:
+          # Read-only usage: lists public release tags via `gh api`. Not set
+          # on the "Run this tool's own check" step below, which is the one
+          # place a freshly bumped, unreviewed upstream release actually
+          # executes -- that step must never see a repo-write token.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOOL: ${{ matrix.tool }}
+        run: |
+          set -uo pipefail
+          row="$(bash scripts/bump-pinned-tools.sh --list | awk -F'\t' -v t="$TOOL" '$1 == t')"
+          {
+            echo "current=$(printf '%s' "$row" | cut -f2)"
+            echo "latest=$(printf '%s' "$row" | cut -f3)"
+            echo "state=$(printf '%s' "$row" | cut -f4)"
+          } >>"$GITHUB_OUTPUT"
+          echo "$TOOL: $row"
+
+      - name: Check for an already-open bump PR
+        id: existing
+        if: steps.status.outputs.state == 'behind'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOOL: ${{ matrix.tool }}
+          LATEST: ${{ steps.status.outputs.latest }}
+        run: |
+          set -euo pipefail
+          branch="deps/${TOOL}-${LATEST}"
+          count="$(gh pr list --head "$branch" --state open --json number --jq 'length')"
+          skip=false
+          [ "$count" -gt 0 ] && skip=true
+          {
+            echo "branch=$branch"
+            echo "skip=$skip"
+          } >>"$GITHUB_OUTPUT"
+
+      # Every step below is scoped to this one tool's matrix job
+      # (`fail-fast: false`), so a failure here never touches the other
+      # tools' jobs.
+      - name: Apply the bump
+        id: apply
+        if: steps.status.outputs.state == 'behind' && steps.existing.outputs.skip == 'false'
+        env:
+          # Needed only for skillspector's commit-sha lookup; still read-only
+          # `gh api` usage, and this step runs no bumped-tool code.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOOL: ${{ matrix.tool }}
+          BRANCH: ${{ steps.existing.outputs.branch }}
+        run: |
+          set -euo pipefail
+          git checkout -b "$BRANCH"
+          out="$(bash scripts/bump-pinned-tools.sh --apply "$TOOL")"
+          echo "$out"
+          {
+            echo "changed=$(printf '%s\n' "$out" | sed -nE 's/^changed=(.*)$/\1/p')"
+            echo "new_version=$(printf '%s\n' "$out" | sed -nE 's/^new_version=(.*)$/\1/p')"
+            echo "release_url=$(printf '%s\n' "$out" | sed -nE 's/^release_url=(.*)$/\1/p')"
+          } >>"$GITHUB_OUTPUT"
+
+      # A failing check is recorded, never fatal to this step: the PR still
+      # opens so a maintainer can see (and act on) the failure, per the
+      # "no other workflow runs on a GITHUB_TOKEN PR" limitation below.
+      #
+      # This step executes the freshly bumped, unreviewed upstream release
+      # (uvx-installed SkillSpector, the agentsview binary, zizmor, gitleaks,
+      # or waza). Its `env:` deliberately carries no GH_TOKEN: this job has
+      # `contents: write` + `pull-requests: write`, and a compromised release
+      # must not be able to read that token out of its own environment
+      # (OWASP AST02/AST07). Do not add GH_TOKEN here.
+      - name: Run this tool's own check
+        id: check
+        if: steps.apply.outputs.changed == 'true'
+        continue-on-error: true
+        env:
+          TOOL: ${{ matrix.tool }}
+        run: |
+          set -uo pipefail
+          task=""
+          case "$TOOL" in
+            zizmor) task=lint-workflows ;;
+            waza) task=lint-skills ;;
+            agentsview) task=test-agentsview-contract ;;
+            skillspector) task=lint-skill-security ;;
+            gitleaks) task=lint-secrets ;;
+          esac
+          if [ -z "$task" ]; then
+            output="no mise task is mapped for $TOOL"
+            rc=1
+          else
+            set +e
+            output="$(mise run "$task" 2>&1)"
+            rc=$?
+            set -e
+          fi
+          {
+            echo "task=$task"
+            echo "rc=$rc"
+            echo 'output<<BUMP_CHECK_OUTPUT_EOF'
+            echo "$output"
+            echo 'BUMP_CHECK_OUTPUT_EOF'
+          } >>"$GITHUB_OUTPUT"
+
+      - name: Commit the bump
+        if: steps.apply.outputs.changed == 'true'
+        env:
+          TOOL: ${{ matrix.tool }}
+          NEW_VERSION: ${{ steps.apply.outputs.new_version }}
+          RELEASE_URL: ${{ steps.apply.outputs.release_url }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "build(${TOOL}): bump pinned ${TOOL} to ${NEW_VERSION}" -m "Release: ${RELEASE_URL}"
+
+      - name: Push the branch
+        if: steps.apply.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ steps.existing.outputs.branch }}
+        run: |
+          set -euo pipefail
+          auth_header="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+          git -c http.extraheader="AUTHORIZATION: basic ${auth_header}" \
+            push origin "HEAD:refs/heads/${BRANCH}"
+
+      - name: Build the PR body
+        if: steps.apply.outputs.changed == 'true'
+        env:
+          TOOL: ${{ matrix.tool }}
+          NEW_VERSION: ${{ steps.apply.outputs.new_version }}
+          RELEASE_URL: ${{ steps.apply.outputs.release_url }}
+          CHECK_TASK: ${{ steps.check.outputs.task }}
+          CHECK_RC: ${{ steps.check.outputs.rc }}
+          CHECK_OUTPUT: ${{ steps.check.outputs.output }}
+        run: |
+          set -euo pipefail
+          {
+            echo "Bumps the pinned \`${TOOL}\` version to \`${NEW_VERSION}\`."
+            echo
+            echo "Release: ${RELEASE_URL}"
+            echo
+            echo "<details><summary>mise run ${CHECK_TASK:-<none>} (exit ${CHECK_RC:-?})</summary>"
+            echo
+            echo '```'
+            echo "${CHECK_OUTPUT:-(no output captured)}"
+            echo '```'
+            echo
+            echo "</details>"
+            echo
+            echo "GitHub does not run workflows for pull requests opened with"
+            echo "the default \`GITHUB_TOKEN\` (this one). The check above"
+            echo "already ran in this bump job; close and reopen this PR to"
+            echo "trigger full CI (see CONTRIBUTING.md)."
+          } >"$RUNNER_TEMP/bump-pr-body.md"
+
+      - name: Open the pull request
+        if: steps.apply.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOOL: ${{ matrix.tool }}
+          NEW_VERSION: ${{ steps.apply.outputs.new_version }}
+          BRANCH: ${{ steps.existing.outputs.branch }}
+        run: |
+          set -euo pipefail
+          gh pr create \
+            --title "build(${TOOL}): bump pinned ${TOOL} to ${NEW_VERSION}" \
+            --body-file "$RUNNER_TEMP/bump-pr-body.md" \
+            --head "$BRANCH" \
+            --base main
