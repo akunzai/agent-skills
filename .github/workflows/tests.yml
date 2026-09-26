@@ -131,6 +131,17 @@ jobs:
       - name: Run backfill-unit-tests tests-pass grader checks
         run: bash tests/backfill-unit-tests-tests-pass-grader.sh
 
+  bump-pinned-tools:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run bump-pinned-tools checks
+        run: bash tests/bump-pinned-tools.sh
+
   agentsview-cli-contract:
     runs-on: ubuntu-latest
     steps:
@@ -214,6 +225,9 @@ jobs:
 
       - name: Run backfill-unit-tests tests-pass grader checks under /bin/bash
         run: /bin/bash tests/backfill-unit-tests-tests-pass-grader.sh
+
+      - name: Run bump-pinned-tools checks under /bin/bash
+        run: /bin/bash tests/bump-pinned-tools.sh
 
   spoken:
     runs-on: ubuntu-latest

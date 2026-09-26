@@ -50,6 +50,23 @@ behaviour, add an entry with a one-line reason to `.skillspector-baseline.yaml`
 (a genuine issue gets fixed instead, not suppressed) and re-run
 `mise run lint-skill-security` to confirm it is clear.
 
+### Tool pin bumps
+
+Dependabot cannot see the exact tool pins above (`mise.toml`'s `[tools]` and
+`[tasks.*].tools`); dependabot-core#12320 is on hold, and Dependabot only
+covers this repo's GitHub Actions. `.github/workflows/bump-pinned-tools.yml`
+runs weekly (and on `workflow_dispatch`) and does the same job by hand: for
+each pin behind its latest stable release, it runs `scripts/bump-pinned-tools.sh`
+to rewrite every file citing that version, runs the tool's own check (its
+`mise run lint-*` / `test-*` task), and opens a `deps/<tool>-<version>` PR
+with the release URL and that check's output.
+
+A PR that workflow opens carries only the default `GITHUB_TOKEN`, and GitHub
+does not run other workflows for a PR opened with it. The tool's own check
+already ran in the bump job and its output is in the PR body; a maintainer
+still closes and reopens the PR to trigger the full `tests.yml` suite before
+merging.
+
 ## Writing a Skill
 
 Each skill lives in `skills/<name>/` and must contain at least a `SKILL.md`.
