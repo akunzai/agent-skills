@@ -2,6 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://github.com/akunzai/agent-skills/actions/workflows/tests.yml/badge.svg)](https://github.com/akunzai/agent-skills/actions/workflows/tests.yml)
+[![Skill security](https://github.com/akunzai/agent-skills/actions/workflows/skill-security.yml/badge.svg)](https://github.com/akunzai/agent-skills/actions/workflows/skill-security.yml)
 
 Reusable agent skills — compatible with Antigravity, Claude Code, Codex,
 GitHub Copilot CLI, Cursor CLI, and more.
@@ -131,18 +132,23 @@ durable) when recording.
 Autonomous recurrence-prevention after solving a problem stays with `agents-md`'s
 Prevent Recurrence mechanism.
 
-> **Migration:** The original `memory` skill was split into the `mem-*` family
-> (`mem-auto`, `mem-clean`, `mem-promote`, `mem-recall`, `mem-setup`, and
-> `mem-sync`), then consolidated into `to-memory`, now renamed `agents-memory`.
-> These legacy names may remain visible in public registries because of
-> historical install data, but are no longer maintained. To move off
-> `to-memory`, remove it and add the new name:
->
-> ```bash
-> skills rm to-memory && skills add akunzai/agent-skills --skill agents-memory
-> # or, with npx skills
-> npx skills remove to-memory && npx skills add akunzai/agent-skills@agents-memory
-> ```
+<details>
+<summary>Migrating from <code>to-memory</code> or the <code>mem-*</code> skills</summary>
+
+The original `memory` skill was split into the `mem-*` family (`mem-auto`,
+`mem-clean`, `mem-promote`, `mem-recall`, `mem-setup`, and `mem-sync`), then
+consolidated into `to-memory`, now renamed `agents-memory`. These legacy names
+may remain visible in public registries because of historical install data,
+but are no longer maintained. To move off `to-memory`, remove it and add the
+new name:
+
+```bash
+skills rm to-memory && skills add akunzai/agent-skills --skill agents-memory
+# or, with npx skills
+npx skills remove to-memory && npx skills add akunzai/agent-skills@agents-memory
+```
+
+</details>
 
 #### [`agentsview-extract`](skills/agentsview-extract/SKILL.md)
 
@@ -163,14 +169,19 @@ Record a website walkthrough as a demo video with auto-zoom on clicks.
 Playwright captures the viewport; a click log drives zoom clusters in the
 rendered video.
 
-> **Migration:** Formerly `to-walkthrough-video`. To move off it, remove it and
-> add the new name:
->
-> ```bash
-> skills rm to-walkthrough-video && skills add akunzai/agent-skills --skill record-walkthrough
-> # or, with npx skills
-> npx skills remove to-walkthrough-video && npx skills add akunzai/agent-skills@record-walkthrough
-> ```
+<details>
+<summary>Migrating from <code>to-walkthrough-video</code></summary>
+
+Formerly `to-walkthrough-video`. To move off it, remove it and add the new
+name:
+
+```bash
+skills rm to-walkthrough-video && skills add akunzai/agent-skills --skill record-walkthrough
+# or, with npx skills
+npx skills remove to-walkthrough-video && npx skills add akunzai/agent-skills@record-walkthrough
+```
+
+</details>
 
 ## Plugins
 
@@ -186,6 +197,9 @@ plugins in the session with `/plugin`. It needs the `github.com/` prefix:
 ```bash
 cursor-agent plugin marketplace add github.com/akunzai/agent-skills
 ```
+
+<details>
+<summary>Extra setup for <code>codexbar-quota-handoff</code> and <code>cheap-dev-workers</code>, upgrading, and uninstalling</summary>
 
 Codex upgrades its marketplace snapshot as a unit (`codex plugin
 marketplace upgrade akunzai-agent-skills`) because its CLI does not expose a
@@ -214,6 +228,8 @@ Use `--help` for non-interactive runtime/plugin filters suitable for scripts
 and CI. These repository-root scripts are the only public plugin lifecycle
 entry points; plugin-local scripts are internal post-actions.
 
+</details>
+
 ### Available plugins
 
 - [`codexbar-quota-handoff`](plugins/codexbar-quota-handoff/README.md) — a
@@ -231,6 +247,18 @@ entry points; plugin-local scripts are internal post-actions.
 - [`spoken-tts`](plugins/spoken-tts/README.md) — opt-in per-conversation spoken
   summaries (`<spoken>` tags) and a CLI to speak a named passage, using
   `edge-tts` (recommended) or macOS `say`.
+
+## Security
+
+Skills here run with your agent's permissions, so each one declares what it
+can do before you install it: `metadata.capabilities` in its `SKILL.md`
+(network, installs tools, edits agent instructions, …). CI scans every change
+with SkillSpector, gitleaks, zizmor and a hidden-Unicode check; GitHub Actions
+are pinned by SHA, and tool pins get weekly bump pull requests.
+
+See [SECURITY.md](SECURITY.md) for the threat model, the capability
+vocabulary, how each [OWASP Agentic Skills Top 10](https://owasp.github.io/www-project-agentic-skills-top-10/)
+risk is handled here, and how to report a vulnerability.
 
 ## Contributing
 
