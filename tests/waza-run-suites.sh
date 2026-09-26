@@ -139,6 +139,26 @@ case ${FAKE_WAZA_MODE:-pass} in
     }' >"$output"
     exit 2
     ;;
+  flaky)
+    # fails its graders on the first attempt only
+    if [[ ! -e $FAKE_WAZA_STATE ]]; then
+      : >"$FAKE_WAZA_STATE"
+      printf '%s\n' '{"tasks": [{"runs": [{"status": "failed"}]}]}' >"$output"
+      exit 1
+    fi
+    printf '%s\n' '{"tasks": [{"runs": [{"status": "passed"}]}]}' >"$output"
+    ;;
+  fail-then-quota)
+    if [[ ! -e $FAKE_WAZA_STATE ]]; then
+      : >"$FAKE_WAZA_STATE"
+      printf '%s\n' '{"tasks": [{"runs": [{"status": "failed"}]}]}' >"$output"
+      exit 1
+    fi
+    printf '%s\n' '{
+      "tasks": [{"runs": [{"status": "error", "error_msg": "quota_exceeded"}]}]
+    }' >"$output"
+    exit 1
+    ;;
   across-suites)
     if [[ $spec == *pr-workflow* ]]; then
       printf '%s\n' '{
@@ -189,6 +209,24 @@ run_fake rate-limit 1 >/dev/null
 run_fake no-result 1 >/dev/null
 run_fake empty-result 1 >/dev/null
 
+# --- a grader failure gets exactly one retry ---
+export FAKE_WAZA_STATE="$TMP_DIR/waza-attempted"
+rm -f "$FAKE_WAZA_STATE"
+flaky_output=$(run_fake flaky 0)
+printf '%s\n' "$flaky_output" | grep -q 'pr-workflow passed on retry' \
+  || fail "a suite that passes on retry should say so: $flaky_output"
+[ -f "$fixture_root/waza-results/pr-workflow.attempt1.json" ] \
+  || fail "the failed first attempt should be kept next to the result"
+grader_output=$(run_fake grader 1)
+[ "$(printf '%s\n' "$grader_output" | grep -c 'retrying once')" -eq 1 ] \
+  || fail "a suite that keeps failing should be retried exactly once: $grader_output"
+quota_first=$(run_fake quota 0)
+printf '%s\n' "$quota_first" | grep -q 'retrying' \
+  && fail "a quota error is not noise and should not be retried"
+# a retry that cannot run does not overturn the failure it was checking
+rm -f "$FAKE_WAZA_STATE"
+run_fake fail-then-quota 1 >/dev/null
+
 set +e
 FAKE_WAZA_MODE=across-suites PATH="$fake_bin:$PATH" \
   "$fixture_root/evals/run-suites.sh" pr-workflow agents-md >/dev/null 2>&1
@@ -214,6 +252,8 @@ escape_run() {
 escape_run '' escape
 [ "$escape_status" -eq 1 ] \
   || fail "a suite writing to the checkout should exit 1, got $escape_status"
+printf '%s\n' "$escape_out" | grep -q 'retrying' \
+  && fail "a suite writing to the checkout should not be retried"
 printf '%s\n' "$escape_out" | grep -q 'pr-workflow wrote outside its Waza workspace' \
   || fail "the escape should name the suite: $escape_out"
 printf '%s\n' "$escape_out" | grep -q 'M.*AGENTS.md' \
