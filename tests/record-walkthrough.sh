@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SUGGEST="$ROOT_DIR/skills/record-walkthrough/scripts/suggest-zooms.mjs"
 RENDER="$ROOT_DIR/skills/record-walkthrough/scripts/render-auto-zoom.mjs"
 RECORD="$ROOT_DIR/skills/record-walkthrough/scripts/record.mjs"
-SERVE="$ROOT_DIR/skills/record-walkthrough/examples/site/serve.mjs"
+SERVE="$ROOT_DIR/tests/fixtures/record-walkthrough/site/serve.mjs"
 
 fail() {
   echo "record-walkthrough test failed: $*" >&2
@@ -15,7 +15,7 @@ fail() {
 [ -f "$SUGGEST" ] || fail "scripts/suggest-zooms.mjs is missing"
 [ -f "$RENDER" ] || fail "scripts/render-auto-zoom.mjs is missing"
 [ -f "$RECORD" ] || fail "scripts/record.mjs is missing"
-[ -f "$SERVE" ] || fail "examples/site/serve.mjs is missing"
+[ -f "$SERVE" ] || fail "tests/fixtures/record-walkthrough/site/serve.mjs is missing"
 
 command -v node >/dev/null || fail "node is not on PATH"
 command -v curl >/dev/null || fail "curl is not on PATH"
@@ -1431,7 +1431,7 @@ const fail = (message) => {
   process.exit(1);
 };
 
-const scenario = JSON.parse(fs.readFileSync("${ROOT_DIR}/skills/record-walkthrough/examples/scenario-login.json", "utf8"));
+const scenario = JSON.parse(fs.readFileSync("${ROOT_DIR}/tests/fixtures/record-walkthrough/scenario-login.json", "utf8"));
 const problems = validateScenario(scenario);
 if (problems.length !== 0) {
   fail("the sign-in example should validate: " + problems.join("; "));
