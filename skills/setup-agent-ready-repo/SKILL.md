@@ -59,9 +59,9 @@ lines are how they are found.
 
 Run [install-templates.sh](scripts/install-templates.sh) `--forge
 <github|gitlab|none>` rather than composing the files. It places
-[issue-tracker.md](references/templates/issue-tracker.md),
-[pull-request.md](references/templates/pull-request.md) and
-[verification.md](references/templates/verification.md) under
+[issue-tracker.md](assets/templates/issue-tracker.md),
+[pull-request.md](assets/templates/pull-request.md) and
+[verification.md](assets/templates/verification.md) under
 `docs/agents/`, skipping any that already exist, and keeps the `drift:`
 markers `--check` and `check-drift.sh` read. Then edit the copies in
 place: replace `<angle placeholder>` and `placeholder` marks, delete
@@ -70,7 +70,7 @@ template's own sentences alone: `--check` matches their wording.
 
 `--check` scans the installed documents for a placeholder nobody
 replaced, for any guarantee in
-[guarantees.tsv](references/guarantees.tsv) the document no longer
+[guarantees.tsv](assets/guarantees.tsv) the document no longer
 carries, and for `@path` file references in any `docs/agents/*.md`. Run
 it before asking for confirmation. On any finding, fix the file and rerun
 until it exits 0; do not judge whether the finding applies.

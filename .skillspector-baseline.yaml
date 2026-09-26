@@ -157,7 +157,7 @@ rules:
     message: "*do not judge*"
     reason: "'do not judge whether the finding applies' tells the agent to trust the drift checker's factual output; it does not ask to omit warnings or disclaimers."
   - id: "P2"
-    path: "references/templates/pull-request.md"
+    path: "assets/templates/pull-request.md"
     reason: "Visible template-authoring HTML comment instructing contributors how to fill the template; not a hidden or malicious directive."
   - id: "AS3"
     path: "references/gitlab-cli.md"

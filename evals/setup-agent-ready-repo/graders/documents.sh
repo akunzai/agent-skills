@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-GUARANTEES="$REPO_DIR/skills/setup-agent-ready-repo/references/guarantees.tsv"
+GUARANTEES="$REPO_DIR/skills/setup-agent-ready-repo/assets/guarantees.tsv"
 
 ws="${WAZA_WORKSPACE_DIR:?WAZA_WORKSPACE_DIR is unset}"
 cd "$ws"

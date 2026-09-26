@@ -23,8 +23,8 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 # --- the guarantee list is well formed, and true of the templates it cites ---
 # Without this the list could promise something no template pins, and every
 # document would read as behind on a guarantee that never existed.
-GUARANTEES="$ROOT_DIR/skills/setup-agent-ready-repo/references/guarantees.tsv"
-TEMPLATES="$ROOT_DIR/skills/setup-agent-ready-repo/references/templates"
+GUARANTEES="$ROOT_DIR/skills/setup-agent-ready-repo/assets/guarantees.tsv"
+TEMPLATES="$ROOT_DIR/skills/setup-agent-ready-repo/assets/templates"
 [ -f "$GUARANTEES" ] || fail "guarantee list $GUARANTEES is missing"
 
 rows=0

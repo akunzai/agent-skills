@@ -61,7 +61,7 @@ Issues and requests share one shape, top to bottom:
 The shape above serves a **report or request**: a human reads it and
 decides what to do. An issue an **agent implements from** inverts the
 priority, so it gets its own shape in
-[templates/issue-tracker.md](templates/issue-tracker.md): acceptance
+[templates/issue-tracker.md](../assets/templates/issue-tracker.md): acceptance
 criteria, scope in and out, and how to verify all sit above the fold,
 and `<details>` holds only background.
 
@@ -71,7 +71,7 @@ skim will miss.
 
 ## Choosing the visual
 
-The table is in [templates/pull-request.md](templates/pull-request.md),
+The table is in [templates/pull-request.md](../assets/templates/pull-request.md),
 which ships into the repo and has to stand alone there. Apply it to the
 issue document too. It keys the visual to what changed rather than to
 what is easy to capture, caps a ticket at one diagram unless it is a

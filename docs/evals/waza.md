@@ -113,7 +113,7 @@ The line it has to hold:
   for the right reason only by luck, and names the wrong defect when it does.
 - **Assert a section's existence, not its prose.** That a diagram table, an
   exempt-paths list, or a `drift:` marker another script parses is present is
-  pinned by `references/templates/`; the sentences around them are not. Every
+  pinned by `assets/templates/`; the sentences around them are not. Every
   template opens with "Replace every `<angle placeholder>`", so a leaked
   `<language>` or `<gh | glab>` is fair game too, while the `<number>` inside a
   sample command is not. An inline `placeholder:name` span or a
@@ -125,7 +125,7 @@ The line it has to hold:
   that the suite was reporting a real skill bug (#183).
 
 The guarantees that hold for every repo live in
-`skills/setup-agent-ready-repo/references/guarantees.tsv`, which the grader and
+`skills/setup-agent-ready-repo/assets/guarantees.tsv`, which the grader and
 the skill's own `install-templates.sh --check` both read, so the two cannot
 disagree about what a document must carry. What varies by forge, by task, or by
 the language answer stays in the grader, which knows what it asked for.

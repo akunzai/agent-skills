@@ -26,7 +26,7 @@ done
 
 # The copy is byte-identical to the template: that is the whole point of
 # copying rather than regenerating.
-cmp -s "$ROOT_DIR/skills/setup-agent-ready-repo/references/templates/pull-request.md" \
+cmp -s "$ROOT_DIR/skills/setup-agent-ready-repo/assets/templates/pull-request.md" \
        "$GH_DIR/docs/agents/pull-request.md" \
   || fail "installed pull-request.md is not a byte copy of its template"
 

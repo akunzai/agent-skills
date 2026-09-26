@@ -29,8 +29,8 @@ USAGE
 }
 
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TEMPLATES="$SKILL_DIR/references/templates"
-GUARANTEES="$SKILL_DIR/references/guarantees.tsv"
+TEMPLATES="$SKILL_DIR/assets/templates"
+GUARANTEES="$SKILL_DIR/assets/guarantees.tsv"
 
 FORGE=""
 MODE="install"
