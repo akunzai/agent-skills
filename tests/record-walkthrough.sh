@@ -1189,6 +1189,27 @@ try {
   }
   await phone.close();
 
+  // Like the macOS pointer, the drawn one fades once it rests and while the
+  // keyboard is in use, and a move brings it back.
+  const idle = await browser.newPage({ viewport });
+  await idle.setContent('<button>Go</button><p><label>Name <input></label></p>');
+  const awake = () => idle.evaluate(() =>
+    document.querySelector("[data-tvr=overlay]").shadowRoot.querySelector(".cursor").classList.contains("awake"));
+  const cursorOnly = stateFor(viewport, { effects: { ...quiet, cursor: true } });
+  await runScenario(idle, { steps: [{ action: "click", role: "button", name: "Go", pause: 0 }] }, () => {}, cursorOnly);
+  if (!(await awake())) {
+    fail("the pointer should show right after it moves and clicks");
+  }
+  await new Promise((resolve) => setTimeout(resolve, 1800));
+  if (await awake()) {
+    fail("the pointer should fade once it has rested past the idle timeout");
+  }
+  await runScenario(idle, { steps: [{ action: "type", role: "textbox", name: "Name", text: "Ada", pause: 0 }] }, () => {}, cursorOnly);
+  if (await awake()) {
+    fail("the pointer should hide while typing");
+  }
+  await idle.close();
+
   // A caption ends with its page: one whose step navigates is gone by the time
   // the next document loads, not held over it for the rest of the pause.
   const server = (await import("node:http")).createServer((req, res) => {
