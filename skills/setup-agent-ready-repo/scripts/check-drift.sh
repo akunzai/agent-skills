@@ -17,7 +17,7 @@ set -euo pipefail
 # placeholder, and is reported as drift in its own right.
 #
 # Adding a marker kind touches five places: the marker list above, its
-# check below, references/templates/verification.md, the Re-running
+# check below, assets/templates/verification.md, the Re-running
 # section of SKILL.md, and tests/setup-agent-ready-repo-drift.sh.
 
 usage() {

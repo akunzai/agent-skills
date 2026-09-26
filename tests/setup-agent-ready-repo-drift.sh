@@ -148,7 +148,7 @@ OUT="$("$SCRIPT" "$NOREMOTE" 2>/dev/null)" || STATUS=$?
 echo "$OUT" | grep -q "no origin remote" || fail "no-remote drift not reported: $OUT"
 
 # --- an unedited template reports drift rather than passing quietly ---
-TEMPLATE="$ROOT_DIR/skills/setup-agent-ready-repo/references/templates/verification.md"
+TEMPLATE="$ROOT_DIR/skills/setup-agent-ready-repo/assets/templates/verification.md"
 PLACEHOLDER="$TMP_DIR/placeholder"
 mkdir -p "$PLACEHOLDER/docs/agents"
 git -C "$PLACEHOLDER" init -b main >/dev/null 2>&1 || fail "git init failed"
