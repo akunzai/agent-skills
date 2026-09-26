@@ -81,6 +81,8 @@ run = "bash evals/run-suites.sh"
 # the task filters `.issues[].severity` itself instead.
 [tasks.lint-skill-security]
 description = "Scan published skills and plugins for security issues with SkillSpector (static analysis only)"
+# mise runs tasks with `sh -c`, which is dash on Ubuntu and rejects pipefail.
+shell = "bash -c"
 run = '''
 set +e
 set -u
