@@ -1332,16 +1332,20 @@ try {
     if (bars.some((entry) => !entry.removedAt)) {
       fail("stopping the status bar should take it down");
     }
-    const earlier = bars.length;
-    await barred.goto(origin + "/spa");
-    const spaBar = await startStatusBar(barred, barState);
+    // /grow keeps replacing itself, so a goto on that page can be interrupted
+    // by its next replace; follow the SPA on a fresh page instead.
+    await barred.close();
+    const spa = await browser.newPage({ viewport });
+    const spaBars = spyOverlays(spa);
+    await spa.goto(origin + "/spa");
+    const spaBar = await startStatusBar(spa, barState);
     await new Promise((resolve) => setTimeout(resolve, 900));
     await spaBar.stop();
-    const history = bars.slice(earlier).map(addressOf);
+    const history = spaBars.map(addressOf);
     if (!history.some((url) => url?.endsWith("/spa/next")) || !history.some((url) => url?.endsWith("/spa/next#/done"))) {
       fail("the status bar should follow history and hash changes: " + JSON.stringify(history));
     }
-    await barred.close();
+    await spa.close();
   } finally {
     server.close();
   }
