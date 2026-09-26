@@ -1,6 +1,7 @@
 ---
 name: pr-workflow
 description: Use when preparing, creating, updating, or reviewing pull requests — enforcing pre-PR checks, atomic commits, dependency release links, and issue linkage (GitHub primary, non-GitHub referenced).
+license: MIT
 metadata:
   capabilities: shell, network, git-history, forge-writes, runs-repo-commands
 ---

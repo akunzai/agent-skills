@@ -7,6 +7,7 @@ description: >-
   `$agents-memory`, "remember this", "what did I note about X", "recall",
   or "forget X". Autonomous knowledge capture after solving a problem is
   agents-md's Prevent Recurrence, not this skill.
+license: MIT
 metadata:
   capabilities: shell, writes-outside-repo, edits-agent-instructions
   replaces: to-memory

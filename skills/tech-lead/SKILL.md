@@ -5,6 +5,7 @@ description: >-
   independent slices in git worktrees, and accept the result in the
   primary session. Use when delegating implementation to subagents
   or running parallel worktrees.
+license: MIT
 metadata:
   capabilities: shell, network, git-history, forge-writes
 ---

@@ -3,6 +3,7 @@ name: mise
 description: >-
   mise: set up a project's toolchain in mise.toml, migrate Makefile or npm
   scripts to tasks, or wire mise into CI or containers.
+license: MIT
 metadata:
   capabilities: shell, network, installs-tools, writes-outside-repo, runs-repo-commands
 ---

@@ -1,6 +1,7 @@
 ---
 name: gitlab-epic
 description: Use ONLY when a git repository is hosted on GitLab to create, structure, or link GitLab epics, sub-issues, and issue relations.
+license: MIT
 metadata:
   capabilities: shell, network, installs-tools, forge-writes
 ---

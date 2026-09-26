@@ -5,6 +5,7 @@ description: >-
   converting a completed webwright run, or unblocking a missing
   Playwright toolchain or webwright run first. Not for API-level end-to-end
   tests.
+license: MIT
 metadata:
   capabilities: shell, network, installs-tools, browser, runs-repo-commands
 ---
