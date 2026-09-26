@@ -24,10 +24,10 @@ Leave this step when `command -v agentsview` succeeds.
 If it fails, one confirmation lists every write this run needs (CLI
 install, official skill install, or both). After consent:
 
-1. If `command -v uv` succeeds: `uv tool install agentsview==0.41.1`,
+1. If `command -v uv` succeeds: `uv tool install agentsview==0.44.0`,
    then `export PATH="$(uv tool dir --bin):$PATH"`.
 2. Otherwise, if `command -v mise` succeeds:
-   `mise use -g github:kenn-io/agentsview@v0.41.1`.
+   `mise use -g github:kenn-io/agentsview@v0.44.0`.
 3. Recheck `command -v agentsview`. Still missing — stop and report that
    `uv` or `mise` is needed; both install the pinned version.
 
