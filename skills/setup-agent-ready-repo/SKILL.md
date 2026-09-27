@@ -4,6 +4,7 @@ description: >-
   Set up a repository so agents can file tickets, open pull or merge
   requests, and verify their own changes.
 disable-model-invocation: true
+license: MIT
 metadata:
   capabilities: shell, network, edits-agent-instructions, runs-repo-commands
 ---

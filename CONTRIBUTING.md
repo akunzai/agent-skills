@@ -75,9 +75,16 @@ Each skill lives in `skills/<name>/` and must contain at least a `SKILL.md`.
 ```text
 skills/<name>/
 ├── SKILL.md            # Required — main instructions
-├── scripts/            # Optional — helper shell scripts
-└── references/         # Optional — supplementary docs
+├── scripts/            # Optional — helper scripts the agent runs
+├── references/         # Optional — docs the agent reads on demand
+├── assets/             # Optional — templates and data files the agent copies or parses
+└── agents/openai.yaml  # Manual-only skills only (see below)
 ```
+
+`references/` holds prose the agent reads; `assets/` holds files it copies
+into a target or parses as data (document templates, lookup tables,
+schemas), per the [Agent Skills spec](https://agentskills.io/specification#optional-directories).
+Keep `SKILL.md` under 500 lines; move detail into `references/`.
 
 ### SKILL.md Requirements
 
@@ -88,17 +95,35 @@ The file must start with YAML frontmatter:
 name: my-skill
 description: >-
   One-line description of when and how to use this skill.
+license: MIT
 metadata:
   capabilities: shell, network
 ---
 ```
 
+Only these top-level keys are allowed, so a skill behaves the same on every
+harness; `tests/skill-frontmatter.sh` enforces the list and `license: MIT`.
+
+| Key | Required | Use |
+| --- | --- | --- |
+| `name`, `description` | Yes | Per the [Agent Skills spec](https://agentskills.io/specification#frontmatter) |
+| `license` | Yes | `MIT`, the repository license; installers copy the skill without the root `LICENSE` |
+| `metadata` | Yes | `capabilities` (below); `replaces` for a renamed skill |
+| `compatibility` | No | Hard environment prerequisites only (runtime, system packages), up to 500 characters |
+| `disable-model-invocation` | No | Manual-only skills (below) |
+| `argument-hint` | No | Autocomplete hint for a skill invoked by name with arguments |
+
+Other harness-specific keys (Claude Code's `when_to_use`, `model`, `effort`,
+`context`, `hooks`, `paths`, `allowed-tools`, `disallowed-tools`, …) are
+ignored elsewhere, so a skill that relied on them would trigger or act
+differently per harness. Put trigger phrases in `description`.
+
 `metadata.capabilities` is required: a comma-separated list of what the
 skill can make the agent do, drawn from the vocabulary in
 [SECURITY.md](SECURITY.md#capabilities), or `none` alone. Derive it from
 the `SKILL.md`, references, and scripts, not the skill's name.
-`tests/skill-capabilities.sh` enforces it. Do not use `allowed-tools`; it
-pre-approves tools rather than restricting them.
+`tests/skill-capabilities.sh` enforces it. `allowed-tools` is not allowed:
+it pre-approves tools rather than restricting them.
 
 Write `SKILL.md` in **English**, including `description`. Agents follow
 the file; English is the shared language across harnesses.

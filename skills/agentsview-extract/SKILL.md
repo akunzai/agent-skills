@@ -4,6 +4,7 @@ description: >-
   Persist gotchas, preferences, or a repeated workflow from recorded
   agent history into AGENTS.md or a new skill.
 disable-model-invocation: true
+license: MIT
 metadata:
   capabilities: shell, network, installs-tools, writes-outside-repo, edits-agent-instructions, reads-transcripts
 ---

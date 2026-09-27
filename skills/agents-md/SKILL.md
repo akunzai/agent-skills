@@ -4,6 +4,7 @@ description: >-
   AGENTS.md: create, audit, or maintain the file. Use when the user mentions
   AGENTS.md, project instructions, instruction budget, or progressive disclosure of
   agent instructions.
+license: MIT
 metadata:
   capabilities: shell, edits-agent-instructions
 ---

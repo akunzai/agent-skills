@@ -3,6 +3,7 @@ name: spoken
 description: >-
   Spoken: read a specific passage the user named (read this aloud)
   by running the plugin CLI. Not for routine per-turn status.
+license: MIT
 metadata:
   capabilities: shell, network, installs-tools, writes-outside-repo
 ---

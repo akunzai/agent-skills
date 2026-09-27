@@ -5,6 +5,7 @@ description: >-
   (https://aube.sh/), or migrating a project from pnpm, npm, or bun to
   aube — including its lockfile, CI, lifecycle-script jail, and Dependabot
   handling.
+license: MIT
 metadata:
   capabilities: shell, network, installs-tools, writes-outside-repo, runs-repo-commands
 ---

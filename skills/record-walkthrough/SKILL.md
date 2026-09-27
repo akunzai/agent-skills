@@ -4,6 +4,7 @@ description: >-
   Record a website walkthrough video with auto-zoom on clicks.
   Use when the user asks for a walkthrough, when a PR, MR, or issue
   needs a recording of a web flow, or on /record-walkthrough.
+license: MIT
 metadata:
   capabilities: shell, network, installs-tools, browser
   replaces: to-walkthrough-video
