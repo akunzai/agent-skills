@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        tool: [zizmor, gitleaks, waza, agentsview, skillspector]
+        tool: [zizmor, gitleaks, waza, agentsview, skillspector, model-signing]
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -96,8 +96,8 @@ jobs:
       # "no other workflow runs on a GITHUB_TOKEN PR" limitation below.
       #
       # This step executes the freshly bumped, unreviewed upstream release
-      # (uvx-installed SkillSpector, the agentsview binary, zizmor, gitleaks,
-      # or waza). Its `env:` deliberately carries no GH_TOKEN: this job has
+      # (uvx-installed SkillSpector or model-signing, the agentsview binary,
+      # zizmor, gitleaks, or waza). Its `env:` deliberately carries no GH_TOKEN: this job has
       # `contents: write` + `pull-requests: write`, and a compromised release
       # must not be able to read that token out of its own environment
       # (OWASP AST02/AST07). Do not add GH_TOKEN here.
@@ -116,6 +116,7 @@ jobs:
             agentsview) task=test-agentsview-contract ;;
             skillspector) task=lint-skill-security ;;
             gitleaks) task=lint-secrets ;;
+            model-signing) task=test-sign-skills ;;
           esac
           if [ -z "$task" ]; then
             output="no mise task is mapped for $TOOL"

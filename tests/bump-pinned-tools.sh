@@ -36,11 +36,15 @@ grep -v '^gitleaks = ' "$ROOT_DIR/mise.toml" >"$REPO/mise.toml"
 cp "$ROOT_DIR/.github/workflows/waza-eval.yml" "$REPO/.github/workflows/waza-eval.yml"
 cp "$ROOT_DIR/skills/agentsview-extract/SKILL.md" "$REPO/skills/agentsview-extract/SKILL.md"
 cp "$ROOT_DIR/skills/agentsview-resume/SKILL.md" "$REPO/skills/agentsview-resume/SKILL.md"
+# Pin the copy below the fixture's latest whatever the repo pins today.
+sed -E 's/^MODEL_SIGNING_VERSION="[0-9.]+"$/MODEL_SIGNING_VERSION="1.1.1"/' \
+  "$ROOT_DIR/scripts/sign-skills.sh" >"$REPO/scripts/sign-skills.sh"
 
 MISE_TOML="$REPO/mise.toml"
 WAZA_EVAL="$REPO/.github/workflows/waza-eval.yml"
 AGENTSVIEW_EXTRACT="$REPO/skills/agentsview-extract/SKILL.md"
 AGENTSVIEW_RESUME="$REPO/skills/agentsview-resume/SKILL.md"
+SIGN_SKILLS="$REPO/scripts/sign-skills.sh"
 
 # --- stubs: read release tags / commit shas from fixture files, never the
 # network -----------------------------------------------------------------
@@ -97,6 +101,8 @@ printf 'v0.44.0\nv0.45.0\n' >"$FIXTURES/kenn-io_agentsview.tags"
 
 printf 'v2.12.0\nv2.13.0\n' >"$FIXTURES/NVIDIA_SkillSpector.tags"
 printf 'abc123def456abc123def456abc123def456abcd\n' >"$FIXTURES/NVIDIA_SkillSpector.sha"
+
+printf 'v1.1.1\nv1.2.0\nv1.2.0-rc1\n' >"$FIXTURES/sigstore_model-transparency.tags"
 
 # --- baseline: capture what must never change --------------------------------
 BEFORE_MISE="$(cat "$MISE_TOML")"
@@ -160,6 +166,14 @@ grep -qF 'SKILLSPECTOR_REF="abc123def456abc123def456abc123def456abcd" # v2.13.0'
 grep -qF 'c7958a3268d9498644b22edb75d0f051bbc8cbfc' "$MISE_TOML" \
   && fail "old SkillSpector commit sha still present in mise.toml"
 
+# --- 6b. model-signing: the PyPI pin in scripts/sign-skills.sh ---------------
+OUT="$(run_script --apply model-signing)"
+[ "$(field changed "$OUT")" = "true" ] || fail "model-signing apply did not report a change: $OUT"
+[ "$(field new_version "$OUT")" = "1.2.0" ] || fail "model-signing resolved wrong version: $OUT"
+grep -qxF 'MODEL_SIGNING_VERSION="1.2.0"' "$SIGN_SKILLS" \
+  || fail "sign-skills.sh MODEL_SIGNING_VERSION was not rewritten"
+grep -qF '1.1.1' "$SIGN_SKILLS" && fail "old model-signing version still present in sign-skills.sh"
+
 # --- 7. "latest" (unpinned) tools are never touched -------------------------
 for entry in 'shellcheck = "latest"' 'actionlint = "latest"' 'uv = "latest"' 'jq = "latest"'; do
   grep -qF "$entry" "$MISE_TOML" || fail "mise.toml '$entry' was modified or removed"
@@ -174,7 +188,8 @@ for row in 'zizmor	1.30.1	1.30.1	up-to-date' \
   'gitleaks	8.31.0	8.31.0	up-to-date' \
   'waza	0.39.0	0.39.0	up-to-date' \
   'agentsview	0.45.0	0.45.0	up-to-date' \
-  'skillspector	2.13.0	2.13.0	up-to-date'; do
+  'skillspector	2.13.0	2.13.0	up-to-date' \
+  'model-signing	1.2.0	1.2.0	up-to-date'; do
   printf '%s\n' "$LIST_OUT" | grep -qF "$row" \
     || fail "--list is missing expected row '$row' after applying every tool. Got:\n$LIST_OUT"
 done

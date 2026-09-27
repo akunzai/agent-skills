@@ -54,7 +54,8 @@ behaviour, add an entry with a one-line reason to `.skillspector-baseline.yaml`
 ### Tool pin bumps
 
 Dependabot cannot see the exact tool pins above (`mise.toml`'s `[tools]` and
-`[tasks.*].tools`); dependabot-core#12320 is on hold, and Dependabot only
+`[tasks.*].tools`, plus `model-signing` in `scripts/sign-skills.sh`);
+dependabot-core#12320 is on hold, and Dependabot only
 covers this repo's GitHub Actions. `.github/workflows/bump-pinned-tools.yml`
 runs weekly (and on `workflow_dispatch`) and does the same job by hand: for
 each pin behind its latest stable release, it runs `scripts/bump-pinned-tools.sh`
