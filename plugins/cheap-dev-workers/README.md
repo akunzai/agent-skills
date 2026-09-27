@@ -4,7 +4,9 @@ Three cheap-model roles keep bounded, context-heavy development work out of the
 primary session without delegating judgment or Git mutation:
 
 - `repo-explorer`: read-only repository facts with file/line evidence.
-- `check-runner`: caller-selected checks with auditable result evidence.
+- `check-runner`: caller-selected pass/fail gates with auditable result
+  evidence and a saved full-output file. Checks whose failures the caller will
+  debug or fix next stay in the primary, which needs to see that output.
 - `log-summarizer`: read-only summaries of caller-approved safe artifacts.
 
 Claude, Codex, and Copilot leave model and reasoning effort unset. Callers ask
