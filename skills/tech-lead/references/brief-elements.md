@@ -37,25 +37,35 @@ that slice's branch instead of the default branch. Basing on default
 guarantees a conflict in exactly the files the brief allows the new slice to
 touch — the overlap step 1 already recorded is not hypothetical.
 
-## Evidence capture (step 4)
+## Evidence capture (steps 4 and 7)
 
-The step 4 filter keeps implementation skills, so capture falls through
-it: a brief listing only a screenshot CLI produced English screenshots of
-a zh-TW app, in a repo whose rules preferred a walkthrough recorder.
+A brief listing only a screenshot CLI once produced English screenshots of a
+zh-TW app, in a repo whose rules preferred a walkthrough recorder. The
+scenario carries what that brief lacked.
 
-For a slice whose acceptance includes visual evidence:
+At step 4, write the scenario into the slice's acceptance:
 
-- Find the project's capture rules wherever it keeps them — a
-  verification or contributing doc, a request template, `AGENTS.md` — and
-  name the file in the brief. Where none exist, say so; the next item
-  still applies.
-- Add the capture skills from the visible list whose descriptions match
-  the platform (a web walkthrough recorder, a terminal recorder), in
-  preference to the tool the rules call a fallback.
-- Where the UI is localized, state the UI locale as a setting the
-  capture applies (browser automation starts in `en-US`, whatever the
-  developer's own browser says), plus anything known to override it, such
-  as a locale cookie.
+- the entrypoint and port, the fixture data, and each step with the
+  observation you expect from it
+- the project's capture rules, wherever it keeps them — a verification or
+  contributing doc, a request template, `AGENTS.md` — or a note that none
+  exist
+- the capture skills from the visible list whose descriptions match the
+  platform (a web walkthrough recorder, a terminal recorder), in preference
+  to the tool the rules call a fallback
+- where the UI is localized, the UI locale the capture applies (browser
+  automation starts in `en-US`, whatever the developer's own browser says),
+  plus anything known to override it, such as a locale cookie
+
+At step 7, after the implementer returns, run the scenario in a fresh
+context: an `evidence-collector` worker where one exists, which keeps
+snapshots and frames out of your context and does not grade its own work.
+Keep a screenshot or two, and any capture you are debugging from, in
+primary; on Cursor CLI run it in primary, since its `tools:` boundary is
+not enforced there. The worker returns a verdict per step; the acceptance
+verdict is yours. On a mismatch, read the capture paths it returned rather
+than dispatching it again. Mask the regions it flags before anything is
+attached.
 
 ## Wave dispatch (step 6)
 

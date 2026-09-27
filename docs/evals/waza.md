@@ -100,6 +100,8 @@ metadata reporting. They do not prove that Copilot launched a subagent or
 honored a requested model or effort. That requires a separate integration seam
 which asserts Copilot `subagent.started`/`subagent.completed` event metadata;
 final-answer text and worker self-report are not evidence of actual routing.
+`pr-workflow` also checks that a multi-step app capture goes to
+`evidence-collector` while judging and attaching it stay with the caller.
 
 ### What a document grader may assert
 

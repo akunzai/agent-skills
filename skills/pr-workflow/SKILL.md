@@ -29,6 +29,8 @@ the named worker's tools and permissions:
 
 - **Log:** exact approved local artifact only; reject unsafe input; report causes
   and events without fetching runs.
+- **Evidence:** caller's scenario only; stop what it started; no Git mutation
+  or upload; report per-step expected, observed, verdict, and paths.
 
 Otherwise use primary; a generic pre-execution failure also falls back to
 primary. Once a worker begins its assigned workload, its rejection or failure
@@ -79,6 +81,11 @@ visual to the user-visible change — a CLI or UI output change wins over an
 internal flowchart even when one exists. Where the table asks for a
 before/after pair, show both states, not just the after. Keep a multi-line
 text capture in a fenced block of its own under its Before or After label.
+
+For a running-app capture of more than a step or two, hand a named
+`evidence-collector` the scenario (entrypoint, fixtures, steps, expected
+observations); on Cursor CLI keep it in primary. Judge the captures, mask
+flagged regions, then `--attach`.
 
 ### Create PR
 ```bash

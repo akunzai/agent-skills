@@ -16,7 +16,9 @@ inputs:
     The working tree is clean and local checks already passed.
     This repo has docs/agents/pull-request.md; read it before writing the
     body. This PR changes the CLI output of `skills doctor` and also touches
-    an internal dispatch flow.
+    an internal dispatch flow. Showing the change takes a six-step
+    interactive `skills doctor --fix` session; say who captures it, who
+    judges the capture, and who attaches it.
 
     Show the PR title, body, and the exact `gh pr create` command.
     Link #42 so merge auto-closes it. Mention epic #10 only as
