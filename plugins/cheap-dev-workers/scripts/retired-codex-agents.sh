@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Run by install-codex-agents.sh and uninstall-codex-agents.sh with the Codex
-# agents directory as its only argument.
+# Run by install-codex-agents.sh and uninstall-codex-agents.sh. The optional
+# argument is the Codex agents directory, default ~/.codex/agents/.
 #
 # Removes Codex personal agents this plugin shipped in earlier releases and no
 # longer ships. commit-writer.toml is removed unconditionally, as before.
@@ -18,7 +18,7 @@ retired_check_runner_sha256=(
   dd168dc8e2655a1bdda5a2829a830c5a92a6a104deb27a12a3eb969c762aa0a7
 )
 
-dest="$1"
+dest="${1:-$HOME/.codex/agents}"
 removed=1
 
 target="$dest/commit-writer.toml"

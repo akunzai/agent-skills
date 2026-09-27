@@ -291,7 +291,7 @@ PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" CODEX_LOG="$codex_log" \
   || fail "Codex plugin upgrade failed"
 grep -qx 'plugin marketplace upgrade akunzai-agent-skills' "$codex_log" \
   || fail "upgrade did not refresh the Codex marketplace snapshot"
-for name in repo-explorer.toml log-summarizer.toml; do
+for name in repo-explorer.toml evidence-collector.toml log-summarizer.toml; do
   diff -q "$ROOT_DIR/plugins/cheap-dev-workers/codex-agents/$name" \
     "$fake_home/.codex/agents/$name" >/dev/null \
     || fail "Codex upgrade did not sync $name"
@@ -307,7 +307,7 @@ PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" CODEX_LOG="$codex_log" \
   || fail "Codex plugin uninstall failed"
 grep -qx 'plugin remove cheap-dev-workers@akunzai-agent-skills' "$codex_log" \
   || fail "uninstall did not remove cheap-dev-workers from Codex"
-for name in repo-explorer.toml check-runner.toml log-summarizer.toml commit-writer.toml; do
+for name in repo-explorer.toml evidence-collector.toml check-runner.toml log-summarizer.toml commit-writer.toml; do
   [ ! -e "$fake_home/.codex/agents/$name" ] \
     || fail "Codex uninstall left $name behind"
 done

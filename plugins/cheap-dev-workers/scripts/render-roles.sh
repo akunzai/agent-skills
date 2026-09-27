@@ -10,7 +10,7 @@ ROLES_DIR="$PLUGIN_ROOT/roles"
 SHARED="$ROLES_DIR/shared.role"
 MD_DIR="$PLUGIN_ROOT/agents"
 TOML_DIR="$PLUGIN_ROOT/codex-agents"
-ROLES=(log-summarizer repo-explorer)
+ROLES=(evidence-collector log-summarizer repo-explorer)
 
 usage() {
   cat <<'EOF'

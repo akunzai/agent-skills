@@ -4,6 +4,10 @@ Cheap-model roles keep bounded, context-heavy development work out of the
 primary session without delegating judgment or Git mutation:
 
 - `repo-explorer`: read-only repository facts with file/line evidence.
+- `evidence-collector`: runs a caller-written scenario against a running web
+  UI, TUI, or CLI and returns screenshots, recordings, or terminal captures
+  with an observed-versus-expected verdict per step. It reports; the primary
+  judges correctness and attaches the evidence.
 - `log-summarizer`: read-only summaries of caller-approved safe artifacts too
   large for the primary to hold.
 
@@ -18,8 +22,9 @@ defaults. Environment, organization, and runtime policies can override that
 request, and the plugin does not bypass them.
 
 Cursor CLI loads plugin `agents/*.md` from the Claude Code install. It ignores
-`tools:` but enforces `permissionMode: readonly`, which every role here
-carries. See `../../docs/agents/harnesses.md`.
+`tools:` but enforces `permissionMode: readonly` on the two read-only roles,
+so caller skills delegate those there and keep `evidence-collector` work in
+primary. See `../../docs/agents/harnesses.md`.
 
 When these named profiles are unavailable, current caller skills may try one
 generic subagent with a compact copy of the role's task and permission boundary.

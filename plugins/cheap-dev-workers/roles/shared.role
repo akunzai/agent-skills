@@ -14,7 +14,7 @@
 #            phase, which is blocked on the behavioural verification seam
 
 id role.description
-applies log-summarizer repo-explorer
+applies evidence-collector log-summarizer repo-explorer
 class drift
 intent
 Names the role, its reserved decisions and its routing preference over a
@@ -24,7 +24,7 @@ that omission.
 END
 
 id git.no-mutation
-applies log-summarizer repo-explorer
+applies evidence-collector log-summarizer repo-explorer
 class drift
 intent
 The role never mutates Git state: no staging, committing, pushing, rebasing,
@@ -33,7 +33,7 @@ this, in its own wording, for no reason other than history.
 END
 
 id role.leaf
-applies log-summarizer repo-explorer
+applies evidence-collector log-summarizer repo-explorer
 class shared
 intent
 A leaf role never dispatches another worker.
@@ -100,3 +100,72 @@ class shared
 intent
 The role makes no implementation or architecture decisions.
 END
+
+id scenario.caller-written
+applies evidence-collector
+class shared
+intent
+The caller writes the scenario and the role runs it as written. The one
+latitude is re-locating a moved target from a fresh snapshot, reported as a
+deviation; choosing what to exercise stays with the caller.
+END
+
+id tools.installed
+applies evidence-collector
+class shared
+intent
+Only capture tools already installed are used. A missing tool is reported,
+never downloaded or installed by the role.
+END
+
+id process.lifecycle
+applies evidence-collector
+class shared
+intent
+Only the caller-named entrypoint is started, on the port the caller or the
+repository's verification doc gives. Every process the role started is
+stopped before it returns; processes it did not start are left alone.
+END
+
+id artifacts.outside-repo
+applies evidence-collector
+class shared
+intent
+Captures land in one fresh temporary directory under /tmp, outside the
+repository. /tmp rather than the platform temp directory, because Codex's
+secure-workspace sandbox allows writes there.
+END
+
+id git.fingerprint
+applies evidence-collector
+class shared
+intent
+Tracked state is fingerprinted before and after the scenario, and a changed
+fingerprint is reported as a failure without restoring anything.
+END
+
+id remote.none
+applies evidence-collector
+class shared
+intent
+Evidence never leaves the machine through the role: uploading, posting, and
+commenting are remote-state decisions the caller makes after review.
+END
+
+id evidence.observed
+applies evidence-collector
+class shared
+intent
+Each step reports action, the caller's expectation verbatim, the observation,
+a match/mismatch/undetermined verdict and capture paths. Only observed output
+counts as evidence; the overall verdict is the caller's.
+END
+
+id privacy.fixture-only
+applies evidence-collector
+class shared
+intent
+Captures use fixture data. Regions that may identify the developer are named
+for the caller to mask; real data outside the fixtures stops the capture.
+END
+

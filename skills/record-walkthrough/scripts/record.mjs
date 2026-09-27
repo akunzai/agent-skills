@@ -1722,7 +1722,7 @@ export function validateScenario(scenario, options = {}) {
     problems.push('scenario.device must be a string: "phone", "tablet", or an exact Playwright device name');
   }
   if (scenario.locale !== undefined && typeof scenario.locale !== "string") {
-    problems.push('scenario.locale must be a BCP 47 string such as "zh-TW"');
+    problems.push('scenario.locale must be a BCP 47 language tag string');
   }
   if (scenario.ignoreHTTPSErrors !== undefined && typeof scenario.ignoreHTTPSErrors !== "boolean") {
     problems.push("scenario.ignoreHTTPSErrors must be true or false");

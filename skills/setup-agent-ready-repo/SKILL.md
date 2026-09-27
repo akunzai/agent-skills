@@ -108,8 +108,7 @@ written into the document it governs; no language table goes into
 
 The same answer picks the capture locale: when the UI ships the language
 issues and PR/MR bodies use (`locales/`, i18n), `verification.md` records
-its code, such as `zh-TW` for Traditional Chinese, not the `en-US` browser
-default.
+its BCP 47 code, not the `en-US` browser default.
 
 What you add to a document may be in that language, English, or a mix.
 Where a forge-native template already dictates structure, that template

@@ -29,7 +29,7 @@ done
 
 dest="$HOME/.codex/agents"
 plugin_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-agents=(repo-explorer.toml log-summarizer.toml)
+agents=(repo-explorer.toml evidence-collector.toml log-summarizer.toml)
 mkdir -p "$dest"
 for name in "${agents[@]}"; do
   source="$plugin_root/codex-agents/$name"

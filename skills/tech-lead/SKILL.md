@@ -49,9 +49,9 @@ From skills this session can already see (harness skill list, or `skills ls --js
 
 Put absolute `SKILL.md` paths in the brief. That list is the full set the implementer reads.
 
-A slice whose acceptance includes screenshots or a recording also gets its capture skills and settings. Named: **Evidence capture** — `references/brief-elements.md`.
+A slice whose acceptance includes screenshots or a recording gets that evidence at step 7, from a scenario you write now into its acceptance. Named: **Evidence capture** — `references/brief-elements.md`.
 
-**Done** when the brief lists those paths, or lists none, and a slice with visual evidence carries each **Evidence capture** item.
+**Done** when the brief lists those paths, or lists none, and a slice with visual evidence carries an **Evidence capture** scenario.
 
 ## 5. Isolate
 
@@ -77,6 +77,7 @@ On return, record every item:
 
 - brief constraints held
 - claimed verification actually ran
+- visual evidence: the **Evidence capture** scenario ran in a fresh context, and you judged its captures
 - ship, ask the user, or resume the same implementer with findings
 - a defect report: verify; ticket only with user agreement
 

@@ -90,5 +90,7 @@ performer: a failure needs the full output, and the worker hands back a summary
 Those checks now run in the primary. The decision above is unchanged: `roles/`
 is still the single authority and the renderer projects whatever roles it holds.
 The `runtime`-class relay invariants left with the role, since every remaining
-role is a leaf.
+role is a leaf. `evidence-collector` joined in the same change: it captures a
+running app's behaviour for the primary to judge, which keeps snapshots and
+frames out of the primary's context without hiding a failure's output.
 

@@ -15,7 +15,7 @@ fail() {
   exit 1
 }
 
-ROLES=(repo-explorer log-summarizer)
+ROLES=(repo-explorer evidence-collector log-summarizer)
 
 for role in "${ROLES[@]}"; do
   md="$PLUGIN_DIR/agents/$role.md"
@@ -66,6 +66,7 @@ expect_permissions() {
 }
 expect_permissions repo-explorer 'Read, Grep, Glob' read-only
 expect_permissions log-summarizer 'Read' read-only
+expect_permissions evidence-collector 'Bash, Read' workspace-write
 
 # --- the routing layer these roles plug into is documented, not inferred ---
 grep -q 'cheap-dev-workers:<role>' "$PLUGIN_DIR/AGENTS.md" \

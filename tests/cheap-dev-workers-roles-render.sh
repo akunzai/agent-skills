@@ -39,11 +39,14 @@ require_ids() {
   done
 }
 
-for role in log-summarizer repo-explorer; do
+for role in evidence-collector log-summarizer repo-explorer; do
   require_ids "$role" git.no-mutation role.description
 done
 require_ids repo-explorer role.leaf scope.caller-repo evidence.cited \
   verification.primary decisions.none
+require_ids evidence-collector role.leaf scenario.caller-written tools.installed \
+  process.lifecycle artifacts.outside-repo git.fingerprint remote.none \
+  evidence.observed privacy.fixture-only
 require_ids log-summarizer role.leaf scope.exact-artifact input.rejection \
   summary.root-causes secrets.residual-scan
 

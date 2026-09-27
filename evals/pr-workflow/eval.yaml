@@ -37,6 +37,15 @@ graders:
         - "(?is)(tests?|linters?|checks?).{0,200}(primary|main session|this session|(not|rather than|instead of).{0,40}(sub.?agent|worker|delegat))"
 
   - type: text
+    name: evidence-capture-routing
+    config:
+      regex_match:
+        - "(?i)evidence.collector"
+        - "(?is)(judge|review|verify|check).{0,200}(captur|screenshot|recording).{0,300}(attach|upload)|(attach|upload).{0,300}(primary|you|yourself|main (agent|session))"
+      regex_not_match:
+        - "(?is)evidence.collector.{0,80}(attach|upload)s"
+
+  - type: text
     name: required-plan-structure
     config:
       contains:
