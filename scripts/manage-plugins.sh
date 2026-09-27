@@ -177,6 +177,63 @@ claude_marketplace_registered() {
   jq -e --arg name "$marketplace_name" 'any(.[]; .name == $name)' \
     <<<"$claude_marketplace_output" >/dev/null 2>&1
 }
+# Claude Code keeps a marketplace declared in settings.json
+# (extraKnownMarketplaces) apart from the one it has registered. When the two
+# name different sources under one name, every /plugin run tries to add the
+# declared one and fails: 'clone directory name "<name>" is the registered
+# marketplace "<name>"'s directory'. Refuse to create or extend that split.
+# Printed as github:<repo> or directory:<path>; empty when absent or unknown.
+claude_source_key() {
+  jq -r 'if .source == "github" then "github:\(.repo)"
+    elif .source == "directory" then "directory:\(.path // .installLocation)"
+    else empty end' 2>/dev/null
+}
+claude_check_marketplace_source() {
+  local settings="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
+  local wanted declared registered
+  if [[ "$marketplace_source" == "$repo_root" ]]; then
+    wanted="directory:$repo_root"
+  else
+    wanted="github:$marketplace_source"
+  fi
+  declared=""
+  if [[ -f "$settings" ]]; then
+    declared="$(jq -c --arg name "$marketplace_name" \
+      '.extraKnownMarketplaces[$name].source // empty' "$settings" 2>/dev/null \
+      | claude_source_key)"
+  fi
+  registered="$(jq -c --arg name "$marketplace_name" \
+    '.[] | select(.name == $name)' <<<"$claude_marketplace_output" \
+    | claude_source_key)"
+
+  if [[ -n "$declared" && -n "$registered" && "$declared" != "$registered" ]]; then
+    cat >&2 <<EOF
+ERROR: Claude Code marketplace "$marketplace_name" is registered as
+  $registered
+but $settings declares it as
+  $declared
+Every /plugin run will fail until they match. Either remove the registration
+and let settings.json re-add it (this uninstalls its plugins; reinstall them
+afterwards):
+  claude plugin marketplace remove $marketplace_name
+or change extraKnownMarketplaces.$marketplace_name in $settings to the
+registered source.
+EOF
+    return 1
+  fi
+  if [[ -n "$declared" && "$declared" != "$wanted" ]] \
+    && ! claude_marketplace_registered; then
+    cat >&2 <<EOF
+ERROR: this run would register Claude Code marketplace "$marketplace_name" as
+  $wanted
+but $settings declares it as
+  $declared
+Rerun with the declared source$([[ "$wanted" == directory:* ]] && echo " (drop --local)"), or change
+extraKnownMarketplaces.$marketplace_name in $settings first.
+EOF
+    return 1
+  fi
+}
 claude_supports_plugin() { true; }
 claude_add_marketplace() { claude plugin marketplace add "$marketplace_source"; }
 claude_refresh_marketplace() { claude plugin marketplace update "$marketplace_name"; }
@@ -310,6 +367,9 @@ done
 plugins=(${compatible_plugins[@]+"${compatible_plugins[@]}"})
 
 runtime_call load_status
+if [[ "$runtime" == "claude" && "$action" != "uninstall" ]]; then
+  claude_check_marketplace_source || exit 1
+fi
 
 is_installed() {
   runtime_call is_installed "$1@$marketplace_name"

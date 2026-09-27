@@ -199,7 +199,11 @@ cat >"$stub_bin/claude" <<'STUB'
 printf '%s\n' "$*" >>"$CLAUDE_LOG"
 case "$*" in
   "plugin marketplace list --json")
-    echo '[{"name":"akunzai-agent-skills"}]'
+    if [[ -n "${CLAUDE_MARKETPLACES:-}" ]]; then
+      printf '%s\n' "$CLAUDE_MARKETPLACES"
+    else
+      echo '[{"name":"akunzai-agent-skills"}]'
+    fi
     ;;
   "plugin list --json")
     echo '[{"id":"cheap-dev-workers@akunzai-agent-skills","scope":"user"}]'
@@ -246,6 +250,42 @@ PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" CLAUDE_LOG="$claude_log" \
   || fail "Claude Code plugin uninstall failed"
 grep -qx 'plugin uninstall cheap-dev-workers@akunzai-agent-skills --scope user --yes' "$claude_log" \
   || fail "uninstall did not remove cheap-dev-workers from Claude Code"
+
+# A marketplace declared in settings.json under one source and registered
+# under another breaks every /plugin run, so setup refuses to create or
+# extend that split.
+mkdir -p "$fake_home/.claude"
+echo '{"extraKnownMarketplaces":{"akunzai-agent-skills":{"source":{"source":"github","repo":"akunzai/agent-skills"}}}}' \
+  >"$fake_home/.claude/settings.json"
+
+: >"$claude_log"
+set +e
+split_out=$(PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" CLAUDE_LOG="$claude_log" \
+  CLAUDE_MARKETPLACES='[]' \
+  bash "$SCRIPT" --runtime claude --plugin spoken-tts --local --yes 2>&1)
+split_status=$?
+set -e
+[ "$split_status" -ne 0 ] || fail "setup --local registered a source settings.json does not declare"
+case "$split_out" in *"drop --local"*) ;; *) fail "declared-source refusal lacks its fix: $split_out" ;; esac
+! grep -q '^plugin marketplace add' "$claude_log" \
+  || fail "setup added a marketplace that contradicts settings.json"
+
+set +e
+split_out=$(PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" CLAUDE_LOG="$claude_log" \
+  CLAUDE_MARKETPLACES="[{\"name\":\"akunzai-agent-skills\",\"source\":\"directory\",\"path\":\"$ROOT_DIR\"}]" \
+  bash "$ROOT_DIR/scripts/upgrade.sh" --runtime claude --plugin cheap-dev-workers --yes 2>&1)
+split_status=$?
+set -e
+[ "$split_status" -ne 0 ] || fail "upgrade ignored a registered/declared marketplace split"
+case "$split_out" in *"claude plugin marketplace remove akunzai-agent-skills"*) ;;
+  *) fail "split refusal lacks the remove command: $split_out" ;; esac
+! grep -q '^plugin update' "$claude_log" || fail "upgrade proceeded despite the split"
+
+PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" CLAUDE_LOG="$claude_log" \
+  CLAUDE_MARKETPLACES='[{"name":"akunzai-agent-skills","source":"github","repo":"akunzai/agent-skills"}]' \
+  bash "$ROOT_DIR/scripts/upgrade.sh" --runtime claude --plugin cheap-dev-workers --yes >/dev/null \
+  || fail "upgrade refused a marketplace that matches settings.json"
+rm "$fake_home/.claude/settings.json"
 
 # Codex also exposes JSON status. Catalog skills are not a marketplace
 # plugin; remaining entries install alongside each other.
