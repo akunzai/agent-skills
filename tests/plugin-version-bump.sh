@@ -53,12 +53,13 @@ for plugin_json in "${plugin_jsons[@]}"; do
     rel="plugins/$name"
     if git -C "$ROOT_DIR" cat-file -e "$base:$rel/.claude-plugin/plugin.json" 2>/dev/null; then
       # Claude/Copilot Worker Roles are executable Markdown, so agents/*.md is a
-      # shipped change. Only contributor docs and the generated upgrade helper
-      # are excluded; a plugin-root AGENTS.md/CLAUDE.md is not loaded as plugin
-      # context, so it ships nothing.
+      # shipped change. Only contributor docs, the generated upgrade helper, and
+      # CI-written skill signatures are excluded; a plugin-root
+      # AGENTS.md/CLAUDE.md is not loaded as plugin context, so it ships
+      # nothing, and marketplace installers never read skill.oms.sig.
       if [ -n "$(git -C "$ROOT_DIR" diff --name-only "$base" -- "$rel" \
         ':(exclude)*/README.md' ':(exclude)*/AGENTS.md' ':(exclude)*/CLAUDE.md' \
-        ':(exclude)*/scripts/upgrade.sh')" ]; then
+        ':(exclude)*/scripts/upgrade.sh' ':(exclude)*/skill.oms.sig')" ]; then
         old="$(git -C "$ROOT_DIR" show "$base:$rel/.claude-plugin/plugin.json" | jq -r '.version // empty')"
         [ "$version" != "$old" ] \
           || fail "$name shipped files changed vs $base but version stayed '$version' (Claude Code skips plugin update until version changes)"

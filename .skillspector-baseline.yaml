@@ -46,6 +46,15 @@ rules:
       This skill format (Claude/Codex/OpenCode Skills) has no
       declared-permissions manifest concept; fires uniformly on every skill
       in this repo, not a per-skill gap.
+  - id: "SC3"
+    path: "*skill.oms.sig"
+    # base64 of `{\n  "_type": "https://in-toto.io/Statement/v1`, the start of every OMS payload
+    message: "*ewogICJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3Yx*"
+    reason: >-
+      The base64 in an OMS signature is the Sigstore bundle's DSSE payload
+      (an in-toto statement of file digests), written by
+      .github/workflows/sign-skills.yml; it is never executed or loaded as
+      instructions.
 
   # --- plugins/cheap-dev-workers ---
   - id: "PE2"
