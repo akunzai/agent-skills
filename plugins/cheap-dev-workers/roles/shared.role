@@ -14,7 +14,7 @@
 #            phase, which is blocked on the behavioural verification seam
 
 id role.description
-applies check-runner log-summarizer repo-explorer
+applies log-summarizer repo-explorer
 class drift
 intent
 Names the role, its reserved decisions and its routing preference over a
@@ -24,98 +24,16 @@ that omission.
 END
 
 id git.no-mutation
-applies check-runner log-summarizer repo-explorer
+applies log-summarizer repo-explorer
 class drift
 intent
 The role never mutates Git state: no staging, committing, pushing, rebasing,
-and no writes to the index, refs, commits or remotes. All three roles carry
-this, in three different wordings, for no reason other than history.
-END
-
-id checks.caller-named
-applies check-runner
-class shared
-intent
-Only the commands the caller named are run. The role never widens the batch.
-END
-
-id artifacts.tracked-source
-applies check-runner
-class shared
-intent
-Ordinary build and test artifacts may appear; tracked source may not. A check
-that changes tracked source stops the batch.
-END
-
-id git.fingerprint
-applies check-runner
-class shared
-intent
-Tracked state is fingerprinted before and after the batch, and a changed
-fingerprint is reported as a failure without restoring anything.
-END
-
-id evidence.per-check
-applies check-runner
-class shared
-intent
-Every check returns the same evidence shape, including a path to its full
-output saved outside the repository so the caller never re-runs a failure to
-see it, and a failing check is a task result rather than a launch failure.
-END
-
-id evidence.check-cardinality
-applies check-runner
-class shared
-intent
-A check is one caller-named command, not an assertion hidden inside its
-output.
-END
-
-id evidence.no-invention
-applies check-runner
-class shared
-intent
-Only observed output is reported as evidence; source-derived claims are
-labelled as inference and counts are never invented.
-END
-
-id relay.target
-applies check-runner repo-explorer
-class shared
-intent
-Work the role may not do itself is relayed to one named sibling role, with
-the minimum approved context.
-END
-
-id relay.nesting-limit
-applies check-runner repo-explorer
-class runtime
-intent
-Claude plugin subagents cannot spawn another subagent, so the relay must go
-back through the primary. Codex allows exactly one nested hop. Same intent,
-genuinely different mechanics.
-END
-
-id relay.child-boundary
-applies check-runner repo-explorer
-class runtime
-intent
-The child's permission boundary and the root's four-worker budget are
-preserved. Codex additionally states minimum-context passing and no launch
-retry, because only Codex actually has a child to launch.
-END
-
-id relay.trigger
-applies repo-explorer
-class shared
-intent
-The relay fires on an explicit verification request, or when the answer
-depends on a runtime command passing rather than on file content.
+and no writes to the index, refs, commits or remotes. Every role carries
+this, in its own wording, for no reason other than history.
 END
 
 id role.leaf
-applies log-summarizer
+applies log-summarizer repo-explorer
 class shared
 intent
 A leaf role never dispatches another worker.
@@ -167,12 +85,13 @@ Facts carry file and line provenance, unresolved uncertainty is stated, and
 the commands used are reported.
 END
 
-id verification.reserved
+id verification.primary
 applies repo-explorer
 class shared
 intent
-Test, build and lint commands are reserved for the check-runner; exploration
-inspects repository content only.
+Test, build and lint commands belong to the primary. When an answer depends
+on a command's runtime result rather than on file content, the role names the
+command that would settle it and hands that back instead of inferring it.
 END
 
 id decisions.none

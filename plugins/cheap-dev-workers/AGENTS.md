@@ -40,18 +40,18 @@ id, which roles carry it, and a `class`:
 
 - `shared` — same meaning in both runtimes; the wording still differs, which is
   unfinished normalization rather than design
-- `runtime` — deliberately different because the runtimes differ (e.g. nesting
-  depth; see `../../docs/agents/harnesses.md`)
+- `runtime` — deliberately different because the runtimes differ (see
+  `../../docs/agents/harnesses.md`)
 - `drift` — differs with no runtime justification
 
 Per-role, per-runtime prose lives in `roles/<role>.role`, because the same
-invariant is worded differently in all three roles today. The grammar has no
+invariant is worded differently in each role today. The grammar has no
 quoting, escaping, or continuation: anything it cannot hold verbatim is
 rejected with a `file:line` error rather than silently transformed.
 
 ### What the checks do and do not prove
 
-`--check` proves the six artifacts are exactly what `roles/` projects, and
+`--check` proves every artifact is exactly what `roles/` projects, and
 `tests/cheap-dev-workers-agents-content.sh` proves the native seams (required
 fields, `tools:` / `sandbox_mode`, no model or effort pins, no unsupported
 Claude nesting claim). Neither proves the semantics are right, and no test here
@@ -63,7 +63,7 @@ event metadata (`subagent.started` / `subagent.completed`). That is a separate
 integration seam, not part of this renderer. The Waza suites evaluate skills
 that *describe* routing; they never load these artifacts.
 
-Normalizing the divergent wording is blocked on that seam: collapsing three
+Normalizing the divergent wording is blocked on that seam: collapsing several
 wordings into one changes prompt behaviour, and nothing here can currently
 observe a regression.
 
@@ -94,9 +94,8 @@ plugin-local scripts are internal post-action helpers.
 - Skills request roles, never plugin identities or provider models. Runtime
   adapters resolve them: Claude Code and Copilot CLI dispatch
   `cheap-dev-workers:<role>`; Codex requests the installed role name.
-  Cursor CLI loads the same plugin agents and dispatches only the read-only
-  roles; `check-runner` work stays in primary there because its `tools:`
-  boundary is not enforced (`../../docs/agents/harnesses.md`).
+  Cursor CLI loads the same plugin agents and enforces their read-only
+  boundary (`../../docs/agents/harnesses.md`).
 - Choose the role before the model. Prefer an available named worker for
   bounded, context-heavy work. If the role is unavailable or unsupported,
   callers may use one generic worker only when they can reproduce its
@@ -114,10 +113,14 @@ plugin-local scripts are internal post-action helpers.
   plugin, so a routing rule that lives only in this file cannot be followed.
 - Keep architecture, implementation, scope, test selection, Git mutation, and
   remote-state decisions in primary.
-- Limit a root task to four concurrent workers and one nested hop. No same-role
-  recursion. Where plugin subagents cannot nest (Claude Code), primary relays
-  `repo-explorer` → `check-runner` and `check-runner` → `log-summarizer`. Other
-  runtimes may use the same paths only when supported.
+- Tests, builds, and lint run in primary. A test-runner worker returns a
+  summary where a failure needs the full output, and Anthropic's own testing
+  found that pattern the worst performer
+  (<https://academy.claude.com/courses/introduction-to-subagents/using-subagents-effectively#when-subagents-hurt>).
+  That is why `check-runner` was retired; do not reintroduce it under another
+  name.
+- Limit a root task to four concurrent workers. Every role is a leaf: a worker
+  that needs another role hands the need back to primary.
 - Pass minimum caller-scoped context. Potentially sensitive logs cross a model
   boundary only after `scripts/sanitize-log.sh` succeeds.
 
@@ -138,11 +141,11 @@ the `sandbox_mode` together, with no runtime-specific tool list. A `read-only`
 sandbox also renders `permissionMode: readonly`, the field Cursor CLI enforces
 on plugin agents; `read+exec` renders none, since readonly blocks every shell
 call. Read-only roles carry `permissionMode: readonly`, never `readonly: true`,
-and `check-runner` carries neither; `tests/cheap-dev-workers-agents-content.sh`
+and a `read+exec` role carries neither; `tests/cheap-dev-workers-agents-content.sh`
 enforces both.
 
-Claude plugin subagents do not support `hooks` or `permissionMode`, so the
-check-runner's Bash mutation boundary is prompt-enforced. The primary
+Claude plugin subagents do not support `hooks` or `permissionMode`, so a
+`read+exec` role's Bash mutation boundary is prompt-enforced. The primary
 supplies exact commands and treats an unexpected tracked-source change as
 failure.
 

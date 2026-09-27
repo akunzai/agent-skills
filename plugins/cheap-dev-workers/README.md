@@ -1,13 +1,14 @@
 # cheap-dev-workers
 
-Three cheap-model roles keep bounded, context-heavy development work out of the
+Cheap-model roles keep bounded, context-heavy development work out of the
 primary session without delegating judgment or Git mutation:
 
 - `repo-explorer`: read-only repository facts with file/line evidence.
-- `check-runner`: caller-selected pass/fail gates with auditable result
-  evidence and a saved full-output file. Checks whose failures the caller will
-  debug or fix next stay in the primary, which needs to see that output.
-- `log-summarizer`: read-only summaries of caller-approved safe artifacts.
+- `log-summarizer`: read-only summaries of caller-approved safe artifacts too
+  large for the primary to hold.
+
+Tests, builds, and lint run in the primary, which needs their full output to
+act on a failure. The former `check-runner` role is retired for that reason.
 
 Claude, Codex, and Copilot leave model and reasoning effort unset. Callers ask
 runtimes that support per-dispatch selection for the cheapest available model
@@ -17,9 +18,8 @@ defaults. Environment, organization, and runtime policies can override that
 request, and the plugin does not bypass them.
 
 Cursor CLI loads plugin `agents/*.md` from the Claude Code install. It ignores
-`tools:` but enforces `permissionMode: readonly` on the two read-only roles,
-so caller skills delegate those there and keep `check-runner` in primary. See
-`../../docs/agents/harnesses.md`.
+`tools:` but enforces `permissionMode: readonly`, which every role here
+carries. See `../../docs/agents/harnesses.md`.
 
 When these named profiles are unavailable, current caller skills may try one
 generic subagent with a compact copy of the role's task and permission boundary.
@@ -28,10 +28,8 @@ capacity, rate-limit, rejected-model, or launch errors, and skip the generic pat
 when the runtime cannot enforce that boundary. Once a worker begins its
 workload, it is never retried or upgraded; an ambiguous execution status stops
 instead of risking duplicate work. Actual model and effort are reported only
-from runtime metadata, otherwise as inherited or unknown. Claude plugin
-subagents return relay requests because they cannot nest. Runtimes that support
-nesting limit it to explorer → check-runner or check-runner → log summarizer;
-correctness never depends on it.
+from runtime metadata, otherwise as inherited or unknown. Every role is a leaf:
+a worker that needs another role hands the need back to the primary.
 
 ## Install
 
@@ -44,7 +42,7 @@ bash scripts/setup.sh --plugin cheap-dev-workers
 The interactive setup detects Claude Code, Codex CLI, and GitHub Copilot CLI,
 then shows whether the plugin is already installed. Copilot reads the shared
 `.claude-plugin` manifests and never touches Codex personal agents. Selecting
-Codex also installs the three personal agent definitions under
+Codex also installs the personal agent definitions under
 `~/.codex/agents/`.
 
 Start a new session after installation.
@@ -57,7 +55,8 @@ bash scripts/upgrade.sh --plugin cheap-dev-workers
 
 `claude plugin update` only moves when `plugin.json` `version` changed. Codex
 personal agents are copies; the root upgrade safely syncs them into
-`~/.codex/agents/`.
+`~/.codex/agents/`. It also removes a `check-runner.toml` left by an
+earlier release, unless its bytes differ from every released version.
 
 ## Sensitive logs
 
