@@ -23,10 +23,12 @@ TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 REPO="$TMP_DIR/repo"
-mkdir -p "$REPO/skills/alpha/references" "$REPO/plugins/p/skills/beta" "$REPO/plugins/q"
+mkdir -p "$REPO/skills/alpha/references" "$REPO/skills/beta" "$REPO/plugins/p/skills/gamma"
 printf -- '---\nname: alpha\ndescription: Alpha.\n---\n' > "$REPO/skills/alpha/SKILL.md"
 printf 'reference\n' > "$REPO/skills/alpha/references/r.md"
-printf -- '---\nname: beta\ndescription: Beta.\n---\n' > "$REPO/plugins/p/skills/beta/SKILL.md"
+printf -- '---\nname: beta\ndescription: Beta.\n---\n' > "$REPO/skills/beta/SKILL.md"
+# A plugin Skill ships through its plugin, whose installers never verify it.
+printf -- '---\nname: gamma\ndescription: Gamma.\n---\n' > "$REPO/plugins/p/skills/gamma/SKILL.md"
 
 openssl ecparam -name prime256v1 -genkey -noout -out "$TMP_DIR/key.pem" 2>/dev/null
 openssl ec -in "$TMP_DIR/key.pem" -pubout -out "$TMP_DIR/key.pub" 2>/dev/null
@@ -35,24 +37,25 @@ run() {
   bash "$SCRIPT" --key "$TMP_DIR/key.pem" "$TMP_DIR/key.pub" "$REPO"
 }
 
-expected_first="signed plugins/p/skills/beta
-signed skills/alpha"
+expected_first="signed skills/alpha
+signed skills/beta"
 out="$(run)" || fail "first run exited non-zero"
 [ "$out" = "$expected_first" ] || fail "first run: expected
 $expected_first
 got
 $out"
 [ -f "$REPO/skills/alpha/skill.oms.sig" ] || fail "skills/alpha/skill.oms.sig missing"
+[ ! -e "$REPO/plugins/p/skills/gamma/skill.oms.sig" ] || fail "a plugin Skill should not be signed"
 
 out="$(run)" || fail "second run exited non-zero"
-[ "$out" = "unchanged plugins/p/skills/beta
-unchanged skills/alpha" ] || fail "second run should leave valid signatures alone, got
+[ "$out" = "unchanged skills/alpha
+unchanged skills/beta" ] || fail "second run should leave valid signatures alone, got
 $out"
 
 printf 'changed\n' >> "$REPO/skills/alpha/references/r.md"
 out="$(run)" || fail "third run exited non-zero"
-[ "$out" = "unchanged plugins/p/skills/beta
-signed skills/alpha" ] || fail "third run should re-sign only skills/alpha, got
+[ "$out" = "signed skills/alpha
+unchanged skills/beta" ] || fail "third run should re-sign only skills/alpha, got
 $out"
 
 uvx -q --from "model-signing==$MODEL_SIGNING_VERSION" model_signing verify key "$REPO/skills/alpha" \

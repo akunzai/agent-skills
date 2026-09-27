@@ -71,7 +71,7 @@ pre-approval, so it widens what runs without a prompt rather than narrowing it.
 
 ### Verifying a skill
 
-Every skill directory, under `skills/` and `plugins/*/skills/`, carries a
+Every catalog skill directory under `skills/` carries a
 detached [OpenSSF Model Signing](https://github.com/sigstore/model-transparency)
 signature, `skill.oms.sig`. `.github/workflows/sign-skills.yml` writes it with
 Sigstore keyless signing after each push to `main`, so the signer is that

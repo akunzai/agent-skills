@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Signs every Skill directory (skills/* and plugins/*/skills/*) with an
-# OpenSSF Model Signing (OMS) detached signature at <skill>/skill.oms.sig.
+# Signs every catalog Skill directory (skills/*) with an OpenSSF Model
+# Signing (OMS) detached signature at <skill>/skill.oms.sig. Plugin Skills
+# are not signed: plugin installers never read the signature, and those
+# Skills only work inside their plugin.
 # A Skill whose existing signature still verifies is left alone, so the run
 # is idempotent and a re-run after a merge only touches what changed.
 #
@@ -88,6 +90,6 @@ while IFS= read -r skill_md; do
   sign "$dir" >/dev/null
   verify "$dir" >/dev/null || { echo "sign-skills: $rel does not verify right after signing" >&2; exit 1; }
   echo "signed $rel"
-done < <(find "$ROOT_DIR/skills" "$ROOT_DIR"/plugins/*/skills -mindepth 2 -maxdepth 2 -name SKILL.md -type f 2>/dev/null | sort)
+done < <(find "$ROOT_DIR/skills" -mindepth 2 -maxdepth 2 -name SKILL.md -type f 2>/dev/null | sort)
 
 [ "$found" -gt 0 ] || { echo "sign-skills: no SKILL.md found under $ROOT_DIR" >&2; exit 1; }
