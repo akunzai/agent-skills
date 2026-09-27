@@ -59,8 +59,9 @@ id evidence.per-check
 applies check-runner
 class shared
 intent
-Every check returns the same evidence shape, and a failing check is a task
-result rather than a launch failure.
+Every check returns the same evidence shape, including a path to its full
+output saved outside the repository so the caller never re-runs a failure to
+see it, and a failing check is a task result rather than a launch failure.
 END
 
 id evidence.check-cardinality

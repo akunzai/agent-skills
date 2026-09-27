@@ -76,10 +76,9 @@ test type instead.
    which gap, and whether it was untestable or a suspected bug — alongside
    the generated tests when the task finishes.
 
-6. **Validate.** Prefer an available named `check-runner` for caller-selected build,
-   discoverability, and normal test commands. The primary agent keeps test
-   selection, writing, repair, and Mutation-lite break/restore sequencing. Run
-   all three gates, in order:
+6. **Validate.** Run these gates in the primary agent, not a `check-runner`:
+   step 7 repairs from their output and Mutation-lite reads each failure, so
+   the output has to stay visible. Run all three gates, in order:
    - **Build** — the full workspace builds/compiles, not just the new test
      file in isolation.
    - **Discoverable** — the project's actual test-run command finds and
@@ -96,8 +95,6 @@ test type instead.
 
 ## Worker routing
 
-On Cursor CLI, keep `check-runner` work in primary, since Cursor gives it unrestricted tools; the read-only cheap-dev-workers roles stay enforced there.
-
 Request the cheapest capable model and lowest sufficient effort (`low` for
 routine work); unsupported overrides inherit parent/configured defaults. Report
 requested/actual only from runtime metadata, else inherited/unknown.
@@ -109,8 +106,6 @@ the named worker's tools and permissions:
 
 - **Explore:** read-only repo facts with file/line evidence; no checks or
   implementation/architecture decisions.
-- **Check:** primary-selected commands, artifacts allowed, no tracked/Git-state
-  mutation; report command, exit, cause/final summaries, omissions, and artifact.
 
 Otherwise use primary; a generic pre-execution failure also falls back to
 primary. Once a worker begins its assigned workload, its rejection or failure
