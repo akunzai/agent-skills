@@ -39,7 +39,7 @@ rm "$dest/log-summarizer.toml"
 # --- install helper installs every agent, byte-identical to the source ---
 HOME="$fake_home" bash "$INSTALL_SCRIPT" >/dev/null
 
-for name in repo-explorer.toml log-summarizer.toml; do
+for name in repo-explorer.toml evidence-collector.toml log-summarizer.toml; do
   [ -f "$dest/$name" ] || fail "install helper did not install $name into $dest"
   diff -q "$PLUGIN_DIR/codex-agents/$name" "$dest/$name" >/dev/null \
     || fail "$dest/$name differs from the plugin source $name"
@@ -87,7 +87,7 @@ printf 'retired\n' >"$dest/commit-writer.toml"
 cp "$RELEASED_CHECK_RUNNER" "$dest/check-runner.toml"
 HOME="$fake_home" bash "$REMOVE_SCRIPT" >/dev/null
 
-for name in repo-explorer.toml check-runner.toml log-summarizer.toml commit-writer.toml; do
+for name in repo-explorer.toml evidence-collector.toml check-runner.toml log-summarizer.toml commit-writer.toml; do
   [ ! -f "$dest/$name" ] || fail "remove helper left $dest/$name behind"
 done
 # --- remove helper on an already-empty destination is a no-op, not an error ---

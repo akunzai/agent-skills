@@ -94,8 +94,9 @@ plugin-local scripts are internal post-action helpers.
 - Skills request roles, never plugin identities or provider models. Runtime
   adapters resolve them: Claude Code and Copilot CLI dispatch
   `cheap-dev-workers:<role>`; Codex requests the installed role name.
-  Cursor CLI loads the same plugin agents and enforces their read-only
-  boundary (`../../docs/agents/harnesses.md`).
+  Cursor CLI loads the same plugin agents and dispatches only the read-only
+  roles; `evidence-collector` work stays in primary there because its
+  `tools:` boundary is not enforced (`../../docs/agents/harnesses.md`).
 - Choose the role before the model. Prefer an available named worker for
   bounded, context-heavy work. If the role is unavailable or unsupported,
   callers may use one generic worker only when they can reproduce its
@@ -118,7 +119,10 @@ plugin-local scripts are internal post-action helpers.
   found that pattern the worst performer
   (<https://academy.claude.com/courses/introduction-to-subagents/using-subagents-effectively#when-subagents-hurt>).
   That is why `check-runner` was retired; do not reintroduce it under another
-  name.
+  name. `evidence-collector` observes a running app, never a test suite: its
+  worth is context it keeps out of primary (snapshots, frames, server logs)
+  and a fresh-context reproduction, and a mismatch hands primary the capture
+  paths to read rather than a rerun.
 - Limit a root task to four concurrent workers. Every role is a leaf: a worker
   that needs another role hands the need back to primary.
 - Pass minimum caller-scoped context. Potentially sensitive logs cross a model
