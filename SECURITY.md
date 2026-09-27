@@ -69,6 +69,31 @@ pre-approval, so it widens what runs without a prompt rather than narrowing it.
   write files that every later session loads. Each shows the exact addition and
   waits for confirmation first.
 
+### Verifying a skill
+
+Every skill directory, under `skills/` and `plugins/*/skills/`, carries a
+detached [OpenSSF Model Signing](https://github.com/sigstore/model-transparency)
+signature, `skill.oms.sig`. `.github/workflows/sign-skills.yml` writes it with
+Sigstore keyless signing after each push to `main`, so the signer is that
+workflow's GitHub identity, not a key anyone holds. Verify an installed or
+checked-out copy with the reference CLI:
+
+```sh
+uvx --from model-signing model_signing verify sigstore <skill-dir> \
+  --signature <skill-dir>/skill.oms.sig \
+  --identity https://github.com/akunzai/agent-skills/.github/workflows/sign-skills.yml@refs/heads/main \
+  --identity_provider https://token.actions.githubusercontent.com
+```
+
+Verification fails when any file was changed, added, or removed after signing.
+
+- **A signature proves origin, not safety.** It shows the files are the ones
+  this repository's CI signed from `main`; review `capabilities` and the
+  SkillSpector scan for what a skill can do.
+- **Expect a short gap after a merge.** Between a merge that changes a skill
+  and the signing commit that follows it, that skill's signature is stale and
+  fails verification. Fetch again a few minutes later.
+
 ### Plugin hooks
 
 - **`codexbar-quota-handoff`** registers `Stop` and `PostToolUse` hooks that run

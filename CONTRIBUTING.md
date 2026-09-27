@@ -78,7 +78,8 @@ skills/<name>/
 ├── scripts/            # Optional — helper scripts the agent runs
 ├── references/         # Optional — docs the agent reads on demand
 ├── assets/             # Optional — templates and data files the agent copies or parses
-└── agents/openai.yaml  # Manual-only skills only (see below)
+├── agents/openai.yaml  # Manual-only skills only (see below)
+└── skill.oms.sig       # Written by CI after merge; never edit or commit by hand
 ```
 
 `references/` holds prose the agent reads; `assets/` holds files it copies
