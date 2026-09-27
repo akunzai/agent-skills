@@ -1,0 +1,57 @@
+name: Sign Skills
+
+# Keeps an OMS signature (skill.oms.sig) beside every Skill on main. The
+# signer is this workflow's GitHub OIDC identity, so the path and ref below
+# are the identity SECURITY.md tells users to verify against: renaming this
+# file or signing from another ref changes it. A push made with
+# GITHUB_TOKEN does not trigger workflows, so the signing commit does not
+# re-run this one.
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "skills/**"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: sign-skills
+  cancel-in-progress: false
+
+jobs:
+  sign:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up mise
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+
+      - name: Sign changed skills
+        run: bash scripts/sign-skills.sh
+
+      - name: Commit signatures
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$(git status --porcelain -- '*/skill.oms.sig')" ]; then
+            echo "All signatures are current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- '*/skill.oms.sig'
+          git commit -m "chore: sign skills for ${GITHUB_SHA::7}"
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          # A merge that landed while signing is signed by its own queued run.
+          git pull --rebase "$remote" main
+          git push "$remote" HEAD:main

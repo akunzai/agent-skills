@@ -26,9 +26,10 @@ MISE_TOML="$ROOT_DIR/mise.toml"
 WAZA_EVAL_YML="$ROOT_DIR/.github/workflows/waza-eval.yml"
 AGENTSVIEW_EXTRACT_SKILL="$ROOT_DIR/skills/agentsview-extract/SKILL.md"
 AGENTSVIEW_RESUME_SKILL="$ROOT_DIR/skills/agentsview-resume/SKILL.md"
+SIGN_SKILLS_SH="$ROOT_DIR/scripts/sign-skills.sh"
 
 # Fixed processing order for --list; --apply takes any one of these names.
-TOOL_ORDER=(zizmor gitleaks waza agentsview skillspector)
+TOOL_ORDER=(zizmor gitleaks waza agentsview skillspector model-signing)
 
 usage() {
   cat <<'EOF'
@@ -42,7 +43,7 @@ Usage: bump-pinned-tools.sh --list
                   slice lands), is reported as an untouched no-op.
   -h, --help      Show this help
 
-Tools: zizmor gitleaks waza agentsview skillspector
+Tools: zizmor gitleaks waza agentsview skillspector model-signing
 EOF
 }
 
@@ -53,7 +54,9 @@ EOF
 # line here plus one line in TOOL_ORDER above -- current_simple/apply_simple
 # already handle any name routed through them. waza, agentsview, and
 # skillspector are special-cased because each pins the same version across
-# more than one file, in more than one on-disk format.
+# more than one file, in more than one on-disk format. model-signing is a
+# PyPI package pinned in scripts/sign-skills.sh; its GitHub tags match the
+# PyPI versions.
 repo_for() {
   case "$1" in
     zizmor) echo "zizmorcore/zizmor" ;;
@@ -61,6 +64,7 @@ repo_for() {
     waza) echo "microsoft/waza" ;;
     agentsview) echo "kenn-io/agentsview" ;;
     skillspector) echo "NVIDIA/SkillSpector" ;;
+    model-signing) echo "sigstore/model-transparency" ;;
     *) return 1 ;;
   esac
 }
@@ -129,6 +133,12 @@ current_skillspector_version() {
   printf '%s' "$result"
 }
 
+current_model_signing() {
+  local result
+  result="$(sed -nE 's/^MODEL_SIGNING_VERSION="([0-9]+\.[0-9]+\.[0-9]+)"$/\1/p' "$SIGN_SKILLS_SH" 2>/dev/null | head -1)"
+  printf '%s' "$result"
+}
+
 current_version_for() {
   local name="$1"
   case "$name" in
@@ -136,6 +146,7 @@ current_version_for() {
     waza) current_waza ;;
     agentsview) current_agentsview ;;
     skillspector) current_skillspector_version ;;
+    model-signing) current_model_signing ;;
   esac
 }
 
@@ -173,6 +184,12 @@ apply_skillspector() {
   local new_version="$1" new_sha="$2"
   sed -i.bak -E "s/^SKILLSPECTOR_REF=\"[0-9a-f]+\" # v[0-9]+\.[0-9]+\.[0-9]+\$/SKILLSPECTOR_REF=\"${new_sha}\" # v${new_version}/" "$MISE_TOML"
   rm -f "${MISE_TOML}.bak"
+}
+
+apply_model_signing() {
+  local new="$1"
+  sed -i.bak -E "s/^MODEL_SIGNING_VERSION=\"[0-9]+\.[0-9]+\.[0-9]+\"\$/MODEL_SIGNING_VERSION=\"${new}\"/" "$SIGN_SKILLS_SH"
+  rm -f "${SIGN_SKILLS_SH}.bak"
 }
 
 # --- commands -----------------------------------------------------------------
@@ -231,6 +248,7 @@ do_apply() {
     zizmor | gitleaks) apply_simple "$name" "$new" ;;
     waza) apply_waza "$new" ;;
     agentsview) apply_agentsview "$new" ;;
+    model-signing) apply_model_signing "$new" ;;
     skillspector)
       sha="$(fetch_commit_sha "$repo" "v${new}")"
       if [ -z "$sha" ]; then

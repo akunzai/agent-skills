@@ -38,6 +38,10 @@ done
 exit $exit_code
 '''
 
+[tasks.test-sign-skills]
+description = "Sign and verify a scratch repo with scripts/sign-skills.sh (key mode, offline after the first uvx fetch)"
+run = "bash tests/sign-skills.sh"
+
 [tasks.render-roles]
 description = "Render cheap-dev-workers native artifacts from roles/"
 run = "bash plugins/cheap-dev-workers/scripts/render-roles.sh --write"
