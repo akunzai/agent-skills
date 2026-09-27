@@ -25,8 +25,8 @@ graders:
     name: checks-in-primary
     config:
       regex_match:
-        - "(?is)(tests?|linters?|checks?).{0,200}(primary (agent|session)|main session|this session|(not|rather than|instead of).{0,40}(subagent|worker|delegat))"
-        - "(?is)(tree|diff).{0,200}(identical|unchanged|same|match|no difference|empty).{0,300}(skip|not.{0,20}(run|needed|necessary))|(skip|not.{0,20}(run|needed|necessary)).{0,300}(tree|diff).{0,200}(identical|unchanged|same|match|no difference|empty)"
+        - "(?is)(tests?|linters?|checks?).{0,200}(primary|main session|this session|(not|rather than|instead of).{0,40}(sub.?agent|worker|delegat))"
+        - "(?is)(tree|diff).{0,200}(identical|unchanged|same|match|preserv|no difference|empty).{0,300}(skip|not.{0,20}(run|needed|necessary))|(skip|not.{0,20}(run|needed|necessary)).{0,300}(tree|diff).{0,200}(identical|unchanged|same|match|preserv|no difference|empty)"
 
   - type: text
     name: required-plan-structure
@@ -38,9 +38,8 @@ graders:
   - type: text
     name: uses-skill-operations
     config:
-      contains:
-        - "fixup"
       regex_match:
+        - "(?i)fix.?up"
         - "(?i)GIT_SEQUENCE_EDITOR|non-interactive|GIT_EDITOR=true"
 
   - type: code

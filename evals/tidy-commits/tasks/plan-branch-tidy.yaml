@@ -12,6 +12,8 @@ inputs:
   prompt: |
     Plan a tidy of the local branch whose commits are listed in
     HISTORY.txt. The base is origin/main. The working tree is clean.
+    This workspace is not the Git checkout: treat HISTORY.txt as the
+    branch's complete log and each subject as an accurate description.
 
     Classify every commit (keep, squash/fixup, reorder, split, or drop).
     Show a backup ref name and the exact non-interactive commands you
