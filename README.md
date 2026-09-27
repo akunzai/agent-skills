@@ -241,9 +241,9 @@ entry points; plugin-local scripts are internal post-actions.
   reconstruct. Machine-specific (depends on your own CodexBar installation
   and account authorization) rather than something a visitor installs
   directly.
-- [`cheap-dev-workers`](plugins/cheap-dev-workers/README.md) — three narrow,
-  cheap-model workers for repository evidence, verification, and safe-log
-  summaries across every plugin runtime.
+- [`cheap-dev-workers`](plugins/cheap-dev-workers/README.md) — narrow cheap-model
+  workers for repository evidence and safe-log summaries across every plugin
+  runtime.
 - [`spoken-tts`](plugins/spoken-tts/README.md) — opt-in per-conversation spoken
   summaries (`<spoken>` tags) and a CLI to speak a named passage, using
   `edge-tts` (recommended) or macOS `say`.

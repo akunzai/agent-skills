@@ -29,9 +29,10 @@ inputs:
     named-to-generic decision path, explicitly stating that a generic fallback
     must preserve the named worker's tools and permissions, and how requested
     versus actual settings are reported.
-    During verification, explain the next routing step for three separate cases:
-    (1) the named check-runner returns `Selected model is at capacity` before it
-    executes a command — dispatch one generic fallback that preserves the named
+    State where local tests and linters run. When a CI failure log needs
+    summarizing, explain the next routing step for three separate cases:
+    (1) the named log-summarizer returns `Selected model is at capacity` before
+    it reads the log — dispatch one generic fallback that preserves the named
     worker's tools and permissions; (2) that generic fallback returns the same
     pre-execution error — continue in primary; and (3) the runtime returns an
     error without revealing whether execution began. Separately state when a

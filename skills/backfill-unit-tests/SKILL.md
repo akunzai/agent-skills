@@ -76,9 +76,9 @@ test type instead.
    which gap, and whether it was untestable or a suspected bug — alongside
    the generated tests when the task finishes.
 
-6. **Validate.** Run these gates in the primary agent, not a `check-runner`:
-   step 7 repairs from their output and Mutation-lite reads each failure, so
-   the output has to stay visible. Run all three gates, in order:
+6. **Validate.** Run these gates in the primary agent: step 7 repairs from
+   their output and Mutation-lite reads each failure, so the output has to
+   stay visible. Run all three gates, in order:
    - **Build** — the full workspace builds/compiles, not just the new test
      file in isolation.
    - **Discoverable** — the project's actual test-run command finds and

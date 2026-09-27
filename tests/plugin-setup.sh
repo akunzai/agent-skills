@@ -283,19 +283,23 @@ fi
 
 mkdir -p "$fake_home/.codex/agents"
 printf 'retired\n' >"$fake_home/.codex/agents/commit-writer.toml"
+cp "$ROOT_DIR/tests/fixtures/cheap-dev-workers/check-runner-released.toml" \
+  "$fake_home/.codex/agents/check-runner.toml"
 PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" CODEX_LOG="$codex_log" \
   bash "$ROOT_DIR/scripts/upgrade.sh" --runtime codex \
     --plugin cheap-dev-workers --yes >/dev/null \
   || fail "Codex plugin upgrade failed"
 grep -qx 'plugin marketplace upgrade akunzai-agent-skills' "$codex_log" \
   || fail "upgrade did not refresh the Codex marketplace snapshot"
-for name in repo-explorer.toml check-runner.toml log-summarizer.toml; do
+for name in repo-explorer.toml log-summarizer.toml; do
   diff -q "$ROOT_DIR/plugins/cheap-dev-workers/codex-agents/$name" \
     "$fake_home/.codex/agents/$name" >/dev/null \
     || fail "Codex upgrade did not sync $name"
 done
 [ ! -e "$fake_home/.codex/agents/commit-writer.toml" ] \
   || fail "Codex upgrade left leftover commit-writer.toml"
+[ ! -e "$fake_home/.codex/agents/check-runner.toml" ] \
+  || fail "Codex upgrade left a released check-runner.toml"
 
 PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" CODEX_LOG="$codex_log" \
   bash "$ROOT_DIR/scripts/uninstall.sh" --runtime codex \

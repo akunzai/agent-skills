@@ -34,12 +34,14 @@ CODEX_MARKETPLACE_PATH="$(jq -r '.plugins[] | select(.name == "cheap-dev-workers
 grep -q 'plugins/cheap-dev-workers/README.md' "$ROOT_DIR/README.md" \
   || fail "root README is missing the cheap-dev-workers plugin"
 # --- Claude Code agents auto-discovered from agents/ ---
-for agent in repo-explorer check-runner log-summarizer; do
+for agent in repo-explorer log-summarizer; do
   [ -f "$PLUGIN_DIR/agents/$agent.md" ] || fail "agents/$agent.md is missing"
   [ -f "$PLUGIN_DIR/codex-agents/$agent.toml" ] || fail "codex-agents/$agent.toml is missing"
 done
 [ ! -e "$PLUGIN_DIR/agents/verifier.md" ] || fail "legacy Claude verifier still ships"
 [ ! -e "$PLUGIN_DIR/codex-agents/verifier.toml" ] || fail "legacy Codex verifier still ships"
+[ ! -e "$PLUGIN_DIR/agents/check-runner.md" ] || fail "retired Claude check-runner still ships"
+[ ! -e "$PLUGIN_DIR/codex-agents/check-runner.toml" ] || fail "retired Codex check-runner still ships"
 
 # --- plugin-local scripts are internal helpers, not lifecycle entry points ---
 for script in install-codex-agents.sh uninstall-codex-agents.sh sanitize-log.sh; do

@@ -39,15 +39,11 @@ require_ids() {
   done
 }
 
-for role in check-runner log-summarizer repo-explorer; do
+for role in log-summarizer repo-explorer; do
   require_ids "$role" git.no-mutation role.description
 done
-require_ids check-runner checks.caller-named artifacts.tracked-source \
-  git.fingerprint evidence.per-check evidence.check-cardinality \
-  evidence.no-invention relay.target relay.nesting-limit relay.child-boundary
-require_ids repo-explorer scope.caller-repo evidence.cited \
-  verification.reserved relay.trigger relay.target relay.nesting-limit \
-  relay.child-boundary decisions.none
+require_ids repo-explorer role.leaf scope.caller-repo evidence.cited \
+  verification.primary decisions.none
 require_ids log-summarizer role.leaf scope.exact-artifact input.rejection \
   summary.root-causes secrets.residual-scan
 
@@ -78,14 +74,14 @@ expect_exit() {
 }
 
 # A hand-edited artifact is drift, not a new source of truth.
-printf '\nhand-edited\n' >> "$SANDBOX/agents/check-runner.md"
+printf '\nhand-edited\n' >> "$SANDBOX/agents/repo-explorer.md"
 expect_exit 1 "hand-edited artifact" "$COPY" --check
-cp "$PLUGIN_DIR/agents/check-runner.md" "$SANDBOX/agents/check-runner.md"
+cp "$PLUGIN_DIR/agents/repo-explorer.md" "$SANDBOX/agents/repo-explorer.md"
 
 # An unknown directive is rejected rather than ignored.
-printf 'wobble claude\n' >> "$SANDBOX/roles/check-runner.role"
+printf 'wobble claude\n' >> "$SANDBOX/roles/log-summarizer.role"
 expect_exit 65 "unknown directive" "$COPY" --check
-cp "$PLUGIN_DIR/roles/check-runner.role" "$SANDBOX/roles/check-runner.role"
+cp "$PLUGIN_DIR/roles/log-summarizer.role" "$SANDBOX/roles/log-summarizer.role"
 
 # An id that is not declared in the shared skeleton is rejected.
 sed 's/^entry role.leaf /entry role.leaf nope.id /' \
@@ -94,16 +90,16 @@ expect_exit 65 "undeclared id" "$COPY" --check
 cp "$PLUGIN_DIR/roles/log-summarizer.role" "$SANDBOX/roles/log-summarizer.role"
 
 # The role set is fixed: an extra source is a hard error.
-cp "$SANDBOX/roles/check-runner.role" "$SANDBOX/roles/extra.role"
+cp "$SANDBOX/roles/log-summarizer.role" "$SANDBOX/roles/extra.role"
 expect_exit 65 "extra role source" "$COPY" --check
 rm "$SANDBOX/roles/extra.role"
 
 # --write leaves every artifact untouched when any role fails validation.
 printf 'wobble claude\n' >> "$SANDBOX/roles/repo-explorer.role"
-printf '\nhand-edited\n' >> "$SANDBOX/agents/check-runner.md"
-before="$(cksum < "$SANDBOX/agents/check-runner.md")"
+printf '\nhand-edited\n' >> "$SANDBOX/agents/log-summarizer.md"
+before="$(cksum < "$SANDBOX/agents/log-summarizer.md")"
 expect_exit 65 "--write with an invalid source" "$COPY" --write
-after="$(cksum < "$SANDBOX/agents/check-runner.md")"
+after="$(cksum < "$SANDBOX/agents/log-summarizer.md")"
 [ "$before" = "$after" ] || fail "--write applied a partial render despite a validation failure"
 
 echo "cheap-dev-workers roles render checks passed"

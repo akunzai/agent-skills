@@ -3,8 +3,7 @@ set -euo pipefail
 
 dest="$HOME/.codex/agents"
 plugin_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-agents=(repo-explorer.toml check-runner.toml log-summarizer.toml)
-leftovers=(commit-writer.toml)
+agents=(repo-explorer.toml log-summarizer.toml)
 removed=false
 
 for name in "${agents[@]}"; do
@@ -18,7 +17,7 @@ for name in "${agents[@]}"; do
   fi
 done
 
-for name in "${agents[@]}" "${leftovers[@]}"; do
+for name in "${agents[@]}"; do
   target="$dest/$name"
   if [[ -f "$target" ]]; then
     rm -f "$target"
@@ -26,6 +25,10 @@ for name in "${agents[@]}" "${leftovers[@]}"; do
     removed=true
   fi
 done
+
+if bash "$plugin_root/scripts/retired-codex-agents.sh" "$dest"; then
+  removed=true
+fi
 
 if [[ "$removed" == false ]]; then
   echo "  no cheap-dev-workers Codex personal agents found in $dest"

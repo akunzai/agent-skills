@@ -27,31 +27,6 @@ Inspect state → refuse unclear or unrelated working-tree changes → create a 
 
 ## Cleanup plan
 
-The primary agent decides commit boundaries, the rewrite plan, every Git
-mutation, and commit message text.
-
-### Worker routing
-
-On Cursor CLI, keep `check-runner` work in primary, since Cursor gives it unrestricted tools; the read-only cheap-dev-workers roles stay enforced there.
-
-Request the cheapest capable model and lowest sufficient effort (`low` for
-routine work); unsupported overrides inherit parent/configured defaults. Report
-requested/actual only from runtime metadata, else inherited/unknown.
-
-If a named role is unavailable/unsupported or returns an explicit
-pre-execution dispatch/runtime error (for example capacity, rate limit,
-rejected model, or launch error), try one generic fallback that preserves
-the named worker's tools and permissions:
-
-- **Check:** selected commands, artifacts allowed, no tracked/Git-state mutation;
-  report commands, exits, cause/final summaries, omissions, and artifacts.
-
-Otherwise use primary; a generic pre-execution failure also falls back to
-primary. Once a worker begins its assigned workload, its rejection or failure
-is final: no other worker, primary rerun, stronger model, or higher effort.
-If a dispatch error does not reveal whether execution began, stop that
-dispatch and report the ambiguity; do not retry or duplicate that workload.
-
 Classify each commit before rewriting.
 
 | Commit type | Default action |
@@ -106,18 +81,14 @@ If the repo uses a stacked-PR tool such as `gh stack`, prefer that tool's sync/r
 
 After rewriting:
 
-Prefer an available named `check-runner` for caller-selected post-rewrite checks.
-The primary retains refs, index, commit, push, tree comparison, and Git-state
-inspection. Use the worker-routing fallback above when the named checker is
-unavailable or unsupported.
-
 - Compare the final tree against the backup ref unless commits were intentionally dropped: `git diff --stat <backup-ref> HEAD` and `git diff <backup-ref> HEAD`.
 - Inspect per-commit file scope & file absence: Run `git diff --name-status <base>..HEAD` and verify that no unrelated files (or files not touched by the original feature branch) were accidentally deleted or added.
 - Show the new story: `git log --oneline --decorate <base>..HEAD`.
 - Run relevant tests, type checks, linters, or focused reproductions — only
   where the tree comparison showed a difference, or commits were intentionally
-  dropped. A rewrite that preserved the tree cannot change what they report,
-  and dispatching a `check-runner` for it spends a worker on a known answer.
+  dropped. Run them in the primary session rather than a subagent, since a
+  failure needs their full output. A rewrite that preserved the tree cannot
+  change what they report.
 - If branch protection requires verified signatures, check commit signatures with `git log --show-signature <base>..HEAD` or the repo's GitHub status. Re-sign rewritten commits before pushing when needed.
 
 ## Push Safety

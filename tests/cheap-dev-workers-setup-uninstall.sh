@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PLUGIN_DIR="$ROOT_DIR/plugins/cheap-dev-workers"
+RELEASED_CHECK_RUNNER="$ROOT_DIR/tests/fixtures/cheap-dev-workers/check-runner-released.toml"
 INSTALL_SCRIPT="$PLUGIN_DIR/scripts/install-codex-agents.sh"
 REMOVE_SCRIPT="$PLUGIN_DIR/scripts/uninstall-codex-agents.sh"
 
@@ -27,18 +28,18 @@ fi
 
 # --- setup refuses to overwrite an independently owned role ---
 mkdir -p "$dest"
-printf 'user-owned\n' >"$dest/check-runner.toml"
+printf 'user-owned\n' >"$dest/log-summarizer.toml"
 if HOME="$fake_home" bash "$INSTALL_SCRIPT" >/dev/null 2>&1; then
   fail "install helper should refuse a conflicting personal agent"
 fi
-grep -q 'user-owned' "$dest/check-runner.toml" || fail "install helper overwrote a conflicting agent"
+grep -q 'user-owned' "$dest/log-summarizer.toml" || fail "install helper overwrote a conflicting agent"
 [[ ! -e "$dest/repo-explorer.toml" ]] || fail "install helper partially installed before conflict"
-rm "$dest/check-runner.toml"
+rm "$dest/log-summarizer.toml"
 
-# --- install helper installs all three agents, byte-identical to the source ---
+# --- install helper installs every agent, byte-identical to the source ---
 HOME="$fake_home" bash "$INSTALL_SCRIPT" >/dev/null
 
-for name in repo-explorer.toml check-runner.toml log-summarizer.toml; do
+for name in repo-explorer.toml log-summarizer.toml; do
   [ -f "$dest/$name" ] || fail "install helper did not install $name into $dest"
   diff -q "$PLUGIN_DIR/codex-agents/$name" "$dest/$name" >/dev/null \
     || fail "$dest/$name differs from the plugin source $name"
@@ -52,18 +53,31 @@ HOME="$fake_home" bash "$INSTALL_SCRIPT" >/dev/null
 [ ! -e "$dest/commit-writer.toml" ] \
   || fail "install helper left leftover commit-writer.toml in place"
 
+# --- a released check-runner.toml is retired; an edited one is kept ---
+cp "$RELEASED_CHECK_RUNNER" "$dest/check-runner.toml"
+HOME="$fake_home" bash "$INSTALL_SCRIPT" >/dev/null
+[ ! -e "$dest/check-runner.toml" ] \
+  || fail "install helper left a released check-runner.toml in place"
+printf 'user-owned\n' >"$dest/check-runner.toml"
+HOME="$fake_home" bash "$INSTALL_SCRIPT" >/dev/null 2>&1 \
+  || fail "an edited check-runner.toml must not fail the install"
+grep -q 'user-owned' "$dest/check-runner.toml" \
+  || fail "install helper removed an edited check-runner.toml"
+rm "$dest/check-runner.toml"
+
 # --- uninstall refuses a locally modified installed role ---
-printf '\n# local change\n' >>"$dest/check-runner.toml"
+printf '\n# local change\n' >>"$dest/log-summarizer.toml"
 if HOME="$fake_home" bash "$REMOVE_SCRIPT" >/dev/null 2>&1; then
   fail "remove helper should refuse a modified installed agent"
 fi
-[[ -f "$dest/check-runner.toml" ]] || fail "remove helper removed a modified agent"
+[[ -f "$dest/log-summarizer.toml" ]] || fail "remove helper removed a modified agent"
 [[ -f "$dest/repo-explorer.toml" ]] || fail "remove helper partially removed before conflict"
-cp "$PLUGIN_DIR/codex-agents/check-runner.toml" "$dest/check-runner.toml"
+cp "$PLUGIN_DIR/codex-agents/log-summarizer.toml" "$dest/log-summarizer.toml"
 
 # --- remove helper removes exactly what the install helper installed,
-#     plus leftover commit-writer.toml ---
+#     plus retired agents from earlier releases ---
 printf 'retired\n' >"$dest/commit-writer.toml"
+cp "$RELEASED_CHECK_RUNNER" "$dest/check-runner.toml"
 HOME="$fake_home" bash "$REMOVE_SCRIPT" >/dev/null
 
 for name in repo-explorer.toml check-runner.toml log-summarizer.toml commit-writer.toml; do

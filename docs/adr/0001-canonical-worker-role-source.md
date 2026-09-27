@@ -64,7 +64,7 @@ integration seam.
 
 The artifacts carry **no generated-by header**. A header would change the
 prompt bytes the model receives, and these files are prompts, not code. The
-consequence is real: `agents/check-runner.md` looks hand-written, and a
+consequence is real: `agents/repo-explorer.md` looks hand-written, and a
 contributor who edits it gets a CI failure with no explanation inside the file
 they touched.
 
@@ -80,3 +80,15 @@ We accepted this over the alternatives: build-time generation without
 committing is not possible because the runtimes and installers read fixed paths
 and the repository has no packaging build, and continuing to hand-maintain
 eight files is what produced the drift in the first place.
+
+## Amendment, 2026-09-27: `check-runner` retired
+
+The role set is no longer four. `check-runner` ran tests, builds, and lint in a
+worker, which is the test-runner pattern Anthropic reports as the worst
+performer: a failure needs the full output, and the worker hands back a summary
+([When subagents hurt](https://academy.claude.com/courses/introduction-to-subagents/using-subagents-effectively#when-subagents-hurt)).
+Those checks now run in the primary. The decision above is unchanged: `roles/`
+is still the single authority and the renderer projects whatever roles it holds.
+The `runtime`-class relay invariants left with the role, since every remaining
+role is a leaf.
+
