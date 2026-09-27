@@ -39,9 +39,9 @@ touch — the overlap step 1 already recorded is not hypothetical.
 
 ## Evidence capture (steps 4 and 7)
 
-A brief listing only a screenshot CLI once produced English screenshots of a
-zh-TW app, in a repo whose rules preferred a walkthrough recorder. The
-scenario carries what that brief lacked.
+A brief listing only a screenshot CLI once captured a localized app in the
+automation's default English, in a repo whose rules preferred a walkthrough
+recorder. The scenario carries what that brief lacked.
 
 At step 4, write the scenario into the slice's acceptance:
 

@@ -99,7 +99,7 @@ For mobile/tablet, set `scenario.device` to `"phone"` (newest iPhone Pro) or
 taps `click`/`type`/`select` targets, so touch-only handlers fire;
 `dblclick` and a non-left `button` still use the mouse.
 `scenario.viewport`/`--width`/`--height` still override it.
-`scenario.locale` (e.g. `"zh-TW"`) sets the browser language; Playwright
+`scenario.locale` (a BCP 47 tag) sets the browser language; Playwright
 otherwise starts in `en-US`, so set it whenever the site is localized.
 `"ignoreHTTPSErrors": true` accepts a self-signed local certificate.
 
