@@ -65,6 +65,13 @@ grep -q 'user-owned' "$dest/check-runner.toml" \
   || fail "install helper removed an edited check-runner.toml"
 rm "$dest/check-runner.toml"
 
+# --- the retire helper also runs on its own, defaulting to ~/.codex/agents ---
+cp "$RELEASED_CHECK_RUNNER" "$dest/check-runner.toml"
+HOME="$fake_home" bash "$PLUGIN_DIR/scripts/retired-codex-agents.sh" >/dev/null \
+  || fail "retire helper without an argument must succeed when it removes a file"
+[ ! -e "$dest/check-runner.toml" ] \
+  || fail "retire helper without an argument left a released check-runner.toml"
+
 # --- uninstall refuses a locally modified installed role ---
 printf '\n# local change\n' >>"$dest/log-summarizer.toml"
 if HOME="$fake_home" bash "$REMOVE_SCRIPT" >/dev/null 2>&1; then
