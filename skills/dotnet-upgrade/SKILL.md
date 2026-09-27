@@ -115,9 +115,10 @@ Per task:
    production code is wrong; fix the code, keep the test. When CI is the
    evidence, confirm the job actually ran on the change: path-filtered
    jobs often skip toolchain files (`global.json`, `Directory.*.props`,
-   CI config), and a skipped job is no evidence. Prefer a
-   `check-runner` worker for build and test commands and a
-   `log-summarizer` for long build logs.
+   CI config), and a skipped job is no evidence. Run the build and
+   test commands you are still fixing against in the primary, since the
+   next fix reads their output; hand only the final confirming run to a
+   `check-runner` worker, and long build logs to a `log-summarizer`.
 5. Record what changed, the gate evidence, and any deviation from the
    task, then commit. Trunk-safe tasks go out as their own small request.
 
