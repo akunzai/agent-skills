@@ -93,7 +93,7 @@ The PR job does not pass `--baseline` unless dispatched with
 
 ### Worker-routing coverage
 
-The `backfill-unit-tests`, `pr-workflow`, and `tidy-commits` suites verify the
+The `backfill-unit-tests` and `pr-workflow` suites verify the
 caller-visible routing decision tree: cheapest-capable model, lowest sufficient
 effort, named-to-generic fallback, permission preservation, and truthful runtime
 metadata reporting. They do not prove that Copilot launched a subagent or

@@ -14,15 +14,9 @@ Standard operating procedure for preparing, opening, and managing Pull Requests 
 
 - **Base Sync**: Before creating a feature branch or starting a new task, fetch and sync the default base branch (`git fetch origin && git checkout main && git pull --ff-only` or branch directly off `origin/main`).
 - **Clean Working Tree**: Verify `git status` is clean before editing or opening PRs.
-- **Verification**: Run local **tests** and **linters** before opening or updating PRs.
-
-For bounded, context-heavy local checks, prefer an available named `check-runner`
-and pass only commands selected by the primary agent. Require its exact command,
-exit code, summary blocks, omitted-line count, and artifact reference.
+- **Verification**: Run local **tests** and **linters** in the primary session rather than a subagent before opening or updating PRs; a failure needs their full output.
 
 ### Worker routing
-
-On Cursor CLI, keep `check-runner` work in primary, since Cursor gives it unrestricted tools; the read-only cheap-dev-workers roles stay enforced there.
 
 Request the cheapest capable model and lowest sufficient effort (`low` for
 routine); unsupported overrides inherit parent/configured defaults. Report
@@ -33,8 +27,6 @@ pre-execution dispatch/runtime error (for example capacity, rate limit,
 rejected model, or launch error), try one generic fallback that preserves
 the named worker's tools and permissions:
 
-- **Check:** selected commands, artifacts allowed, no tracked/Git-state mutation;
-  report command, exit, summaries, omissions, and artifact.
 - **Log:** exact approved local artifact only; reject unsafe input; report causes
   and events without fetching runs.
 
