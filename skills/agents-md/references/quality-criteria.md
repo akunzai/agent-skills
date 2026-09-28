@@ -14,7 +14,7 @@ repo, and spends the **instruction budget** on every-task facts plus pointers.
 | Criterion | Weight | Assessment Questions |
 |---|---|---|
 | **Instruction budget** | High | Does every root line pass the every-task test or exist as a pointer? Is the one-sentence project description present? |
-| **Progressive Disclosure** | High | Is `AGENTS.md` lean (< 100 lines)? Are domain rules and SOPs behind a pointer or a skill? |
+| **Progressive Disclosure** | High | Is `AGENTS.md` lean (about 100 lines, pointer tables aside)? Are domain rules and SOPs behind a pointer or a skill? |
 | **Pointers** | High | Are `@path` and markdown links in `AGENTS.md` converted to the matching shape — occasion plus `read`, or `Label: path` ([templates.md](templates.md) §4)? Are `@path` file references in `docs/agents/*.md` converted to backtick paths? |
 | **Commands & package manager** | High | Is a non-default package manager named? Are only non-standard or expensive-to-discover commands cached? |
 | **Rich References & SSOT** | High | Does it point to schemas and gold-standard tests instead of prose specs? Does it treat `package.json` / configs / the tree as the live source? |
@@ -28,7 +28,7 @@ repo, and spends the **instruction budget** on every-task facts plus pointers.
 ## 2. Quality Scores
 
 ### Grade A (90-100): Lean index
-- Concise (< 100 lines) index: one-sentence description, non-default package manager, non-standard commands, pointers.
+- Concise (about 100 lines) index: one-sentence description, non-default package manager, non-standard commands, pointers.
 - Zero micromanagement; environment is the live source; capabilities over paths.
 - Prevent Recurrence knowledge sits at its lowest tier — enforced in code, else commented at the site that must be passed, else a dedicated topic file (or `lessons-learned.md`) referenced via a backtick-path pointer — and is actively pruned.
 - In a monorepo, root and nested files have distinct scopes; nested files exist only for autonomous local decisions.

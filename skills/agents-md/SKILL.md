@@ -19,7 +19,8 @@ instructions govern the content.
 
 ## Instruction budget
 
-Every line loads on every turn. Keep the file an index, not a manual. A line
+Every line loads on every turn, and every new session writes it to the prompt
+cache again at a premium. Keep the file an index, not a manual. A line
 earns its place when it is relevant to every single task, or when looking it
 up in the environment is expensive.
 
@@ -34,7 +35,8 @@ Root file holds:
 Everything else lives behind a pointer: a domain doc, a nested `AGENTS.md`, or
 a skill. Hand-author from repo evidence; skip init-script dumps.
 
-**Progressive Disclosure**: keep `AGENTS.md` lean (< 100 lines). Offload SOPs
+**Progressive Disclosure**: keep `AGENTS.md` lean (about 100 lines is a
+heuristic, not a gate; a pointer table may run past it). Offload SOPs
 and single-domain rules to a pointer or a skill.
 
 **Pointers**: backtick paths, not `@path` and not markdown links. Occasion
