@@ -2,7 +2,7 @@
 
 Starter skeletons only. Fill every placeholder from repo evidence. Skip
 init-script dumps. https://agents.md/ is the format: plain Markdown acting as
-an index. Keep the root file under 100 lines.
+an index. Keep the root file near 100 lines; a pointer table may run past it.
 
 ## 1. Root starter
 

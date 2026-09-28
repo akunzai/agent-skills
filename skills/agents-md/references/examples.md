@@ -59,7 +59,7 @@ An `AGENTS.md` exists but is over-constrained with defensive micromanagement ("a
    > - **`@` file references in `docs/agents/architecture.md`**: `@src/widget.ts` — convert to `` `src/widget.ts` ``. Markdown links in that file stay.
 
 3. **Apply Improvements (Progressive Disclosure & Context Offloading)**
-   The agent rewrites `AGENTS.md` to function as an index (< 100 lines):
+   The agent rewrites `AGENTS.md` to function as an index (about 100 lines):
    - Asks which of any contradictory pair to keep, then deletes no-ops / vague / obvious lines.
    - Removes generic micromanagement (Trust Model Judgment).
    - Replaces prose specs and path maps with Rich References and capabilities.
