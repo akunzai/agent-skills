@@ -431,6 +431,12 @@ for name in ${selected_plugins[@]+"${selected_plugins[@]}"}; do
     install)
       if [[ "$installed" == true ]]; then
         echo "  already installed: $name@$marketplace_name"
+        if [[ "$name" == "codexbar-quota-handoff" ]]; then
+          # CodexBar may have dropped its hook rules; reconcile them.
+          echo "  checking codexbar-quota-handoff host integration..."
+          bash "$repo_root/plugins/codexbar-quota-handoff/scripts/configure-host.sh" \
+            --threshold "$codexbar_threshold" --runtime "$runtime"
+        fi
       else
         target_plugins+=("$name")
       fi
@@ -519,11 +525,11 @@ for name in "${target_plugins[@]}"; do
       install | upgrade)
         echo "  configuring codexbar-quota-handoff host integration..."
         bash "$repo_root/plugins/codexbar-quota-handoff/scripts/configure-host.sh" \
-          --threshold "$codexbar_threshold"
+          --threshold "$codexbar_threshold" --runtime "$runtime"
         ;;
       uninstall)
         echo "  removing codexbar-quota-handoff host integration..."
-        cleanup_args=()
+        cleanup_args=(--runtime "$runtime")
         if [[ "$keep_state" == true ]]; then
           cleanup_args+=(--keep-state)
         fi

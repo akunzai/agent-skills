@@ -9,11 +9,15 @@ Install the shared runtime helpers and configure CodexBar host integrations.
 
 Options:
   --threshold <0-1>  Quota usage threshold (default: 0.9)
+  --runtime <name>   Configure only this runtime's rule: claude, codex, or
+                     copilot (claude also covers Cursor CLI, which loads the
+                     Claude plugin). Default: every CLI found on PATH.
   -h, --help         Show this help
 EOF
 }
 
 threshold="0.9"
+runtime=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -h | --help)
@@ -28,12 +32,30 @@ while [[ $# -gt 0 ]]; do
       threshold="${1#--threshold=}"
       shift
       ;;
+    --runtime)
+      runtime="${2:?--runtime requires a value}"
+      shift 2
+      ;;
+    --runtime=*)
+      runtime="${1#--runtime=}"
+      shift
+      ;;
     *)
       echo "Unknown argument: $1" >&2
       exit 64
       ;;
   esac
 done
+
+case "$runtime" in
+  "" | claude | codex | copilot) ;;
+  *)
+    echo "ERROR: --runtime must be claude, codex, or copilot, got: $runtime" >&2
+    exit 64
+    ;;
+esac
+# Cursor CLI runs the Claude Code plugin, so it follows the claude runtime.
+wanted() { [[ -z "$runtime" || "$runtime" == "$1" ]]; }
 
 if ! [[ "$threshold" =~ ^[0-9]*\.?[0-9]+$ ]] \
   || ! awk -v t="$threshold" 'BEGIN { exit !(t > 0 && t <= 1) }'; then
@@ -104,21 +126,27 @@ install_helpers
 remove_leftover_grok_hooks
 
 echo "== Claude Code =="
-if command -v claude >/dev/null 2>&1; then
+if ! wanted claude; then
+  echo "  skipped (not the selected runtime)."
+elif command -v claude >/dev/null 2>&1; then
   providers+=(claude)
 else
   echo "  claude CLI not found on PATH; no CodexBar rule will be added."
 fi
 
 echo "== Codex CLI =="
-if command -v codex >/dev/null 2>&1; then
+if ! wanted codex; then
+  echo "  skipped (not the selected runtime)."
+elif command -v codex >/dev/null 2>&1; then
   providers+=(codex)
 else
   echo "  codex CLI not found on PATH; no CodexBar rule will be added."
 fi
 
 echo "== GitHub Copilot CLI =="
-if command -v copilot >/dev/null 2>&1; then
+if ! wanted copilot; then
+  echo "  skipped (not the selected runtime)."
+elif command -v copilot >/dev/null 2>&1; then
   providers+=(copilot)
 else
   echo "  copilot CLI not found on PATH; no CodexBar rule will be added."
@@ -127,7 +155,9 @@ fi
 # Detect cursor-agent only — never a bare `agent` binary. Grok and Cursor
 # both ship `agent`, so that name collides and cannot identify Cursor.
 echo "== Cursor CLI =="
-if command -v cursor-agent >/dev/null 2>&1; then
+if ! wanted claude; then
+  echo "  skipped (not the selected runtime)."
+elif command -v cursor-agent >/dev/null 2>&1; then
   providers+=(cursor)
 else
   echo "  cursor-agent CLI not found on PATH; no CodexBar rule will be added."
@@ -148,6 +178,30 @@ if [[ ! -f "$codexbar_config" ]]; then
 fi
 if [[ -L "$codexbar_config" ]]; then
   codexbar_config="$(realpath "$codexbar_config")"
+fi
+
+# CodexBar can rewrite its config and drop the rules; only touch the file
+# (and pile up a backup) when a rule is missing or differs.
+rules_current=true
+for provider in "${providers[@]}"; do
+  if ! jq -e \
+    --arg id "agent-skills-codexbar-quota-handoff-${provider}" \
+    --arg provider "$provider" \
+    --arg exe "$flag_writer" \
+    --arg state_dir "$state_dir" \
+    --argjson threshold "$threshold" \
+    '.hooks.enabled == true and any((.hooks.events // [])[]; .id == $id
+      and .enabled == true and .event == "quota_low"
+      and .provider == $provider and .threshold == $threshold
+      and .executable == $exe and .arguments == [$provider, $state_dir])' \
+    "$codexbar_config" >/dev/null 2>&1; then
+    rules_current=false
+    echo "  missing or outdated quota_low rule for $provider; restoring."
+  fi
+done
+if [[ "$rules_current" == true ]]; then
+  echo "  quota_low hook rules already present (threshold: $threshold)."
+  exit 0
 fi
 
 backup="${codexbar_config}.bak.$(date +%s)"
