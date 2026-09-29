@@ -224,4 +224,39 @@ PATH="$SYMLINK_TOOLS:$STUB_BIN:/usr/bin:/bin:/usr/sbin:/sbin" HOME="$SYMLINK_HOM
 [ "$(jq -r '.hooks.events[0].provider' "$SYMLINK_TARGET")" = claude ] \
   || fail "setup did not update the symlinked CodexBar config target"
 
+# --- re-running is a no-op while rules are intact, and restores dropped rules ---
+REPAIR_HOME="$TMP_DIR/repair"
+run_install "$REPAIR_HOME" claude >/dev/null
+BACKUPS_BEFORE="$(find "$REPAIR_HOME/.codexbar" -name 'config.json.bak.*' | wc -l | tr -d ' ')"
+run_install_again() {
+  PATH="$TMP_DIR/tools-repair:$STUB_BIN:/usr/bin:/bin:/usr/sbin:/sbin" \
+    HOME="$REPAIR_HOME" XDG_DATA_HOME="$REPAIR_HOME/xdg-data" \
+    XDG_STATE_HOME="$REPAIR_HOME/xdg-state" bash "$SCRIPT"
+}
+mkdir -p "$TMP_DIR/tools-repair"
+ln -s "$TOOL_BIN/claude" "$TMP_DIR/tools-repair/claude"
+run_install_again >/dev/null
+BACKUPS_AFTER="$(find "$REPAIR_HOME/.codexbar" -name 'config.json.bak.*' | wc -l | tr -d ' ')"
+[ "$BACKUPS_BEFORE" = "$BACKUPS_AFTER" ] || fail "re-run with intact rules rewrote the config"
+"$STUB_BIN/jq" '.hooks.events = []' "$REPAIR_HOME/.codexbar/config.json" >"$TMP_DIR/dropped.json"
+cp "$TMP_DIR/dropped.json" "$REPAIR_HOME/.codexbar/config.json"
+run_install_again >/dev/null
+[ "$(configured_providers "$REPAIR_HOME")" = claude ] || fail "re-run did not restore dropped CodexBar rules"
+
+# --- --runtime limits rules; removing one runtime keeps the others and the helper ---
+RT_HOME="$TMP_DIR/runtime-scoped"
+run_install "$RT_HOME" claude codex copilot cursor-agent --runtime claude >/dev/null
+[ "$(configured_providers "$RT_HOME")" = "claude,cursor" ] \
+  || fail "--runtime claude should configure only claude and cursor, got: $(configured_providers "$RT_HOME")"
+REMOVE="$ROOT_DIR/plugins/codexbar-quota-handoff/scripts/remove-host.sh"
+PATH="$STUB_BIN:/usr/bin:/bin:/usr/sbin:/sbin" HOME="$RT_HOME" XDG_DATA_HOME="$RT_HOME/xdg-data" \
+  XDG_STATE_HOME="$RT_HOME/xdg-state" bash "$REMOVE" --runtime codex >/dev/null
+[ "$(configured_providers "$RT_HOME")" = "claude,cursor" ] || fail "removing codex touched other rules"
+[ -x "$RT_HOME/xdg-data/codexbar-quota-handoff/scripts/codexbar-quota-flag.sh" ] \
+  || fail "removing one runtime deleted the shared helper"
+PATH="$STUB_BIN:/usr/bin:/bin:/usr/sbin:/sbin" HOME="$RT_HOME" XDG_DATA_HOME="$RT_HOME/xdg-data" \
+  XDG_STATE_HOME="$RT_HOME/xdg-state" bash "$REMOVE" --runtime claude >/dev/null
+[ -z "$(configured_providers "$RT_HOME")" ] || fail "removing claude left rules behind"
+[ ! -e "$RT_HOME/xdg-data/codexbar-quota-handoff" ] || fail "removing the last runtime kept the helper"
+
 echo "codexbar-quota-handoff install-providers checks passed"

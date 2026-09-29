@@ -9,18 +9,32 @@ Remove the shared runtime helpers, leftover Grok global hook, and CodexBar rules
 
 Options:
   --keep-state       Preserve quota flag files
+  --runtime <name>   Remove only this runtime's rules (claude, codex, or
+                     copilot; claude also covers Cursor). Shared helpers and
+                     state go only once no rule of this plugin remains.
   -h, --help         Show this help
 EOF
 }
 
 keep_state=false
+runtime=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --keep-state) keep_state=true; shift ;;
+    --runtime) runtime="${2:?--runtime requires a value}"; shift 2 ;;
+    --runtime=*) runtime="${1#--runtime=}"; shift ;;
     -h | --help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; exit 64 ;;
   esac
 done
+
+case "$runtime" in
+  "" | claude | codex | copilot) ;;
+  *)
+    echo "ERROR: --runtime must be claude, codex, or copilot, got: $runtime" >&2
+    exit 64
+    ;;
+esac
 
 data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
 state_home="${XDG_STATE_HOME:-$HOME/.local/state}"
@@ -59,18 +73,22 @@ if [[ -f "$codexbar_config" ]]; then
   temporary="$(mktemp "$(dirname "$codexbar_config")/.codexbar-quota-handoff.XXXXXX")"
   chmod --reference="$codexbar_config" "$temporary" 2>/dev/null \
     || chmod "$(stat -f '%Lp' "$codexbar_config")" "$temporary"
-  jq '
-    .hooks.events = ((.hooks.events // []) | map(
-      select(.id != "agent-skills-codexbar-quota-handoff-claude"
-      and .id != "agent-skills-codexbar-quota-handoff-grok"
-      and .id != "agent-skills-codexbar-quota-handoff-codex"
-      and .id != "agent-skills-codexbar-quota-handoff-copilot"
-      and .id != "agent-skills-codexbar-quota-handoff-cursor")
-    ))
+  jq --arg runtime "$runtime" '
+    ("agent-skills-codexbar-quota-handoff-") as $p
+    | ([$p + "claude", $p + "cursor"]) as $claude
+    | (if $runtime == "" then $claude + [$p + "grok", $p + "codex", $p + "copilot"]
+       elif $runtime == "claude" then $claude
+       else [$p + $runtime] end) as $drop
+    | .hooks.events = ((.hooks.events // []) | map(select(.id as $id | $drop | index($id) | not)))
   ' "$codexbar_config" >"$temporary"
   mv "$temporary" "$codexbar_config"
   temporary=""
   echo "  removed this plugin's quota_low rules from $codexbar_config"
+  if [[ -n "$runtime" ]] && jq -e 'any((.hooks.events // [])[]; (.id // "") | startswith("agent-skills-codexbar-quota-handoff-"))' \
+    "$codexbar_config" >/dev/null 2>&1; then
+    echo "Other runtimes still use this plugin; shared helpers and state kept."
+    exit 0
+  fi
 fi
 
 echo "== Grok Build =="
