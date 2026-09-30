@@ -48,6 +48,13 @@ rules:
       in this repo, not a per-skill gap.
 
   # --- plugins/cheap-dev-workers ---
+  - id: "RA2"
+    path: "scripts/install-codex-agents.sh"
+    message: "*write modified or unknown agent*"
+    reason: >-
+      Matches the substring "write" in "Refusing to overwrite" followed by
+      the printed ~/.codex backup guidance. This branch only emits diagnostics
+      and exits 73; it neither writes state nor establishes persistence.
   - id: "PE2"
     path: "scripts/install-codex-agents.sh"
     reason: "chmod 644 sets a stricter, non-executable mode on an installed file; not privilege escalation."
