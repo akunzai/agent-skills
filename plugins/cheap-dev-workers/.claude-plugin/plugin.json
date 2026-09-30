@@ -1,7 +1,7 @@
 {
   "name": "cheap-dev-workers",
   "description": "Cheap-model workers for bounded repository exploration, app evidence capture, and sanitized-log summarization.",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "author": {
     "name": "Charley Wu"
   }

@@ -48,7 +48,9 @@ The interactive setup detects Claude Code, Codex CLI, and GitHub Copilot CLI,
 then shows whether the plugin is already installed. Copilot reads the shared
 `.claude-plugin` manifests and never touches Codex personal agents. Selecting
 Codex also installs the personal agent definitions under
-`~/.codex/agents/`.
+`~/.codex/agents/`. Re-running setup for an already-installed Codex plugin
+still syncs these definitions and cleans up unmodified retired agents without
+reinstalling the plugin.
 
 Start a new session after installation.
 
@@ -60,8 +62,13 @@ bash scripts/upgrade.sh --plugin cheap-dev-workers
 
 `claude plugin update` only moves when `plugin.json` `version` changed. Codex
 personal agents are copies; the root upgrade safely syncs them into
-`~/.codex/agents/`. It also removes a `check-runner.toml` left by an
-earlier release, unless its bytes differ from every released version.
+`~/.codex/agents/`. Unmodified copies of known released versions are upgraded;
+locally edited or unknown files block the sync before any agent is replaced.
+To replace a conflicting file, move it to a backup directory outside
+`~/.codex/agents/` and retry the root upgrade script. Setup, upgrade, and
+uninstall also remove retired `check-runner.toml` and `commit-writer.toml` files
+only when their bytes match a known released version. Edited or unknown retired
+files are kept with a warning. A sync conflict stops installation before cleanup.
 
 ## Sensitive logs
 
