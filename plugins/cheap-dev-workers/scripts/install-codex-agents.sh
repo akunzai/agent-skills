@@ -6,8 +6,8 @@ usage() {
 Usage: install-codex-agents.sh
 
 Install this plugin's Codex CLI development-worker definitions into the
-personal Codex agents directory (~/.codex/agents/). Existing files that differ
-from the plugin definitions are preserved and reported as conflicts.
+personal Codex agents directory (~/.codex/agents/). Unmodified released
+definitions are upgraded; edited or unknown files are preserved as conflicts.
 
 Options:
   -h, --help  Show this help
@@ -35,7 +35,16 @@ for name in "${agents[@]}"; do
   source="$plugin_root/codex-agents/$name"
   target="$dest/$name"
   if [[ -e "$target" ]] && ! cmp -s "$source" "$target"; then
-    echo "Refusing to overwrite non-plugin agent: $target" >&2
+    # Byte equality with a known release proves this is safe to upgrade.
+    # A plugin install is a snapshot, so do not depend on Git history here.
+    if [[ -f "$target" ]]; then
+      digest="$(shasum -a 256 "$target" | cut -d' ' -f1)"
+      if grep -Fqx "$name $digest" "$plugin_root/scripts/released-codex-agents.sha256"; then
+        continue
+      fi
+    fi
+    echo "Refusing to overwrite modified or unknown agent: $target" >&2
+    echo "Back up this file outside ~/.codex/agents/ before retrying if you want the plugin definition." >&2
     exit 73
   fi
 done

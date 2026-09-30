@@ -305,6 +305,12 @@ STUB
 chmod +x "$stub_bin/codex"
 
 rm "$fake_home/.codex/agents/repo-explorer.toml"
+cp "$ROOT_DIR/tests/fixtures/cheap-dev-workers/log-summarizer-released.toml" \
+  "$fake_home/.codex/agents/log-summarizer.toml"
+for role in commit-writer check-runner; do
+  cp "$ROOT_DIR/tests/fixtures/cheap-dev-workers/$role-released.toml" \
+    "$fake_home/.codex/agents/$role.toml"
+done
 PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" CODEX_LOG="$codex_log" \
   bash "$SCRIPT" --runtime codex --plugin all --yes >/dev/null \
   || fail "non-interactive Codex setup failed"
@@ -318,11 +324,33 @@ fi
 if grep -qx 'plugin add cheap-dev-workers@akunzai-agent-skills' "$codex_log"; then
   fail "setup reinstalled an existing Codex plugin"
 fi
-[ ! -e "$fake_home/.codex/agents/repo-explorer.toml" ] \
-  || fail "setup ran Codex agent post-install for an already-installed plugin"
+for name in repo-explorer.toml evidence-collector.toml log-summarizer.toml; do
+  cmp -s "$ROOT_DIR/plugins/cheap-dev-workers/codex-agents/$name" \
+    "$fake_home/.codex/agents/$name" \
+    || fail "setup did not reconcile $name for an already-installed Codex plugin"
+done
+for role in commit-writer check-runner; do
+  [ ! -e "$fake_home/.codex/agents/$role.toml" ] \
+    || fail "setup did not retire a released $role for an already-installed plugin"
+done
+
+# Reconcile even when no plugin needs installing (the single-plugin no-op path).
+rm "$fake_home/.codex/agents/repo-explorer.toml"
+cp "$ROOT_DIR/tests/fixtures/cheap-dev-workers/commit-writer-released.toml" \
+  "$fake_home/.codex/agents/commit-writer.toml"
+PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" CODEX_LOG="$codex_log" \
+  bash "$SCRIPT" --runtime codex --plugin cheap-dev-workers --yes >/dev/null \
+  || fail "setup failed to reconcile the only selected installed plugin"
+[ -f "$fake_home/.codex/agents/repo-explorer.toml" ] \
+  || fail "setup skipped missing agents when no plugin needed installation"
+[ ! -e "$fake_home/.codex/agents/commit-writer.toml" ] \
+  || fail "setup skipped retirement when no plugin needed installation"
+! grep -qx 'plugin add cheap-dev-workers@akunzai-agent-skills' "$codex_log" \
+  || fail "single-plugin setup reinstalled an existing Codex plugin"
 
 mkdir -p "$fake_home/.codex/agents"
-printf 'retired\n' >"$fake_home/.codex/agents/commit-writer.toml"
+cp "$ROOT_DIR/tests/fixtures/cheap-dev-workers/commit-writer-released.toml" \
+  "$fake_home/.codex/agents/commit-writer.toml"
 cp "$ROOT_DIR/tests/fixtures/cheap-dev-workers/check-runner-released.toml" \
   "$fake_home/.codex/agents/check-runner.toml"
 PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" CODEX_LOG="$codex_log" \

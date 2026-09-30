@@ -436,6 +436,10 @@ for name in ${selected_plugins[@]+"${selected_plugins[@]}"}; do
           echo "  checking codexbar-quota-handoff host integration..."
           bash "$repo_root/plugins/codexbar-quota-handoff/scripts/configure-host.sh" \
             --threshold "$codexbar_threshold" --runtime "$runtime"
+        elif [[ "$runtime" == "codex" && "$name" == "cheap-dev-workers" ]]; then
+          # Personal agents may be stale even when the plugin is installed.
+          echo "  syncing cheap-dev-workers Codex personal agents..."
+          bash "$repo_root/plugins/cheap-dev-workers/scripts/install-codex-agents.sh"
         fi
       else
         target_plugins+=("$name")

@@ -5,9 +5,8 @@ set -euo pipefail
 # argument is the Codex agents directory, default ~/.codex/agents/.
 #
 # Removes Codex personal agents this plugin shipped in earlier releases and no
-# longer ships. commit-writer.toml is removed unconditionally, as before.
-# check-runner.toml is removed only when its bytes match a released version;
-# anything else was edited or installed by the user and is left in place.
+# longer ships. Retired agents are removed only when their bytes match a
+# released version; edited or unknown files are left in place.
 # Exits 0 when it removed a file, 1 otherwise.
 
 # SHA-256 of every released codex-agents/check-runner.toml.
@@ -18,26 +17,36 @@ retired_check_runner_sha256=(
   dd168dc8e2655a1bdda5a2829a830c5a92a6a104deb27a12a3eb969c762aa0a7
 )
 
+# SHA-256 of every released codex-agents/commit-writer.toml.
+retired_commit_writer_sha256=(
+  7993e541df3dd8bcac36b39a6d1ad542ee524eb81be4c61816a20a2d78ab2fba
+  dfb298674399b021c71be315d915570729740f168615167c108d3f4afa4863b1
+  faa93800b151d556ccf3096452a8166e87724df45dc831c4920e98b7288e8404
+)
+
 dest="${1:-$HOME/.codex/agents}"
 removed=1
 
-target="$dest/commit-writer.toml"
-if [[ -e "$target" ]]; then
-  rm -f "$target"
-  echo "  removed leftover $target"
-  removed=0
-fi
-
-target="$dest/check-runner.toml"
-if [[ -f "$target" ]]; then
+for name in commit-writer check-runner; do
+  target="$dest/$name.toml"
+  [[ -f "$target" ]] || continue
+  case "$name" in
+    commit-writer) known_sha256=("${retired_commit_writer_sha256[@]}") ;;
+    check-runner) known_sha256=("${retired_check_runner_sha256[@]}") ;;
+  esac
   digest="$(shasum -a 256 "$target" | cut -d' ' -f1)"
-  for known in "${retired_check_runner_sha256[@]}"; do
+  matched=false
+  for known in "${known_sha256[@]}"; do
     if [[ "$digest" == "$known" ]]; then
       rm -f "$target"
       echo "  removed retired $target"
-      exit 0
+      removed=0
+      matched=true
+      break
     fi
   done
-  echo "  kept $target: check-runner is retired, but this file differs from every released version; remove it yourself if it is not yours" >&2
-fi
+  if [[ "$matched" == false ]]; then
+    echo "  kept $target: $name is retired, but this file differs from every released version; remove it yourself if it is not yours" >&2
+  fi
+done
 exit "$removed"

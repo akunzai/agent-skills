@@ -1,0 +1,11 @@
+# SHA-256 of Codex agent definitions shipped on main.
+# Before changing codex-agents/, retain its current digest here so the next
+# release can upgrade that version without Git metadata or network access.
+repo-explorer.toml c0d01fc121f2581f45676065cf88e19acc31366a1380886f35931e6c9f1dc3bb
+repo-explorer.toml 47358a36a13d235ee94ecf8f32c766a5c31edd8c4c20742ffc38c0195a3c592e
+repo-explorer.toml 715b7833a11b6106f4a0f0a8f4fa5022445181c727108c234dd95087b832288e
+repo-explorer.toml 0705e0abde468872a62ed8d544337c3199e703f965c631035bf9ce4131d77662
+evidence-collector.toml 1432408b6fb65fe7363acba186112a25065c267ce2ade088c931908b6c33c86a
+log-summarizer.toml caf80b171b57f0a4069126461591cad4902b7c460144e3118612d72ec714db9d
+log-summarizer.toml 24080b63e2a3b3550959c1a91470f5bd636391b7d710fc094320cc81fee07f39
+log-summarizer.toml 342d4d268ed3ca3131862eb933ee5150cf42d83ff7777824b516671b85565ab5
