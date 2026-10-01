@@ -20,14 +20,36 @@ jobs:
             const issue = { owner: context.repo.owner, repo: context.repo.repo, issue_number: pr.number };
             const currentLabels = (pr.labels || []).map(l => l.name);
 
-            // A Conventional Commit "!" in the title marks a breaking change.
-            const breaking = /^[a-z]+(\([^)]*\))?!:/i.test(pr.title || "");
-            if (breaking && !currentLabels.includes("breaking")) {
-              await github.rest.issues.addLabels({ ...issue, labels: ["breaking"] });
-              console.log(`Added label "breaking" to PR #${pr.number}`);
-            } else if (!breaking && currentLabels.includes("breaking")) {
-              await github.rest.issues.removeLabel({ ...issue, name: "breaking" });
-              console.log(`Removed label "breaking" from PR #${pr.number}`);
+            // A Conventional Commit "!" in the title marks a breaking change. A scope
+            // naming a plugin (a directory under plugins/) or "plugins" gets
+            // "plugin-breaking": it does not move the catalog version.
+            const bang = (pr.title || "").match(/^[a-z]+(?:\(([^)]*)\))?!:/i);
+            let breakingLabel = null;
+            if (bang) {
+              breakingLabel = "breaking";
+              if (bang[1]) {
+                try {
+                  const { data } = await github.rest.repos.getContent({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    path: "plugins",
+                    ref: context.payload.repository.default_branch,
+                  });
+                  const plugins = data.filter(e => e.type === "dir").map(e => e.name);
+                  if (bang[1] === "plugins" || plugins.includes(bang[1])) breakingLabel = "plugin-breaking";
+                } catch (err) {
+                  console.log(`Could not list plugins/: ${err.message}`);
+                }
+              }
+            }
+            for (const name of ["breaking", "plugin-breaking"]) {
+              if (name === breakingLabel && !currentLabels.includes(name)) {
+                await github.rest.issues.addLabels({ ...issue, labels: [name] });
+                console.log(`Added label "${name}" to PR #${pr.number}`);
+              } else if (name !== breakingLabel && currentLabels.includes(name)) {
+                await github.rest.issues.removeLabel({ ...issue, name });
+                console.log(`Removed label "${name}" from PR #${pr.number}`);
+              }
             }
 
             const branch = pr.head.ref || "";

@@ -3,6 +3,9 @@ changelog:
     - title: "⚠️ Breaking Changes"
       labels:
         - "breaking"
+    - title: "⚠️ Plugin Breaking Changes"
+      labels:
+        - "plugin-breaking"
     - title: "🚀 Features & Enhancements"
       labels:
         - "enhancement"
