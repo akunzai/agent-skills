@@ -226,6 +226,23 @@ if grep -qx 'plugin install cheap-dev-workers@akunzai-agent-skills --scope user 
   fail "setup reinstalled an existing Claude Code plugin"
 fi
 
+# Windows jq.exe ends every line with CRLF; plugin names must stay clean.
+crlf_bin="$tmp_dir/crlf-bin"
+mkdir -p "$crlf_bin"
+real_jq="$(command -v jq)"
+cat >"$crlf_bin/jq" <<STUB
+#!/usr/bin/env bash
+"$real_jq" "\$@" | sed 's/\$/\r/'
+exit "\${PIPESTATUS[0]}"
+STUB
+chmod +x "$crlf_bin/jq"
+: >"$claude_log"
+PATH="$crlf_bin:$stub_bin:/usr/bin:/bin" HOME="$fake_home" CLAUDE_LOG="$claude_log" \
+  bash "$SCRIPT" --runtime claude --plugin all --yes >/dev/null \
+  || fail "setup failed with a CRLF-emitting jq"
+grep -qx 'plugin install spoken-tts@akunzai-agent-skills --scope user --yes' "$claude_log" \
+  || fail "CRLF jq leaked carriage returns into plugin names"
+
 # Installed detection is scope-specific: a user install must not suppress a
 # requested project-scope install of the same plugin.
 PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" CLAUDE_LOG="$claude_log" \

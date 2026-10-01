@@ -228,6 +228,10 @@ Use `--help` for non-interactive runtime/plugin filters suitable for scripts
 and CI. These repository-root scripts are the only public plugin lifecycle
 entry points; plugin-local scripts are internal post-actions.
 
+On Windows, run them with Git Bash (`"C:\Program Files\Git\bin\bash.exe"
+scripts/setup.sh …`), not the `bash.exe` in `WindowsApps`, which is WSL and
+cannot see your Windows `claude` / `codex`.
+
 </details>
 
 ### Available plugins
