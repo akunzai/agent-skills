@@ -15,6 +15,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
+export AGENT_SKILLS_OS="darwin"
+
 for script in setup.sh upgrade.sh uninstall.sh manage-plugins.sh; do
   [ -x "$ROOT_DIR/scripts/$script" ] \
     || fail "scripts/$script is missing or not executable"
@@ -48,6 +50,12 @@ fi
 mp_fixture="$tmp_dir/mp-fixture"
 mkdir -p "$mp_fixture/scripts" "$mp_fixture/.claude-plugin" "$mp_fixture/.agents/plugins" \
   "$mp_fixture/bin"
+real_jq="$(command -v jq)" || fail "jq is required to run this test"
+cat >"$mp_fixture/bin/jq" <<STUB
+#!/usr/bin/env bash
+exec "$real_jq" "\$@"
+STUB
+chmod +x "$mp_fixture/bin/jq"
 cp "$ROOT_DIR/scripts/manage-plugins.sh" "$mp_fixture/scripts/manage-plugins.sh"
 cat >"$mp_fixture/.claude-plugin/marketplace.json" <<'JSON'
 {"plugins":[{"name":"only-plugin","source":"./plugins/only-plugin"}]}
@@ -84,6 +92,11 @@ stub_bin="$tmp_dir/bin"
 copilot_log="$tmp_dir/copilot.log"
 mkdir -p "$fake_home/.codex/agents" "$fake_home/.codexbar" "$stub_bin" \
   "$XDG_CONFIG_HOME" "$XDG_STATE_HOME" "$XDG_DATA_HOME"
+cat >"$stub_bin/jq" <<STUB
+#!/usr/bin/env bash
+exec "$real_jq" "\$@"
+STUB
+chmod +x "$stub_bin/jq"
 printf 'user-owned\n' >"$fake_home/.codex/agents/repo-explorer.toml"
 echo '{"hooks":{"enabled":false,"events":[]}}' >"$fake_home/.codexbar/config.json"
 
@@ -396,5 +409,24 @@ for name in repo-explorer.toml evidence-collector.toml check-runner.toml log-sum
   [ ! -e "$fake_home/.codex/agents/$name" ] \
     || fail "Codex uninstall left $name behind"
 done
+
+# --- Windows checks: codexbar-quota-handoff is excluded on Windows ---
+set +e
+win_out=$(AGENT_SKILLS_OS="windows" PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" \
+  bash "$SCRIPT" --runtime claude --plugin codexbar-quota-handoff --yes 2>&1)
+win_status=$?
+set -e
+[ "$win_status" -ne 0 ] || fail "Windows setup should reject codexbar-quota-handoff"
+case "$win_out" in
+  *"codexbar-quota-handoff requires macOS"*) ;;
+  *) fail "Windows setup rejection lacked macOS message: $win_out" ;;
+esac
+
+: >"$claude_log"
+AGENT_SKILLS_OS="windows" PATH="$stub_bin:/usr/bin:/bin" HOME="$fake_home" CLAUDE_LOG="$claude_log" \
+  bash "$SCRIPT" --runtime claude --plugin all --yes >/dev/null \
+  || fail "Windows setup with --plugin all failed"
+! grep -q 'codexbar-quota-handoff' "$claude_log" \
+  || fail "Windows setup --plugin all should not install codexbar-quota-handoff"
 
 echo "plugin setup checks passed"
