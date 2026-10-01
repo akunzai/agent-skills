@@ -34,7 +34,12 @@ for name in commit-writer check-runner; do
     commit-writer) known_sha256=("${retired_commit_writer_sha256[@]}") ;;
     check-runner) known_sha256=("${retired_check_runner_sha256[@]}") ;;
   esac
-  digest="$(shasum -a 256 "$target" | cut -d' ' -f1)"
+  # Git Bash on Windows ships sha256sum but not shasum.
+  if command -v shasum >/dev/null 2>&1; then
+    digest="$(shasum -a 256 "$target" | cut -d' ' -f1)"
+  else
+    digest="$(sha256sum "$target" | cut -d' ' -f1)"
+  fi
   matched=false
   for known in "${known_sha256[@]}"; do
     if [[ "$digest" == "$known" ]]; then

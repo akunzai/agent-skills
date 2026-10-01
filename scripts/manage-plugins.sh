@@ -122,6 +122,9 @@ if ! command -v jq >/dev/null 2>&1; then
   echo "ERROR: jq is required; install it before running ${action}.sh." >&2
   exit 69
 fi
+# Windows jq.exe (scoop, winget) ends every output line with CRLF, which would
+# leak "\r" into plugin names and ids. Strip it; pipefail keeps jq -e's status.
+jq() { command jq "$@" | tr -d '\r'; }
 if [[ ! -f "$marketplace_json" ]]; then
   echo "ERROR: marketplace manifest not found: $marketplace_json" >&2
   exit 66

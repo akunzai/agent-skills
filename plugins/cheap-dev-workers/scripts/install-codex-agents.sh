@@ -38,7 +38,12 @@ for name in "${agents[@]}"; do
     # Byte equality with a known release proves this is safe to upgrade.
     # A plugin install is a snapshot, so do not depend on Git history here.
     if [[ -f "$target" ]]; then
-      digest="$(shasum -a 256 "$target" | cut -d' ' -f1)"
+      # Git Bash on Windows ships sha256sum but not shasum.
+      if command -v shasum >/dev/null 2>&1; then
+        digest="$(shasum -a 256 "$target" | cut -d' ' -f1)"
+      else
+        digest="$(sha256sum "$target" | cut -d' ' -f1)"
+      fi
       if grep -Fqx "$name $digest" "$plugin_root/scripts/released-codex-agents.sha256"; then
         continue
       fi
