@@ -202,7 +202,9 @@ runs `.github/workflows/release.yml`, which publishes a GitHub Release with
 notes grouped by pull-request label. `.github/workflows/pr-labeler.yml`
 derives that label from the branch prefix (`feat/`, `fix/`, `docs/`, `ci/`,
 `refactor/`, `test/`, `chore/`) and adds `breaking` when the title carries a
-Conventional Commit `!`.
+Conventional Commit `!`, except when the scope is a plugin (or `plugins`):
+that gets `plugin-breaking` and its own release-notes section, and does not
+count toward a Major catalog release.
 
 - **Major**: a skill is renamed or removed, loses a trigger, or changes where
   or how it stores data — anything an installed user must act on. Add a
