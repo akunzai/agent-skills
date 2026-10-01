@@ -151,6 +151,84 @@ if ! [[ "$codexbar_threshold" =~ ^[0-9]*\.?[0-9]+$ ]] \
   exit 64
 fi
 
+is_windows() {
+  if [[ "${AGENT_SKILLS_OS:-}" == "windows" ]]; then
+    return 0
+  fi
+  if [[ "${AGENT_SKILLS_OS:-}" == "linux" || "${AGENT_SKILLS_OS:-}" == "darwin" ]]; then
+    return 1
+  fi
+  case "$(uname -s 2>/dev/null || true)" in
+    CYGWIN* | MINGW* | MSYS*) return 0 ;;
+    *) [[ "${OS:-}" == "Windows_NT" ]] ;;
+  esac
+}
+
+check_windows_environment() {
+  is_windows || return 0
+
+  local git_bash=""
+  local candidate
+  for candidate in \
+    "C:/Program Files/Git/bin/bash.exe" \
+    "C:/Program Files (x86)/Git/bin/bash.exe" \
+    "${LOCALAPPDATA:-$HOME/AppData/Local}/Programs/Git/bin/bash.exe"; do
+    if [[ -f "$candidate" ]]; then
+      git_bash="$candidate"
+      break
+    fi
+  done
+  if [[ -z "$git_bash" ]] && command -v git >/dev/null 2>&1; then
+    local git_exec root
+    git_exec="$(git --exec-path 2>/dev/null || true)"
+    if [[ -n "$git_exec" ]]; then
+      root="$(cd "$git_exec/../../.." 2>/dev/null && pwd)"
+      if [[ -f "$root/bin/bash.exe" ]]; then
+        git_bash="$root/bin/bash.exe"
+      fi
+    fi
+  fi
+
+  if [[ -z "$git_bash" ]]; then
+    cat >&2 <<'EOF'
+WARNING: Git Bash (bin/bash.exe) was not found in standard locations.
+  Install Git for Windows (https://git-scm.com/download/win) to ensure
+  agent plugins and lifecycle scripts run properly on Windows.
+EOF
+  fi
+
+  if command -v reg.exe >/dev/null 2>&1; then
+    local prog_id="" open_cmd=""
+    prog_id="$(MSYS_NO_PATHCONV=1 reg.exe query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.sh\UserChoice" /v ProgId 2>/dev/null \
+      | awk '/ProgId/{print $NF}' | tr -d '\r')"
+    if [[ -n "$prog_id" ]]; then
+      open_cmd="$(MSYS_NO_PATHCONV=1 reg.exe query "HKCR\\${prog_id}\\shell\\open\\command" 2>/dev/null \
+        | tr -d '\r' | grep -i 'REG_')"
+    fi
+
+    if [[ -z "$prog_id" || -z "$open_cmd" ]]; then
+      cat >&2 <<'EOF'
+WARNING: Windows file association for .sh scripts is not configured.
+  CLI agents invoking .sh hooks via file activation may trigger infinite
+  'How do you want to open this file?' dialogs (UserChoice hash protection).
+  Set the default application for .sh files to Git Bash (bin/bash.exe).
+  Reference: https://github.com/akunzai/Notes/pull/87
+EOF
+    elif [[ "$open_cmd" =~ git-bash\.exe ]]; then
+      cat >&2 <<'EOF'
+WARNING: Windows .sh file association is currently set to git-bash.exe (GUI MinTTY).
+  This causes rapid terminal window flashing and lost stdio when hooks fire.
+  Change .sh file association to console bin/bash.exe instead.
+  Reference: https://github.com/akunzai/Notes/pull/87
+EOF
+    fi
+  fi
+}
+
+if [[ "$action" != "uninstall" ]]; then
+  check_windows_environment
+fi
+
 runtime_label() {
   case "$1" in
     claude) echo "Claude Code" ;;
@@ -361,6 +439,9 @@ fi
 
 compatible_plugins=()
 for name in "${plugins[@]}"; do
+  if is_windows && [[ "$action" != "uninstall" && "$name" == "codexbar-quota-handoff" ]]; then
+    continue
+  fi
   source_path="$(jq -r --arg name "$name" \
     '.plugins[] | select(.name == $name) | .source' "$marketplace_json")"
   if runtime_call supports_plugin "$name" "$source_path"; then
@@ -380,6 +461,10 @@ is_installed() {
 
 selected_plugins=()
 if [[ -n "$plugin_filter" && "$plugin_filter" != "all" ]]; then
+  if is_windows && [[ "$action" != "uninstall" && "$plugin_filter" == "codexbar-quota-handoff" ]]; then
+    echo "ERROR: codexbar-quota-handoff requires macOS (CodexBar is not available on Windows)." >&2
+    exit 64
+  fi
   found=false
   for name in ${plugins[@]+"${plugins[@]}"}; do
     if [[ "$name" == "$plugin_filter" ]]; then
