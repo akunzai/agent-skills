@@ -118,6 +118,9 @@ so leave `CLAUDE.md` absent: no file, no symlink.
   Claude-specific rules**: preserve it.
 - **Any other regular `CLAUDE.md`**: it shadows `AGENTS.md`. Read it, summarize
   unique instructions, propose migration, and ask approval before replacing it.
+- **`CLAUDE.local.md` present**: it also counts as a `CLAUDE.md` and stops
+  `AGENTS.md` from loading; the user sets `/config` Project instructions to
+  `claude-md-and-agents-md` to read both.
 - **Older Claude Code**: tell the user they can run
   `ln -s AGENTS.md CLAUDE.md` themselves.
 
