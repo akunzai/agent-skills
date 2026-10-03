@@ -14,13 +14,28 @@ fallback into the document, so a later agent knows which path is live.
 | Terminal or TUI | `tcut`, else asciinema | `tcut` frame export |
 | Electron | Playwright's Electron support — treat as a website | same |
 | iOS simulator | `xcrun simctl io booted recordVideo` | `xcrun simctl io booted screenshot` |
-| Android | `adb shell screenrecord` | `adb exec-out screencap -p` |
+| Android | `adb shell screenrecord` (the `android` CLI has no recorder) | `adb exec-out screencap -p`; to target elements, `android screen capture -a` then `android screen resolve` |
 | macOS desktop GUI | `screencapture -v`, else the UI test framework's artifacts | `screencapture` |
 | Backend or library | none | test output, plus evidence the dependency received the call |
 
-The iOS, Android, and macOS rows are untested here. Propose them as
-candidates and confirm with the developer before writing one into a
-project.
+Three rows were tried once:
+
+- macOS: `screencapture -x` (full screen) and `screencapture -v -V 3 -x`
+  (3-second H.264 video) worked once the terminal had Screen Recording
+  permission. Without it both fail with `could not create image from display`.
+  Full-screen capture records everything on the desktop, so prefer
+  `-l <windowid>`; that path is untested, and `python3` here has no `Quartz`
+  module to look up a window id.
+- iOS simulator: `simctl io <udid> screenshot` and `recordVideo` worked on an
+  iPhone 17 (iOS 26.5). Stop the recorder with SIGINT and wait for it to exit,
+  or the file is not finalized. Output was HEVC at the native 1206x2622.
+- Android: `android screen capture -a` and `resolve` worked on one
+  USB-connected phone, where `resolve` returned original-resolution pixel
+  coordinates usable by `adb shell input tap`. Annotation is visual only, and
+  `android layout` failed to install its instrumentation APK there.
+
+Propose rows as candidates and confirm with the developer before writing one
+into a project.
 
 ## UI locale
 
