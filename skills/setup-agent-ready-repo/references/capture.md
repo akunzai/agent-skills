@@ -16,26 +16,29 @@ fallback into the document, so a later agent knows which path is live.
 | iOS simulator | `xcrun simctl io booted recordVideo` | `xcrun simctl io booted screenshot` |
 | Android | `adb shell screenrecord` (the `android` CLI has no recorder) | `adb exec-out screencap -p`; to target elements, `android screen capture -a` then `android screen resolve` |
 | macOS desktop GUI | `screencapture -v`, else the UI test framework's artifacts | `screencapture` |
+| Windows desktop GUI | `ffmpeg -f gdigrab -i desktop` (or `-i title=<window>`), else the UI test framework's artifacts | `ffmpeg -f gdigrab -frames:v 1`, else PowerShell `System.Drawing` `CopyFromScreen` |
+| Linux desktop GUI | X11: `ffmpeg -f x11grab -i $DISPLAY`; Wayland (wlroots): `wf-recorder`; else the UI test framework's artifacts | X11: `ffmpeg -f x11grab -frames:v 1`; Wayland (wlroots): `grim` |
 | Backend or library | none | test output, plus evidence the dependency received the call |
 
-Three rows were tried once:
+Gotchas for the native rows; propose them as candidates and confirm with
+the developer before writing one into a project:
 
-- macOS: `screencapture -x` (full screen) and `screencapture -v -V 3 -x`
-  (3-second H.264 video) worked once the terminal had Screen Recording
-  permission. Without it both fail with `could not create image from display`.
-  Full-screen capture records everything on the desktop, so prefer
-  `-l <windowid>`; that path is untested, and `python3` here has no `Quartz`
-  module to look up a window id.
-- iOS simulator: `simctl io <udid> screenshot` and `recordVideo` worked on an
-  iPhone 17 (iOS 26.5). Stop the recorder with SIGINT and wait for it to exit,
-  or the file is not finalized. Output was HEVC at the native 1206x2622.
-- Android: `android screen capture -a` and `resolve` worked on one
-  USB-connected phone, where `resolve` returned original-resolution pixel
-  coordinates usable by `adb shell input tap`. Annotation is visual only, and
-  `android layout` failed to install its instrumentation APK there.
-
-Propose rows as candidates and confirm with the developer before writing one
-into a project.
+- macOS: `screencapture` fails with `could not create image from display`
+  unless the terminal has Screen Recording permission. Full-screen capture
+  records the whole desktop; prefer `-l <windowid>`.
+- iOS simulator: stop `recordVideo` with SIGINT and wait for exit, or the
+  file is not finalized.
+- Android: `android screen resolve` returns pixel coordinates usable by
+  `adb shell input tap`. `android layout` may fail to install its
+  instrumentation APK; fall back to `screen capture -a`.
+- Linux: the X11 path produced a still and a video on a virtual display in a
+  container, and the still showed the app window. `xvfb-run` hung in later
+  runs while a backgrounded GUI app was still alive; start `Xvfb :99` yourself,
+  export `DISPLAY`, and give the capture a `timeout`. `wf-recorder` and `grim`
+  are untested and need a wlroots compositor (Sway, Wayfire); GNOME and KDE
+  Wayland need another path. Headless CI needs a virtual display.
+- Windows: untested. Run it once on a real Windows host before relying on it;
+  Wine or CrossOver only proves the command runs, not its capture behavior.
 
 ## UI locale
 
