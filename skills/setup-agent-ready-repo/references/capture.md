@@ -16,8 +16,8 @@ fallback into the document, so a later agent knows which path is live.
 | iOS simulator | `xcrun simctl io booted recordVideo` | `xcrun simctl io booted screenshot` |
 | Android | `adb shell screenrecord` (the `android` CLI has no recorder) | `adb exec-out screencap -p`; to target elements, `android screen capture -a` then `android screen resolve` |
 | macOS desktop GUI | `screencapture -v`, else the UI test framework's artifacts | `screencapture` |
-| Windows desktop GUI | `ffmpeg -f gdigrab -i desktop` (or `-i title=<window>`), else the UI test framework's artifacts | `ffmpeg -f gdigrab -frames:v 1`, else PowerShell `System.Drawing` `CopyFromScreen` |
-| Linux desktop GUI | X11: `ffmpeg -f x11grab -i $DISPLAY`; Wayland (wlroots): `wf-recorder`; else the UI test framework's artifacts | X11: `ffmpeg -f x11grab -frames:v 1`; Wayland (wlroots): `grim` |
+| Windows desktop GUI | `ffmpeg -f gdigrab -i desktop` (or `-i title=<window>`), else the UI test framework's artifacts | `ffmpeg -f gdigrab -frames:v 1 -update 1`, else PowerShell `System.Drawing` `CopyFromScreen` |
+| Linux desktop GUI | X11: `ffmpeg -f x11grab -i $DISPLAY`; Wayland (wlroots): `wf-recorder`; else the UI test framework's artifacts | X11: `ffmpeg -f x11grab -frames:v 1 -update 1`; Wayland (wlroots): `grim` |
 | Backend or library | none | test output, plus evidence the dependency received the call |
 
 Gotchas for the native rows; propose them as candidates and confirm with
@@ -31,14 +31,24 @@ the developer before writing one into a project:
 - Android: `android screen resolve` returns pixel coordinates usable by
   `adb shell input tap`. `android layout` may fail to install its
   instrumentation APK; fall back to `screen capture -a`.
-- Linux: the X11 path produced a still and a video on a virtual display in a
-  container, and the still showed the app window. `xvfb-run` hung in later
-  runs while a backgrounded GUI app was still alive; start `Xvfb :99` yourself,
-  export `DISPLAY`, and give the capture a `timeout`. `wf-recorder` and `grim`
-  are untested and need a wlroots compositor (Sway, Wayfire); GNOME and KDE
-  Wayland need another path. Headless CI needs a virtual display.
-- Windows: untested. Run it once on a real Windows host before relying on it;
-  Wine or CrossOver only proves the command runs, not its capture behavior.
+- Linux:
+  - X11 headless: `xvfb-run` hangs if background GUI apps remain alive; start
+    `Xvfb :99 -screen 0 1280x720x24 &`, export `DISPLAY=:99`, and pass
+    `-update 1` to `ffmpeg -frames:v 1` to satisfy the image2 muxer.
+  - Wayland headless (wlroots): start Sway with `WLR_BACKENDS=headless
+    WLR_LIBINPUT_NO_DEVICES=1 sway --unsupported-gpu &` and wait for `$SWAYSOCK`.
+    Stop `wf-recorder` with SIGINT (`kill -INT <pid>`) and wait for exit, or the
+    MP4 container is not finalized. GNOME and KDE Wayland require another path
+    (PipeWire/portal).
+- Windows:
+  - `gdigrab` and `System.Drawing.CopyFromScreen` require an active interactive
+    desktop session (Session 1+). Running in Session 0 (service accounts,
+    background daemons, WinRM, Azure Run Command) fails with `The handle is
+    invalid` or `Failed to capture image (error 5)`. Headless automation must
+    configure AutoLogon and run commands in the interactive console session
+    (e.g., Task Scheduler with `/it`).
+  - Pass `-update 1` to `ffmpeg -frames:v 1` for stills to satisfy the image2
+    muxer.
 
 ## UI locale
 
