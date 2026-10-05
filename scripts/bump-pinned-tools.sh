@@ -23,7 +23,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MISE_TOML="$ROOT_DIR/mise.toml"
-WAZA_EVAL_YML="$ROOT_DIR/.github/workflows/waza-eval.yml"
 AGENTSVIEW_EXTRACT_SKILL="$ROOT_DIR/skills/agentsview-extract/SKILL.md"
 AGENTSVIEW_RESUME_SKILL="$ROOT_DIR/skills/agentsview-resume/SKILL.md"
 SIGN_SKILLS_SH="$ROOT_DIR/scripts/sign-skills.sh"
@@ -162,8 +161,6 @@ apply_waza() {
   local new="$1"
   sed -i.bak -E "s/^version = \"[0-9]+\.[0-9]+\.[0-9]+\"\$/version = \"${new}\"/" "$MISE_TOML"
   rm -f "${MISE_TOML}.bak"
-  sed -i.bak -E "s/(install_args: github:microsoft\/waza@)[0-9]+\.[0-9]+\.[0-9]+/\1${new}/" "$WAZA_EVAL_YML"
-  rm -f "${WAZA_EVAL_YML}.bak"
 }
 
 apply_agentsview() {
