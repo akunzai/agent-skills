@@ -33,7 +33,6 @@ chmod +x "$REPO/scripts/bump-pinned-tools.sh"
 # The copy starts without a gitleaks pin whatever the repo pins today, so
 # the absent-pin case below always has something to test.
 grep -v '^gitleaks = ' "$ROOT_DIR/mise.toml" >"$REPO/mise.toml"
-cp "$ROOT_DIR/.github/workflows/waza-eval.yml" "$REPO/.github/workflows/waza-eval.yml"
 cp "$ROOT_DIR/skills/agentsview-extract/SKILL.md" "$REPO/skills/agentsview-extract/SKILL.md"
 cp "$ROOT_DIR/skills/agentsview-resume/SKILL.md" "$REPO/skills/agentsview-resume/SKILL.md"
 # Pin the copy below the fixture's latest whatever the repo pins today.
@@ -41,7 +40,6 @@ sed -E 's/^MODEL_SIGNING_VERSION="[0-9.]+"$/MODEL_SIGNING_VERSION="1.1.1"/' \
   "$ROOT_DIR/scripts/sign-skills.sh" >"$REPO/scripts/sign-skills.sh"
 
 MISE_TOML="$REPO/mise.toml"
-WAZA_EVAL="$REPO/.github/workflows/waza-eval.yml"
 AGENTSVIEW_EXTRACT="$REPO/skills/agentsview-extract/SKILL.md"
 AGENTSVIEW_RESUME="$REPO/skills/agentsview-resume/SKILL.md"
 SIGN_SKILLS="$REPO/scripts/sign-skills.sh"
@@ -132,16 +130,13 @@ OUT="$(run_script --apply gitleaks)"
 grep -qF 'gitleaks = "8.31.0"' "$MISE_TOML" || fail "mise.toml gitleaks pin was not rewritten"
 grep -qF 'gitleaks = "8.30.1"' "$MISE_TOML" && fail "old gitleaks pin still present in mise.toml"
 
-# --- 4. waza: two files, and the azd-ext tag must be ignored -----------------
+# --- 4. waza: mise.toml only (workflow edits need a `workflows` token), and the azd-ext tag must be ignored -----------------
 OUT="$(run_script --apply waza)"
 [ "$(field changed "$OUT")" = "true" ] || fail "waza apply did not report a change: $OUT"
 [ "$(field new_version "$OUT")" = "0.39.0" ] \
   || fail "waza picked the wrong 'latest' (want 0.39.0, azd-ext tag must be excluded): $OUT"
 grep -qF 'version = "0.39.0"' "$MISE_TOML" || fail "mise.toml waza version was not rewritten"
-grep -qF 'install_args: github:microsoft/waza@0.39.0' "$WAZA_EVAL" \
-  || fail "waza-eval.yml install_args was not rewritten"
 grep -qF '0.38.7' "$MISE_TOML" && fail "old waza version still present in mise.toml"
-grep -qF '0.38.7' "$WAZA_EVAL" && fail "old waza version still present in waza-eval.yml"
 
 # --- 5. agentsview: mise.toml task + both SKILL.md files ---------------------
 OUT="$(run_script --apply agentsview)"
