@@ -63,7 +63,7 @@ pre-approval, so it widens what runs without a prompt rather than narrowing it.
   keeps transcripts inert and requires review before anything is persisted.
 - **Installers fetch from the network.** Skills tagged `installs-tools` ask for
   confirmation before installing. Not every install is pinned: Playwright,
-  ffmpeg and `microsoft/webwright` install whatever version their registry
+  ffmpeg and `microsoft/CUAWright` install whatever version their registry
   serves, so their integrity is the vendor's.
 - **Agent instructions persist.** Skills tagged `edits-agent-instructions`
   write files that every later session loads. Each shows the exact addition and
@@ -121,7 +121,7 @@ Mapped against the
 | AST04 Insecure Metadata | Addressed: `capabilities` is checked against the vocabulary in CI, so a skill cannot understate or invent a term. |
 | AST10 Cross-Platform Reuse | Addressed: the declaration lives in the agentskills.io `metadata` map inside `SKILL.md`, so it survives every runtime and `npx skills add`. |
 | AST07 Update Drift | Partly: plugins update only on a `version` bump, enforced by `tests/plugin-version-bump.sh`. Catalog skills track the branch; pin a commit to freeze them. |
-| AST05 Untrusted External Instructions | Disclosed, not controlled: `agentsview-extract` follows the `agentsview-finding-history` skill that the AgentsView CLI installs, and `write-e2e-tests` follows `microsoft/webwright`. Both are third-party instructions outside this repository. |
+| AST05 Untrusted External Instructions | Disclosed, not controlled: `agentsview-extract` follows the `agentsview-finding-history` skill that the AgentsView CLI installs, and `write-e2e-tests` follows `microsoft/CUAWright`. Both are third-party instructions outside this repository. |
 | AST01, AST02, AST06, AST08, AST09 | Left to the installer: vet the source, review each skill's `capabilities` before installing, run agents under your runtime's sandbox and permission prompts, and keep an inventory of what you install. |
 
 ## Reporting a Vulnerability

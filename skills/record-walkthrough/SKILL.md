@@ -43,7 +43,7 @@ When missing, ask the user for confirmation before installing:
    the shape below. Each click needs a locator (`role`+`name`, `selector`,
    `text`, or `label`). Discover locators with `playwright-cli snapshot`
    when that command is on PATH; otherwise a Playwright script. Reuse a
-   webwright run only when one already exists for this flow — webwright
+   cuawright-web run only when one already exists for this flow — the skill
    launches a fresh, stateless browser each time and cannot carry a
    signed-in session past a login wall. Leave this step when the file on
    disk starts at the brief's URL and has one step per action the brief

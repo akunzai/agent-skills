@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Scan a webwright script or Playwright spec for credential literals.
+# Scan a cuawright-web script or Playwright spec for credential literals.
 # Usage: scan-secrets.sh FILE
 # Prints file:line:category (never the matched text). Exit 1 on hits, 2 on usage.
 
