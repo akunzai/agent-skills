@@ -192,7 +192,7 @@ rules:
     reason: "Documented `npx playwright`/`npx skills add` setup commands; this repo does not version-pin interactively confirmed CLI installs (see record-walkthrough entries above)."
   - id: "AS3"
     path: "references/setup.md"
-    message: "*skills/webwright*"
-    reason: "Checks for the sibling webwright skill's own SKILL.md to locate its workspace paths, not enumeration of arbitrary peer skills."
+    message: "*skills/cuawright-web*"
+    reason: "Checks for the sibling cuawright-web skill's own SKILL.md to locate its workspace paths, not enumeration of arbitrary peer skills."
 
 fingerprints: []

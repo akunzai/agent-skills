@@ -1,7 +1,7 @@
 id: convert-catalog-run
-name: Convert a qualifying webwright run to Playwright
+name: Convert a qualifying cuawright-web run to Playwright
 description: |
-  The agent converts a completed webwright run into a Playwright Test
+  The agent converts a completed cuawright-web run into a Playwright Test
   spec. It does not explore, install packages, or run browsers.
 
 tags:
@@ -10,19 +10,19 @@ tags:
 
 inputs:
   prompt: |
-    Convert the qualifying webwright run already on disk using the
+    Convert the qualifying cuawright-web run already on disk using the
     write-e2e-tests skill.
 
     Inventory: package.json and @playwright/test are present,
     playwright.config.js sets testDir to e2e/, and
     final_runs/run_1/plan.md plus final_script.py exist with every
-    Critical Point checked. There is no webwright skill file in this
+    Critical Point checked. There is no cuawright-web skill file in this
     workspace and no other e2e stack.
 
-    Reuse final_runs/run_1/. Do not install webwright, npm packages, or
+    Reuse final_runs/run_1/. Do not install cuawright-web, npm packages, or
     browsers. Do not explore the live site. Do not run Playwright. Do
     not edit CI, .gitignore, package.json, playwright.config.js, or
-    the webwright artifacts. Write the Playwright Test spec under e2e/
+    the cuawright-web artifacts. Write the Playwright Test spec under e2e/
     with one expect() per Critical Point, using selectors from
     final_script.py.
   files:

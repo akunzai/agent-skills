@@ -86,7 +86,7 @@ feature-first development, use `tdd` instead.
 
 Turn a browser UI flow into a durable, checked-in Playwright Test e2e
 spec. Unblocks a missing Playwright toolchain or
-[webwright](https://github.com/microsoft/Webwright) run after
+[cuawright-web](https://github.com/microsoft/CUAWright) run after
 confirmation, converts Critical Points to assertions, and validates the
 result is stable and CI-discoverable.
 

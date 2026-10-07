@@ -1,7 +1,7 @@
 name: write-e2e-tests-eval
 description: |
   Isolated-workspace suite for write-e2e-tests. The agent converts a
-  qualifying webwright run into a Playwright spec and does not run a
+  qualifying cuawright-web run into a Playwright spec and does not run a
   browser.
 skill: write-e2e-tests
 schemaVersion: "1.0"
@@ -19,7 +19,7 @@ metrics:
   - name: convert_quality
     weight: 1.0
     threshold: 1.0
-    description: Isolated-workspace graders for a webwright-to-Playwright convert
+    description: Isolated-workspace graders for a cuawright-web-to-Playwright convert
 
 graders:
   - type: file

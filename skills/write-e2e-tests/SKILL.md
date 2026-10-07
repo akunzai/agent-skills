@@ -2,8 +2,8 @@
 name: write-e2e-tests
 description: >-
   Use when the user wants browser UI e2e as a Playwright Test spec —
-  converting a completed webwright run, or unblocking a missing
-  Playwright toolchain or webwright run first. Not for API-level end-to-end
+  converting a completed cuawright-web run, or unblocking a missing
+  Playwright toolchain or cuawright-web run first. Not for API-level end-to-end
   tests.
 license: MIT
 metadata:
@@ -13,7 +13,7 @@ metadata:
 # Write E2E Tests
 
 Turns a browser UI flow into a checked-in Playwright Test spec.
-[Webwright](https://github.com/microsoft/Webwright) is the exploration engine:
+[CUAWright](https://github.com/microsoft/CUAWright) is the exploration engine:
 it produces `plan.md` and `final_script.py`. This skill unblocks a missing
 toolchain or run after confirmation, then converts.
 
@@ -27,14 +27,14 @@ Selenium suite stays; confirm before adding Playwright beside it.
 
 1. **Inventory.** In the target project, mark each of these present or
    absent: a JS package manifest and its package manager; `@playwright/test`
-   and `playwright.config`; the webwright skill; a qualifying run; another
-   e2e stack (Cypress, Selenium); existing CI files; webwright artifact
-   paths git still tracks. Webwright is present when the session's
-   skill list names `webwright`, bare or plugin-prefixed. Leave this
-   step when every item is marked. No package manifest — stop and
-   report.
+   and `playwright.config`; the cuawright-web skill; a qualifying run; another
+   e2e stack (Cypress, Selenium); existing CI files; cuawright-web artifact
+   paths git still tracks. CUAWright is present when the session's
+   skill list names `cuawright-web` (or legacy `webwright`), bare or
+   plugin-prefixed. Leave this step when every item is marked.
+   No package manifest — stop and report.
 
-2. **Toolchain.** If Playwright, browsers, or webwright are missing, confirm
+2. **Toolchain.** If Playwright, browsers, or cuawright-web are missing, confirm
    once for those items and follow
    [references/setup.md](references/setup.md). Another e2e stack without
    Playwright — confirm adding Playwright beside it.
@@ -45,13 +45,13 @@ Selenium suite stays; confirm before adding Playwright beside it.
    unless the user asks to re-run. Otherwise go to *explore*.
 
 4. **Explore.** Confirm on its own before driving the real site. If the
-   user has not named the flow, ask. Invoke the `webwright` skill and
-   run it to Done. Leave this step when webwright reports Done and a
+   user has not named the flow, ask. Invoke the `cuawright-web` skill and
+   run it to Done. Leave this step when cuawright-web reports Done and a
    qualifying run from step 3 is on disk. Reading source is not
-   Explore. Convert is the next step. Exploration stays in webwright.
+   Explore. Convert is the next step. Exploration stays in cuawright-web.
 
 5. **Repo — gitignore.** Propose `.gitignore` rules when unignored
-   webwright artifacts exist (`outputs/`, `final_runs/`, screenshots/logs)
+   cuawright-web artifacts exist (`outputs/`, `final_runs/`, screenshots/logs)
    or this run just scaffolded Playwright (`test-results/`,
    `playwright-report/`). Write only after confirmation. Add rules only;
    do not `git rm --cached` already-tracked files.

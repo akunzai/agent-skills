@@ -47,18 +47,19 @@ Install both, even when the spec will run on one:
 playwright install firefox chromium
 ```
 
-Prefix with the project's runner from the table. Webwright launches
+Prefix with the project's runner from the table. CUAWright launches
 Firefox; the converted spec uses the browser chosen in *toolchain*.
 
-## Webwright skill
+## CUAWright skill
 
 Install with [Skills Manager](https://github.com/akunzai/skills-manager)
 when its `skills` binary is on `PATH`:
-`skills add microsoft/webwright --skill webwright --yes` (add `-p` for
-project scope). Otherwise `npx skills add microsoft/webwright`
-(https://github.com/microsoft/Webwright). Either lands the skill at
-`~/.agents/skills/webwright/SKILL.md` (user) or
-`.agents/skills/webwright/SKILL.md` at the git root (project); when the
+`skills add microsoft/CUAWright --skill cuawright-web --yes` (add `-p` for
+project scope). Otherwise
+`npx skills add microsoft/CUAWright --skill cuawright-web`
+(https://github.com/microsoft/CUAWright). Either lands the skill at
+`~/.agents/skills/cuawright-web/SKILL.md` (user) or
+`.agents/skills/cuawright-web/SKILL.md` at the git root (project); when the
 harness does not list a skill installed mid-session, read that file
 directly. Workspace paths live in that `SKILL.md`. Node `@playwright/test` does
-not satisfy webwright's browser runtime.
+not satisfy cuawright-web's browser runtime.
