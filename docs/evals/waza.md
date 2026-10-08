@@ -2,8 +2,8 @@
 
 Suites under `evals/<skill>/` measure those skills on **GitHub Copilot
 only**, using the pinned catalog id in each `eval.yaml` `config.model`.
-Every suite pins `gpt-6-luna` except `pr-workflow`, which pins
-`gemini-3.8-flash`: over five trials each it passed 5/5 there to luna's 4/5.
+Every suite pins `claude-haiku-5.5` except `pr-workflow`, which pins
+`gemini-3.8-flash`.
 Skills remain usable in other assistants; those runtimes are not the
 effectiveness instrument.
 
