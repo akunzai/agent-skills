@@ -12,7 +12,7 @@ config:
   timeout_seconds: 420
   parallel: false
   executor: copilot-sdk
-  model: gpt-6-luna
+  model: claude-haiku-5.5
   inject_skill_body: true
 
 metrics:
