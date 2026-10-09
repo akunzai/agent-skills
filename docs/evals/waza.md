@@ -147,7 +147,9 @@ runs that task on every PR. It does not need Copilot.
 
 [`.github/workflows/waza-eval.yml`](../../.github/workflows/waza-eval.yml)
 runs on first-party PRs that touch `skills/**`, `evals/**`, the
-workflow file, `.waza.yaml`, or `mise.toml`. Fork PRs are skipped.
+workflow file, `.waza.yaml`, or `mise.toml`. Fork PRs are skipped. A new
+push cancels the PR's running evaluation, since each run spends OpenRouter
+credit; `workflow_dispatch` runs are never cancelled.
 
 The PR job runs the token check, then only the suites whose
 `skills/<name>/` or `evals/<name>/` paths changed vs `origin/main`.
