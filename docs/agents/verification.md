@@ -109,8 +109,9 @@ Run once, by a person. The gate fails until they are done.
 
 - [ ] Install [mise](https://mise.jdx.dev/) and run `mise install` in the clone.
 - [ ] `gh auth login`, for any issue or pull-request operation.
-- [ ] Export `OPENROUTER_API_KEY`, for `mise run waza`. In CI it is the
-      repository secret of the same name.
+- [ ] Set `OPENROUTER_API_KEY`, for `mise run waza`: export it, or put it under
+      `[env]` in the gitignored `mise.local.toml`. In CI it is the repository
+      secret of the same name.
 
 The `wizard` skill turns a checklist like this into an interactive script. It is
 for the developer to run, not an agent.
