@@ -24,7 +24,12 @@ on:
 
 permissions:
   contents: read
-  copilot-requests: write
+
+# Each run spends OpenRouter credit: a new push supersedes the PR's running
+# evaluation. Dispatched runs are one-off and are never cancelled.
+concurrency:
+  group: waza-eval-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   evaluate:
@@ -55,7 +60,7 @@ jobs:
 
       - name: Run Waza evaluation
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           EVENT_NAME: ${{ github.event_name }}
           INPUT_SUITE: ${{ inputs.suite }}
           INPUT_BASELINE: ${{ inputs.baseline }}

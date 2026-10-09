@@ -52,46 +52,6 @@ suite_exists() {
   [[ -f "evals/$1/eval.yaml" ]]
 }
 
-copilot_unavailable_result() {
-  local result_file=$1
-
-  # GitHub Actions installation auth may expose no account quota snapshot, so
-  # classify Waza's own runtime result and fail closed otherwise.
-  #
-  # The only Copilot signal a result carries is the run's `error_msg`, and it is
-  # prose, not a code: Waza stores `err.Error()` from the SDK, and the SDK turns
-  # a session.error event into "session error: <human message>", dropping the
-  # structured `errorCode` / `errorType` fields. So match the human wording and
-  # keep the CAPI quota codes only as belt-and-braces for a future Waza that
-  # surfaces them. `rate_limit` codes stay out on purpose: throttling is
-  # transient and must not green-light a PR.
-  # https://docs.github.com/en/copilot/how-tos/copilot-sdk/features/usage-and-billing
-  # https://github.com/microsoft/waza/blob/v0.38.7/internal/execution/copilot.go#L536
-  # https://github.com/github/copilot-sdk/blob/v1.0.11/go/session.go#L504
-  # https://github.com/github/copilot-sdk/blob/v1.0.11/go/rpc/zsession_events.go#L706
-  [[ -s $result_file ]] || return 1
-  jq -e '
-    def copilot_unavailable:
-      test(
-        "quota_exceeded|session_quota_exceeded|billing_not_configured"
-        + "|(quota|allowance|premium request)[^.\n]*"
-        + "(exceed|exhaust|reach|used up|unavailable|limit)"
-        + "|(exceed|exhaust|reach|run out of|no more|no)[^.\n]*"
-        + "(quota|allowance|premium request)"
-        + "|billing[^.\n]*(not configured|required|unavailable)"
-        + "|subscription[^.\n]*(required|missing|inactive|expired|not active)";
-        "i"
-      );
-
-    def unavailable_run:
-      .status == "error" and ((.error_msg // "") | copilot_unavailable);
-
-    [(.tasks // [])[].runs[]] as $runs
-    | any($runs[]; unavailable_run)
-      and all($runs[]; .status == "passed" or unavailable_run)
-  ' "$result_file" >/dev/null 2>&1
-}
-
 suites_from_diff() {
   local files f name
   if ! git rev-parse --verify --quiet origin/main >/dev/null; then
@@ -149,6 +109,26 @@ if ((print_only)); then
   exit 0
 fi
 
+notice() {
+  if [[ ${GITHUB_ACTIONS:-} == true ]]; then
+    printf '::warning::%s\n' "$1"
+  else
+    printf '%s\n' "$1" >&2
+  fi
+}
+
+# Waza's copilot-sdk executor sends sessions to a custom provider when
+# COPILOT_BASE_URL is set, so no Copilot login or subscription is used.
+# Without a key (a fork or Dependabot PR, or a local checkout that never set
+# one) there is nothing to run against.
+if [[ -z ${OPENROUTER_API_KEY:-} ]]; then
+  notice "OPENROUTER_API_KEY is not set; skipping Waza suites."
+  exit 0
+fi
+export COPILOT_BASE_URL=https://openrouter.ai/api/v1
+export COPILOT_PROVIDER=openai
+export COPILOT_API_KEY=$OPENROUTER_API_KEY
+
 extra=()
 if ((baseline)); then
   extra+=(--baseline)
@@ -168,7 +148,7 @@ checkout_tree() {
 }
 
 # One attempt of one suite: 0 passed, 1 failed, 2 wrote outside its
-# workspace, 3 Copilot quota or subscription unavailable.
+# workspace.
 run_attempt() {
   local name=$1 result_file=$2 before after status=0
   before=$(checkout_tree)
@@ -183,18 +163,7 @@ run_attempt() {
   if ((status == 0)); then
     return 0
   fi
-  if copilot_unavailable_result "$result_file"; then
-    return 3
-  fi
   return 1
-}
-
-notice() {
-  if [[ ${GITHUB_ACTIONS:-} == true ]]; then
-    printf '::warning::%s\n' "$1"
-  else
-    printf '%s\n' "$1" >&2
-  fi
 }
 
 failed=0
@@ -205,8 +174,8 @@ for name in "${selected[@]}"; do
   outcome=0
   run_attempt "$name" "$result_file" || outcome=$?
   # A single model run is noisy: a suite that fails its graders gets one more
-  # attempt, and fails only if that one fails too. Escapes and quota errors
-  # are not noise, so they are never retried.
+  # attempt, and fails only if that one fails too. An escape is not noise,
+  # so it is never retried.
   if ((outcome == 1)); then
     mv "$result_file" "waza-results/${name}.attempt1.json"
     printf '%s failed; retrying once\n' "$name" >&2
@@ -214,21 +183,8 @@ for name in "${selected[@]}"; do
     run_attempt "$name" "$result_file" || outcome=$?
     if ((outcome == 0)); then
       notice "$name passed on retry; waza-results/${name}.attempt1.json holds the failed attempt."
-    elif ((outcome == 3)); then
-      # the retry could not confirm the first failure, so it stands
-      outcome=1
     fi
   fi
-  case $outcome in
-    0) ;;
-    3)
-      if ((failed == 0)); then
-        notice "Copilot quota or subscription is unavailable; skipping remaining Waza suites."
-        exit 0
-      fi
-      failed=1
-      ;;
-    *) failed=1 ;;
-  esac
+  ((outcome == 0)) || failed=1
 done
 exit "$failed"

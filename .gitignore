@@ -11,3 +11,6 @@ tmp/
 /results.json
 /transcripts/
 /waza-results/
+
+# Local mise overrides, e.g. OPENROUTER_API_KEY for mise run waza
+/mise.local.toml

@@ -120,11 +120,11 @@ Nothing unverified enters review. Two orders satisfy that:
 - **A Waza-covered skill**: also run that skill's suite locally
   (`mise run waza -- <skill>`) and quote the result. The PR workflow runs it
   again as a backstop.
-- **When Copilot quota is exhausted** and the local suite cannot run, open the
+- **When the local suite cannot run** (no `OPENROUTER_API_KEY`), open the
   request as a draft (`gh pr create --draft`), let
   `.github/workflows/waza-eval.yml` run, attach evidence citing the run id and
-  the commit SHA, then mark it ready. A run the workflow classified as skipped
-  for quota or billing is not a pass; say so.
+  the commit SHA, then mark it ready. A run the workflow skipped for a missing
+  key is not a pass; say so.
 
 State in the description which paths were verified and which were not, with the
 reason.

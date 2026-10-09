@@ -63,40 +63,15 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+printf '%s %s %s\n' "${COPILOT_BASE_URL:-}" "${COPILOT_PROVIDER:-}" \
+  "${COPILOT_API_KEY:-}" >"${FAKE_WAZA_ENV:-/dev/null}"
+
 case ${FAKE_WAZA_MODE:-pass} in
   escape)
     # an agent writing to the checkout by absolute path, then passing
     printf 'mise trust\n' >>"$FAKE_WAZA_CHECKOUT/AGENTS.md"
     printf 'note\n' >"$FAKE_WAZA_CHECKOUT/escaped.md"
     printf '%s\n' '{"tasks": [{"runs": [{"status": "passed"}]}]}' >"$output"
-    ;;
-  quota)
-    printf '%s\n' '{
-      "tasks": [{
-        "runs": [
-          {"status": "passed"},
-          {"status": "error", "error_msg": "session error: You have exceeded your premium request allowance for this billing cycle."}
-        ]
-      }]
-    }' >"$output"
-    exit 1
-    ;;
-  quota-code)
-    printf '%s\n' '{
-      "tasks": [{"runs": [{"status": "error", "error_msg": "quota_exceeded"}]}]
-    }' >"$output"
-    exit 1
-    ;;
-  subscription)
-    printf '%s\n' '{
-      "tasks": [{
-        "runs": [{
-          "status": "error",
-          "error_msg": "session error: Your Copilot subscription is inactive."
-        }]
-      }]
-    }' >"$output"
-    exit 1
     ;;
   rate-limit)
     printf '%s\n' '{
@@ -122,17 +97,6 @@ case ${FAKE_WAZA_MODE:-pass} in
     }' >"$output"
     exit 1
     ;;
-  mixed)
-    printf '%s\n' '{
-      "tasks": [{
-        "runs": [
-          {"status": "error", "error_msg": "session error: premium request quota exceeded"},
-          {"status": "failed", "error_msg": "grader mismatch"}
-        ]
-      }]
-    }' >"$output"
-    exit 1
-    ;;
   runtime)
     printf '%s\n' '{
       "tasks": [{"runs": [{"status": "error", "error_msg": "network timeout"}]}]
@@ -148,31 +112,6 @@ case ${FAKE_WAZA_MODE:-pass} in
     fi
     printf '%s\n' '{"tasks": [{"runs": [{"status": "passed"}]}]}' >"$output"
     ;;
-  fail-then-quota)
-    if [[ ! -e $FAKE_WAZA_STATE ]]; then
-      : >"$FAKE_WAZA_STATE"
-      printf '%s\n' '{"tasks": [{"runs": [{"status": "failed"}]}]}' >"$output"
-      exit 1
-    fi
-    printf '%s\n' '{
-      "tasks": [{"runs": [{"status": "error", "error_msg": "quota_exceeded"}]}]
-    }' >"$output"
-    exit 1
-    ;;
-  across-suites)
-    if [[ $spec == *pr-workflow* ]]; then
-      printf '%s\n' '{
-        "tasks": [{"runs": [{"status": "failed", "error_msg": "grader mismatch"}]}]
-      }' >"$output"
-    else
-      printf '%s\n' '{
-        "tasks": [{
-          "runs": [{"status": "error", "error_msg": "session error: premium request quota exceeded"}]
-        }]
-      }' >"$output"
-    fi
-    exit 1
-    ;;
 esac
 FAKE_WAZA
 chmod +x "$fake_bin/waza"
@@ -186,7 +125,7 @@ run_fake() {
   rm -rf "$fixture_root/waza-results"
 
   set +e
-  output=$(FAKE_WAZA_MODE=$mode PATH="$fake_bin:$PATH" \
+  output=$(FAKE_WAZA_MODE=$mode OPENROUTER_API_KEY=test-openrouter-key PATH="$fake_bin:$PATH" \
     "$fixture_root/evals/run-suites.sh" pr-workflow 2>&1)
   status=$?
   set -e
@@ -196,18 +135,28 @@ run_fake() {
   printf '%s\n' "$output"
 }
 
-quota_output=$(run_fake quota 0)
-printf '%s\n' "$quota_output" | grep -q 'skipping remaining Waza suites' \
-  || fail "quota-only error should explain that remaining suites were skipped"
-run_fake quota-code 0 >/dev/null
-run_fake subscription 0 >/dev/null
 run_fake grader 1 >/dev/null
-run_fake mixed 1 >/dev/null
 run_fake runtime 1 >/dev/null
-# throttling is transient, and a result Waza never wrote says nothing at all
+# throttling or exhausted credit, and a result Waza never wrote, all fail
 run_fake rate-limit 1 >/dev/null
 run_fake no-result 1 >/dev/null
 run_fake empty-result 1 >/dev/null
+
+# --- the OpenRouter key becomes Waza's custom provider; without one, skip ---
+FAKE_WAZA_ENV="$TMP_DIR/waza-env" run_fake pass 0 >/dev/null
+[ "$(cat "$TMP_DIR/waza-env")" = \
+  "https://openrouter.ai/api/v1 openai test-openrouter-key" ] \
+  || fail "waza should get the OpenRouter provider: $(cat "$TMP_DIR/waza-env")"
+rm -f "$TMP_DIR/waza-env"
+set +e
+nokey_output=$(env -u OPENROUTER_API_KEY FAKE_WAZA_ENV="$TMP_DIR/waza-env" \
+  PATH="$fake_bin:$PATH" "$fixture_root/evals/run-suites.sh" pr-workflow 2>&1)
+status=$?
+set -e
+[ "$status" -eq 0 ] || fail "a missing key should skip with exit 0, got $status"
+printf '%s\n' "$nokey_output" | grep -q 'OPENROUTER_API_KEY is not set' \
+  || fail "a missing key should say why the suites were skipped: $nokey_output"
+[ ! -e "$TMP_DIR/waza-env" ] || fail "waza should not run without a key"
 
 # --- a grader failure gets exactly one retry ---
 export FAKE_WAZA_STATE="$TMP_DIR/waza-attempted"
@@ -220,20 +169,6 @@ printf '%s\n' "$flaky_output" | grep -q 'pr-workflow passed on retry' \
 grader_output=$(run_fake grader 1)
 [ "$(printf '%s\n' "$grader_output" | grep -c 'retrying once')" -eq 1 ] \
   || fail "a suite that keeps failing should be retried exactly once: $grader_output"
-quota_first=$(run_fake quota 0)
-printf '%s\n' "$quota_first" | grep -q 'retrying' \
-  && fail "a quota error is not noise and should not be retried"
-# a retry that cannot run does not overturn the failure it was checking
-rm -f "$FAKE_WAZA_STATE"
-run_fake fail-then-quota 1 >/dev/null
-
-set +e
-FAKE_WAZA_MODE=across-suites PATH="$fake_bin:$PATH" \
-  "$fixture_root/evals/run-suites.sh" pr-workflow agents-md >/dev/null 2>&1
-status=$?
-set -e
-[ "$status" -eq 1 ] \
-  || fail "a later quota error must not hide an earlier grader failure"
 
 # --- a suite that writes to the checkout fails even when its graders pass,
 # and names what it wrote; edits already in the tree before the run do not
@@ -243,7 +178,7 @@ escape_run() {
   git -C "$fixture_root" checkout -q -- AGENTS.md
   [ -z "${1:-}" ] || printf '%s\n' "$1" >>"$fixture_root/AGENTS.md"
   set +e
-  escape_out=$(FAKE_WAZA_MODE=$2 FAKE_WAZA_CHECKOUT=$fixture_root \
+  escape_out=$(FAKE_WAZA_MODE=$2 OPENROUTER_API_KEY=test-openrouter-key FAKE_WAZA_CHECKOUT=$fixture_root \
     PATH="$fake_bin:$PATH" "$fixture_root/evals/run-suites.sh" pr-workflow 2>&1)
   escape_status=$?
   set -e
@@ -276,7 +211,7 @@ rm -f "$fixture_root/escaped.md"
 # paths explicitly under it. ---
 rm -rf "$fixture_root/waza-results"
 set +e
-sysbash_out=$(FAKE_WAZA_MODE=pass PATH="$fake_bin:$PATH" \
+sysbash_out=$(FAKE_WAZA_MODE=pass OPENROUTER_API_KEY=test-openrouter-key PATH="$fake_bin:$PATH" \
   /bin/bash "$fixture_root/evals/run-suites.sh" pr-workflow 2>&1)
 sysbash_status=$?
 set -e
@@ -285,7 +220,7 @@ set -e
 
 rm -rf "$fixture_root/waza-results"
 set +e
-sysbash_baseline_out=$(FAKE_WAZA_MODE=pass PATH="$fake_bin:$PATH" \
+sysbash_baseline_out=$(FAKE_WAZA_MODE=pass OPENROUTER_API_KEY=test-openrouter-key PATH="$fake_bin:$PATH" \
   /bin/bash "$fixture_root/evals/run-suites.sh" --baseline pr-workflow 2>&1)
 sysbash_baseline_status=$?
 set -e
