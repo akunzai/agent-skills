@@ -27,7 +27,8 @@ inputs:
 
     Validate the new tests the way the skill requires, including
     mutation-lite. Do not change production behavior. In the final report,
-    state the model-selection and fallback policy that applies to named workers,
+    state the criterion for choosing a named worker's model and the fallback
+    policy that applies to named workers,
     even if this run does not use one. Separately cover a runtime that can
     dispatch a named worker but cannot select its model per dispatch. Include
     effort selection and the named-to-generic decision path. Explicitly state
