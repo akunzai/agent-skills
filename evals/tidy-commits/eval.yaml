@@ -25,7 +25,7 @@ graders:
     name: checks-in-primary
     config:
       regex_match:
-        - "(?is)(tests?|linters?|checks?).{0,200}(primary|main session|this session|(not|rather than|instead of).{0,40}(sub.?agent|worker|delegat))"
+        - "(?is)(tests?|linters?|checks?).{0,200}(primary|main session|this session|(not|rather than|instead of).{0,40}(sub.?agent|worker|delegat))|(primary|main session|this session|(not|rather than|instead of).{0,40}(sub.?agent|worker|delegat)).{0,300}(tests?|linters?|checks?)"
         - "(?is)(tree|diff).{0,200}(identical|unchanged|same|match|preserv|no difference|empty).{0,300}(skip|not.{0,20}(run|needed|necessary))|(skip|not.{0,20}(run|needed|necessary)).{0,300}(tree|diff).{0,200}(identical|unchanged|same|match|preserv|no difference|empty)"
 
   - type: text
