@@ -21,10 +21,10 @@ fixtures.
 
 ## Install
 
-Project-level via mise's `github:` backend. Pin the CLI tag
-(`v0.38.7`). GitHub's `/releases/latest` is the `azd-ext-*` release,
-and `version = "latest"` with `version_prefix = "v"` currently
-resolves to no versions.
+Project-level via mise's `github:` backend. The Waza CLI version and tag
+prefix are pinned in [`mise.toml`](../../mise.toml), the source of truth
+for local installs and CI. See that tool entry for the pin and its rationale;
+tool bumps update the configuration rather than this guide.
 
 ```bash
 mise install
@@ -157,8 +157,8 @@ Changes to the workflow, `.waza.yaml`, `mise.toml`, or
 `evals/run-suites.sh` run every suite. `workflow_dispatch` runs every
 suite, or the one named in the `suite` input.
 
-That mapping, plus Waza applying only suite-level `graders` (v0.38.7
-ignores a task's own `graders:`), means new coverage belongs in an
+That mapping, plus the pinned Waza CLI applying only suite-level `graders`
+(ignoring a task's own `graders:`), means new coverage belongs in an
 existing suite's task — a second task fails the first one's graders, and
 a suite not named after a skill never runs on that skill's changes.
 Widen that task's own prompt, not its `follow_up_prompts`: graders read
