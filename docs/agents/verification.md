@@ -36,7 +36,7 @@ What that lookup cannot give:
 | List the tasks and their descriptions | `mise tasks` |
 | One test in isolation, while iterating | `bash tests/<name>.sh` |
 | The AgentsView CLI contract (pulls a 42 MB pinned binary) | `mise run test-agentsview-contract` |
-| Skill behaviour, live against Copilot | `mise run waza -- <suite>` |
+| Skill behaviour, live on Copilot's runtime via OpenRouter | `mise run waza -- <suite>` |
 | Only the suites touched vs `origin/main` | `mise run waza -- --changed` |
 | SKILL.md token budget (3000, `.waza.yaml`) | `waza tokens compare origin/main --skills --threshold 10 --strict` |
 | This document still matching the repo | `bash skills/setup-agent-ready-repo/scripts/check-drift.sh --run-entrypoint .` |
@@ -54,7 +54,7 @@ skill you touched, not the whole set:
 mise run waza -- <skill>
 ```
 
-It spends Copilot premium requests and takes roughly half a minute per task, so
+It spends OpenRouter credit and takes roughly half a minute per task, so
 it sits outside the gate above rather than inside it. Results land in
 `waza-results/<skill>.json`, which is gitignored. Coverage, the pinned model per
 suite, and the CI path mapping are in `docs/evals/waza.md`.
@@ -64,9 +64,9 @@ A cache hit is not evidence after a skill edit.
 
 `.github/workflows/waza-eval.yml` runs the touched suites again on the pull
 request. It is a backstop, not the primary instrument: quote your local run in
-the description. Where Copilot quota is exhausted and the local run cannot
-happen, say so and let the workflow be the evidence — a run that workflow
-classified as skipped for quota or billing is not a pass either way.
+the description. Where the local run cannot happen, say so and let the
+workflow be the evidence — a run that skipped for a missing
+`OPENROUTER_API_KEY` is not a pass either way.
 
 ### Dogfooding against a real agent
 
@@ -109,8 +109,8 @@ Run once, by a person. The gate fails until they are done.
 
 - [ ] Install [mise](https://mise.jdx.dev/) and run `mise install` in the clone.
 - [ ] `gh auth login`, for any issue or pull-request operation.
-- [ ] `copilot login`, for `mise run waza`. In CI this is `GITHUB_TOKEN` plus
-      the workflow permission `copilot-requests: write`.
+- [ ] Export `OPENROUTER_API_KEY`, for `mise run waza`. In CI it is the
+      repository secret of the same name.
 
 The `wizard` skill turns a checklist like this into an interactive script. It is
 for the developer to run, not an agent.
@@ -121,8 +121,9 @@ Not applicable. This repo has no listening service, so several agents can run
 the gate in the same clone at once. Tests that need isolation create their own
 `mktemp -d` HOME and clean it up on exit — see `tests/agents-memory-storage.sh`.
 
-There is no deployed environment, and no credential in this repo. Copilot and
-`gh` read the developer's own login.
+There is no deployed environment, and no credential in this repo. `gh` reads
+the developer's own login; Waza reads `OPENROUTER_API_KEY` from the
+environment.
 
 ## Capturing evidence
 

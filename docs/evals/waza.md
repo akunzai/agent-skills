@@ -1,9 +1,11 @@
 # Waza evaluation
 
-Suites under `evals/<skill>/` measure those skills on **GitHub Copilot
-only**, using the pinned catalog id in each `eval.yaml` `config.model`.
-Every suite pins `claude-haiku-5.5` except `pr-workflow`, which pins
-`gemini-3.8-flash`.
+Suites under `evals/<skill>/` measure those skills on **GitHub Copilot's
+agent runtime only** (Waza's `copilot-sdk` executor), with model calls sent
+to OpenRouter rather than a Copilot subscription. Each `eval.yaml`
+`config.model` pins an OpenRouter model id: every suite pins
+`anthropic/claude-haiku-5.5` except `pr-workflow`, which pins
+`google/gemini-3.8-flash`.
 Skills remain usable in other assistants; those runtimes are not the
 effectiveness instrument.
 
@@ -50,28 +52,20 @@ cache hit as a substitute for a live CI run after a skill edit.
 
 ## Auth
 
-- Local: `copilot login`
-- CI: `GITHUB_TOKEN` plus workflow permission `copilot-requests: write`
-
-The CI job treats a run as skipped when Waza's result reports only Copilot
-quota, billing, or subscription-unavailable errors. It stops the remaining
-suites and preserves the error result as an artifact. Unknown auth, network,
-config, model, and grader errors still fail the check, and so do rate-limit
-errors — throttling is transient and must not green-light a PR. A suite whose
-result file Waza never wrote fails the check too. There is no mock fallback.
+`OPENROUTER_API_KEY`, locally and as a CI secret. `evals/run-suites.sh`
+turns it into Waza's custom-provider variables (`COPILOT_BASE_URL`,
+`COPILOT_PROVIDER=openai`, `COPILOT_API_KEY`), so no `copilot login`,
+Copilot subscription, or `copilot-requests` permission is involved. Without
+the key the script warns and exits 0 without running any suite: fork and
+Dependabot PRs get no secrets. Every error with a key, exhausted OpenRouter
+credit and rate limits included, fails the check. There is no mock fallback.
 
 A single model run is noisy, so a suite that fails its graders or errors gets
 one retry and fails the check only when the retry fails too. The job then
 warns that the suite passed on retry and keeps the failed attempt as
 `waza-results/<suite>.attempt1.json`; a suite that passes only on retry again
 and again is a flaky grader or skill worth fixing. Writing outside the Waza
-workspace and Copilot quota errors are never retried.
-
-The classification reads each run's `error_msg`, which is prose rather than a
-code: Waza stores the SDK error string, and the SDK renders a session error as
-`session error: <human message>`, dropping the structured `errorCode` /
-`errorType`. `evals/run-suites.sh` therefore matches the human wording and
-keeps the CAPI quota codes only as belt-and-braces.
+workspace is never retried.
 
 ## CI green vs effectiveness
 
@@ -169,12 +163,6 @@ Widen that task's own prompt, not its `follow_up_prompts`: graders read
 `final_output`, which holds the last turn alone, so an earlier turn's
 answer is invisible to them.
 
-In this workflow's live probe, the GitHub Actions installation token returned
-no quota snapshots from `account.getQuota`. The workflow therefore classifies
-Waza's runtime result instead of relying on a quota preflight. Revisit
-preflight detection when GitHub exposes installation quota or billing
-availability.
-
 ```bash
 waza tokens compare origin/main --skills --threshold 10 --strict
 bash evals/run-suites.sh --changed
@@ -185,8 +173,7 @@ bash evals/run-suites.sh --changed
 SKILL.md that grows more than 10% vs `origin/main`.
 
 Exit 1 (grader failure) or 2 (config / auth / runtime error) fails the
-check, except for the Copilot-unavailable case above, which
-`evals/run-suites.sh` converts to a warning and exit 0.
+check; only a missing `OPENROUTER_API_KEY` is a warning and exit 0.
 
 ## Workspace
 

@@ -14,7 +14,7 @@ config:
   timeout_seconds: 300
   parallel: false
   executor: copilot-sdk
-  model: claude-haiku-5.5
+  model: anthropic/claude-haiku-5.5
   inject_skill_body: true
 
 metrics:

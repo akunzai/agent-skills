@@ -24,7 +24,6 @@ on:
 
 permissions:
   contents: read
-  copilot-requests: write
 
 jobs:
   evaluate:
@@ -55,7 +54,7 @@ jobs:
 
       - name: Run Waza evaluation
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           EVENT_NAME: ${{ github.event_name }}
           INPUT_SUITE: ${{ inputs.suite }}
           INPUT_BASELINE: ${{ inputs.baseline }}

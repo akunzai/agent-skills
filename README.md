@@ -7,7 +7,8 @@
 Reusable agent skills — compatible with Antigravity, Claude Code, Codex,
 GitHub Copilot CLI, Cursor CLI, and more.
 Those runtimes can load the skills; **effectiveness is measured only on
-GitHub Copilot** via [Waza](https://github.com/microsoft/waza). See
+GitHub Copilot's agent runtime** via [Waza](https://github.com/microsoft/waza),
+with models served through OpenRouter. See
 [docs/evals/waza.md](docs/evals/waza.md).
 
 ## Why
