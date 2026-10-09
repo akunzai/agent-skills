@@ -20,9 +20,9 @@ skills, not of this one.
 Everything it produces is a durable write to someone's repository, so
 **nothing lands without an explicit confirmation**. Show the exact
 content, name the path, wait. This gate is the real safety mechanism:
-the frontmatter above stops implicit invocation in Claude Code and
-Codex, but GitHub Copilot CLI has no per-skill control and may still
-reach this skill on its own.
+the frontmatter above stops implicit invocation in Claude Code, Codex
+and GitHub Copilot CLI, but a runtime that ignores it may still reach
+this skill on its own.
 
 Probe rather than assume, and stay self-contained. Sibling skills named
 here are optional depth, never a prerequisite; when one is absent,

@@ -99,8 +99,11 @@ Copilot registers every loaded, user-invocable skill as a slash command
 command; `codexbar-quota-handoff` injects its wrap-up procedure through the
 Stop / PostToolUse hook instead.
 
-There is no per-skill invocation control as of this writing — only a global
-`/skills` enable/disable — so Copilot still auto-invokes a manual-only skill.
+Copilot honours `disable-model-invocation: true` (fully since 1.0.74): the
+model's `skill` tool call fails, so only the slash command loads the skill.
+Waza's `inject_skill_body` therefore is the only way an eval reaches such a
+skill, and it injects `SKILL.md` without its path, so the agent cannot resolve
+the skill's relative `scripts/` links.
 
 ### Hook identity
 
