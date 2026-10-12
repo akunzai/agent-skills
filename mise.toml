@@ -80,7 +80,7 @@ depends = ["lint-shell", "lint-actions", "lint-skills", "lint-workflows", "lint-
 # Pinning records the CLI version the agentsview-* skills are written for.
 [tasks.test-agentsview-contract]
 description = "Check the agentsview CLI surface cited by the agentsview-* skills"
-tools = { "github:kenn-io/agentsview" = "v0.44.0" }
+tools = { "github:kenn-io/agentsview" = "v0.45.0" }
 run = "bash tests/agentsview-cli-contract.sh"
 
 [tasks.waza]
