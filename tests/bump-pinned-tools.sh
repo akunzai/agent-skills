@@ -33,8 +33,14 @@ chmod +x "$REPO/scripts/bump-pinned-tools.sh"
 # The copy starts without a gitleaks pin whatever the repo pins today, so
 # the absent-pin case below always has something to test.
 grep -v '^gitleaks = ' "$ROOT_DIR/mise.toml" >"$REPO/mise.toml"
-cp "$ROOT_DIR/skills/agentsview-extract/SKILL.md" "$REPO/skills/agentsview-extract/SKILL.md"
-cp "$ROOT_DIR/skills/agentsview-resume/SKILL.md" "$REPO/skills/agentsview-resume/SKILL.md"
+# Keep the upgrade case below the fixture's latest whatever the repo pins today.
+sed -i.bak -E 's/("github:kenn-io\/agentsview" = ")v[0-9]+\.[0-9]+\.[0-9]+/\1v0.44.0/' "$REPO/mise.toml"
+for skill in agentsview-extract agentsview-resume; do
+  sed -E \
+    -e 's/agentsview==[0-9]+\.[0-9]+\.[0-9]+/agentsview==0.44.0/' \
+    -e 's/agentsview@v[0-9]+\.[0-9]+\.[0-9]+/agentsview@v0.44.0/' \
+    "$ROOT_DIR/skills/$skill/SKILL.md" >"$REPO/skills/$skill/SKILL.md"
+done
 # Pin the copy below the fixture's latest whatever the repo pins today.
 sed -E 's/^MODEL_SIGNING_VERSION="[0-9.]+"$/MODEL_SIGNING_VERSION="1.1.1"/' \
   "$ROOT_DIR/scripts/sign-skills.sh" >"$REPO/scripts/sign-skills.sh"
