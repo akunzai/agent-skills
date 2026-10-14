@@ -18,8 +18,9 @@ keeps landing on trunk. Two ideas carry the whole skill:
 
 - **Trunk-safe**: a change is trunk-safe when the old target's build output
   and runtime behaviour stay the same. Trunk-safe work merges to the main
-  branch early, in small requests, so the long-lived upgrade branch only
-  holds what cannot coexist with the old app.
+  branch early, in small requests. A host's runtime switch is trunk-safe
+  too: the new runtime gets its own **entry point** beside the old one,
+  and the host cuts over by deployment.
 - **Cold start**: every session, including one after context compaction,
   begins by reading the upgrade state, never by remembering it.
 
@@ -69,8 +70,9 @@ that contradicts it is corrected in the same trunk-safe change.
   `net10.0-windows` where Windows-only APIs stay.
 - Scope: projects excluded or retired.
 - Web host approach, per [`references/framework-to-modern.md`](references/framework-to-modern.md).
-- Branch strategy: trunk-safe work to trunk, the rest on one long-lived
-  branch synced from trunk by merge.
+- Branch strategy: entry points side by side on trunk; a long-lived
+  branch only for a host that cannot get a second entry point
+  ([`references/framework-to-modern.md`](references/framework-to-modern.md)).
 - Acceptance: which gates prove done, including a staging run when tests
   do not cover the runtime surface.
 - Verification strategy: characterization tests, the test seam, smoke,
@@ -95,8 +97,9 @@ milestone, whether it is **trunk-safe** or **branch-only**, and a
 3. Retarget tier by tier. Libraries with Framework consumers multi-target
    (`net472;net10.0`); after each tier, every higher tier still builds and
    passes tests on the old target.
-4. Hosts: APIs and consoles, then web apps.
-5. Cutover: staging validation, switch, drop the old target.
+4. Hosts: a new entry point per host; APIs and consoles, then web apps.
+5. Cutover per host: staging validation, deploy the new entry point, keep
+   the old one as the rollback. Drop the old target after the last host.
 
 ## 4. Execute
 
@@ -126,13 +129,15 @@ and its likely cause to the user.
 
 ## 5. Sync and cut over
 
-Merge trunk into the upgrade branch on a fixed cadence and after every
-trunk release, then rerun the gate. Where the approach duplicates a host
-(new project beside the old one), check the migration ledger on every
-sync: an already-migrated old file changed on trunk means the port is now
-stale.
+Where a new project duplicates an old one, CI checks the migration
+ledger on every trunk change: a migrated old file changed on trunk means
+the port is stale. A fallback upgrade branch merges trunk on a fixed
+cadence and after every trunk release, then reruns the gate. While old
+and new hosts overlap, shared state must stay readable both ways
+([`references/framework-to-modern.md`](references/framework-to-modern.md)).
 
-Cutover is done when every acceptance gate from Decide passes on the
-upgrade branch, smoke and the main end-to-end flows pass on both targets,
-performance stays within its parity threshold, the `// STUB:` registry is empty or accepted by the user,
-and a rollback path to the last old-target release is written down.
+A host is cut over when the acceptance gates pass for it, smoke and the
+main end-to-end flows pass on both entry points, performance stays within
+its parity threshold, and redeploying the old entry point is the written
+rollback. The upgrade is done when every host is cut over and the
+`// STUB:` registry is empty or accepted by the user.
