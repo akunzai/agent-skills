@@ -73,8 +73,8 @@ the lifecycle-script jail, and migrating from pnpm/npm/bun.
 
 Upgrade a .NET codebase — .NET Framework 4.x to modern .NET, or an
 out-of-support .NET to the current LTS — as a resumable, tier-by-tier plan
-that lands trunk-safe work early and keeps only what cannot coexist on a
-long-lived upgrade branch.
+that lands work on trunk in small requests, gives each host a new entry
+point beside the old one, and cuts hosts over one at a time.
 
 #### [`backfill-unit-tests`](skills/backfill-unit-tests/SKILL.md)
 

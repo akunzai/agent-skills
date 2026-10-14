@@ -17,7 +17,7 @@ in one place; never mirror the same content into two surfaces.
    - the repo holds only the assessment report and the ADR.
    Use the `github-epic` or `gitlab-epic` skill to create and link them.
 2. **Otherwise, files in the repo** under `.upgrades/<id>/`, committed on
-   the upgrade branch:
+   trunk:
 
    | File | Holds |
    | --- | --- |

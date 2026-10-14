@@ -29,8 +29,41 @@ a `netstandard` library that Assess flagged as fake-portable.
   MVC types out of the library, and remove GAC `Reference`s. A library is
   done when it builds with `dotnet build -f net10.0` on a machine without
   Visual Studio.
+- Code tied to one host framework (System.Web, MVC 5, OWIN,
+  `System.Configuration`) splits into a portable core and a thin adapter
+  per runtime, so the core multi-targets and each entry point references
+  its own adapter.
 - Retire `netstandard2.0` itself once no Framework consumer remains;
   retarget to the new TFM.
+
+## Host entry points
+
+Each host gets a second entry point on trunk so the runtime switch is a
+deployment, not a merge:
+
+- **Multi-target the host** (`net472;net10.0`) when its code compiles for
+  both: consoles, services, and ASP.NET Core 2.x apps on Framework. One
+  project yields two outputs; deploy either.
+- **A new project beside the old one** when the host frameworks differ,
+  as with MVC 5 or Web API 2 versus ASP.NET Core. It builds and tests in
+  CI but is not deployed until its cutover; the web host approach below
+  says how its controllers port.
+- **No second entry point** only where neither fits, for example a small
+  app cheaper to rewrite in place. That host, and only that host, goes on
+  the long-lived upgrade branch. A branch that holds every host switch
+  instead must merge trunk on every cadence, doubles the line to build and
+  test, and silently drops trunk fixes to files already ported; offer it
+  only with that cost stated.
+
+While an old host and its replacement run at the same time against shared
+state (a distributed cache, a session store, auth cookies, queued
+messages), each must read what the other writes. Treating an unreadable
+value as a cache miss is not enough when both write the same keys: each
+keeps evicting the other's values. Keep a format both can read, or
+separate the keys, until the old host is gone. Cut a web app over whole
+rather than splitting its routes across both runtimes, unless the user
+chose the side-by-side-in-production approach below and its shared auth
+ticket.
 
 ## Configuration, DI, and ambient state
 
@@ -54,7 +87,7 @@ Pick one per web app with the user:
 
 | Approach | Fits | Cost |
 | --- | --- | --- |
-| **In-place rewrite** on the upgrade branch | Small apps (few controllers, little trunk churn) | Trunk changes to ported files merge silently into the old copy and are lost |
+| **In-place rewrite** on the fallback upgrade branch | Small apps (few controllers, little trunk churn) | Trunk changes to ported files merge silently into the old copy and are lost |
 | **New host on trunk** (default for large apps) | Many controllers or active product work | A new ASP.NET Core project lands on trunk, undeployed and unrouted; controllers port one at a time |
 | **Side-by-side in production** (YARP + System.Web adapters) | Continuous deployment with incremental release | Two hosts in production, shared auth cookie via a shared Data Protection key ring, shared database schema rules |
 
