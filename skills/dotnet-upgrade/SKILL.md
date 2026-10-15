@@ -70,8 +70,9 @@ that contradicts it is corrected in the same trunk-safe change.
   `net10.0-windows` where Windows-only APIs stay.
 - Scope: projects excluded or retired.
 - Web host approach, per [`references/framework-to-modern.md`](references/framework-to-modern.md).
-- Branch strategy: entry points side by side on trunk; a long-lived
-  branch only for a host that cannot get a second entry point
+- Branch strategy: entry points side by side on trunk, or an in-place
+  retarget on trunk where a host's deployment allows it; a long-lived
+  branch only for a host that fits neither
   ([`references/framework-to-modern.md`](references/framework-to-modern.md)).
 - Acceptance: which gates prove done, including a staging run when tests
   do not cover the runtime surface.
@@ -97,7 +98,8 @@ milestone, whether it is **trunk-safe** or **branch-only**, and a
 3. Retarget tier by tier. Libraries with Framework consumers multi-target
    (`net472;net10.0`); after each tier, every higher tier still builds and
    passes tests on the old target.
-4. Hosts: a new entry point per host; APIs and consoles, then web apps.
+4. Hosts: a new entry point per host, or an in-place retarget where the
+   Decide round chose it; APIs and consoles, then web apps.
 5. Cutover per host: staging validation, deploy the new entry point, keep
    the old one as the rollback. Drop the old target after the last host.
 
@@ -107,9 +109,13 @@ Per task:
 
 1. Cold start: re-read the decisions and the task.
 2. Research the specific APIs and packages before editing.
-3. Edit. A package or API with no drop-in replacement gets a
-   `// STUB:<package-or-api> | task:<id>` marker so `git grep "// STUB:"`
+3. Edit. Wherever the new target lacks behaviour or tests the old one
+   has, mark it `STUB:<package-or-api> | task:<id>` so `git grep "STUB:"`
    is the registry of deferred work; each marker becomes its own task.
+   That covers a stubbed-out API, a `#if NETFRAMEWORK` whose `#else` does
+   less, and a `Compile Remove` conditioned on the new target (an XML
+   comment beside it). An adapter that behaves the same on both targets
+   needs no marker.
 4. Gate: the touched projects **and their dependents** build on every
    target they carry, with no new warnings, and their tests pass, plus the
    evidence the task's risk tier requires
@@ -140,4 +146,4 @@ A host is cut over when the acceptance gates pass for it, smoke and the
 main end-to-end flows pass on both entry points, performance stays within
 its parity threshold, and redeploying the old entry point is the written
 rollback. The upgrade is done when every host is cut over and the
-`// STUB:` registry is empty or accepted by the user.
+`STUB:` registry is empty or accepted by the user.

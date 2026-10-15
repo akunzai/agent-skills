@@ -38,8 +38,9 @@ a `netstandard` library that Assess flagged as fake-portable.
 
 ## Host entry points
 
-Each host gets a second entry point on trunk so the runtime switch is a
-deployment, not a merge:
+Each host switches runtime on trunk. A second entry point makes the switch
+a deployment, not a merge; an in-place retarget trades that for less code
+when the host's deployment allows it:
 
 - **Multi-target the host** (`net472;net10.0`) when its code compiles for
   both: consoles, services, and ASP.NET Core 2.x apps on Framework. One
@@ -48,12 +49,23 @@ deployment, not a merge:
   as with MVC 5 or Web API 2 versus ASP.NET Core. It builds and tests in
   CI but is not deployed until its cutover; the web host approach below
   says how its controllers port.
-- **No second entry point** only where neither fits, for example a small
-  app cheaper to rewrite in place. That host, and only that host, goes on
-  the long-lived upgrade branch. A branch that holds every host switch
-  instead must merge trunk on every cadence, doubles the line to build and
-  test, and silently drops trunk fixes to files already ported; offer it
-  only with that cost stated.
+- **Retarget in place on trunk**, with no second entry point, for an
+  ASP.NET Core 2.x host on Framework, when three things hold: the team's
+  IDE builds the new TFM; the deploy host gets the new runtime before the
+  next release, since merging means that release carries the switch; and
+  IIS keeps loading the app as it does today. For the last, pin
+  `<AspNetCoreHostingModel>OutOfProcess</AspNetCoreHostingModel>`, which
+  is how 2.x on Framework already runs, until the app's pool is confirmed
+  to load no other ASP.NET Core app in-process (otherwise 500.35 or
+  500.34). Rollback is the previous release, not an old-target build of
+  the same one, so staging must pass before that release. Libraries the
+  remaining Framework hosts share keep multi-targeting.
+- **No second entry point, off trunk,** only where none of these fits, for
+  example a small app cheaper to rewrite in place. That host, and only that
+  host, goes on the long-lived upgrade branch. A branch that holds every
+  host switch instead must merge trunk on every cadence, doubles the line
+  to build and test, and silently drops trunk fixes to files already
+  ported; offer it only with that cost stated.
 
 While an old host and its replacement run at the same time against shared
 state (a distributed cache, a session store, auth cookies, queued
@@ -123,4 +135,17 @@ Mapping notes:
   be serializable to bytes.
 - ASP.NET Core 2.x apps running on .NET Framework mostly need a TFM change
   plus the 2.x → current hosting and routing updates (`WebHost` →
-  `WebApplication`, endpoint routing).
+  `WebApplication`, endpoint routing). Along the way:
+  - Drop the package references the shared framework now supplies, the
+    `Microsoft.AspNetCore*` 2.x packages and any `Microsoft.Extensions.*`
+    pins among them.
+  - Replace `SetCompatibilityVersion` with `AddNewtonsoftJson()`: MVC 2.x
+    serialized with Newtonsoft, and `[JsonProperty]` or its converters
+    otherwise stop applying.
+  - Middleware that matched routes through 2.x internals
+    (`AttributeRouting.CreateAttributeMegaRoute`, `MvcRouteHandler`) reads
+    `HttpContext.Request.RouteValues` after `UseRouting()` instead.
+  - A `netstandard2.0`-only package that depends on ASP.NET Core 2.x
+    (NSwag 13, for one) moves to a version with a modern TFM lib; under
+    central transitive pinning, check that version's dependency ceilings
+    too.
