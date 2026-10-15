@@ -109,9 +109,13 @@ Per task:
 
 1. Cold start: re-read the decisions and the task.
 2. Research the specific APIs and packages before editing.
-3. Edit. A package or API with no drop-in replacement gets a
-   `// STUB:<package-or-api> | task:<id>` marker so `git grep "// STUB:"`
+3. Edit. Wherever the new target lacks behaviour or tests the old one
+   has, mark it `STUB:<package-or-api> | task:<id>` so `git grep "STUB:"`
    is the registry of deferred work; each marker becomes its own task.
+   That covers a stubbed-out API, a `#if NETFRAMEWORK` whose `#else` does
+   less, and a `Compile Remove` conditioned on the new target (an XML
+   comment beside it). An adapter that behaves the same on both targets
+   needs no marker.
 4. Gate: the touched projects **and their dependents** build on every
    target they carry, with no new warnings, and their tests pass, plus the
    evidence the task's risk tier requires
@@ -142,4 +146,4 @@ A host is cut over when the acceptance gates pass for it, smoke and the
 main end-to-end flows pass on both entry points, performance stays within
 its parity threshold, and redeploying the old entry point is the written
 rollback. The upgrade is done when every host is cut over and the
-`// STUB:` registry is empty or accepted by the user.
+`STUB:` registry is empty or accepted by the user.

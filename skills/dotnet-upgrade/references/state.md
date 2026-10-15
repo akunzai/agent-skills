@@ -45,5 +45,7 @@ At the start of every session and after any context compaction:
 2. A task marked in progress is resolved first, from its progress log and
    `git log` on the branch: finish it, or record why it stopped.
 3. Read the last two progress entries before starting the next task.
-4. `git grep "// STUB:"` and compare against open tasks; a marker with no
-   task gets one.
+4. `git grep "STUB:"` and compare against open tasks; a marker with no
+   task gets one. Then list the `Compile Remove` items and `#if
+   NETFRAMEWORK` blocks the new target skips: one that lacks a marker,
+   or whose reason no longer holds, gets a task too.
