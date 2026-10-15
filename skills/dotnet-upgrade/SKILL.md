@@ -70,8 +70,9 @@ that contradicts it is corrected in the same trunk-safe change.
   `net10.0-windows` where Windows-only APIs stay.
 - Scope: projects excluded or retired.
 - Web host approach, per [`references/framework-to-modern.md`](references/framework-to-modern.md).
-- Branch strategy: entry points side by side on trunk; a long-lived
-  branch only for a host that cannot get a second entry point
+- Branch strategy: entry points side by side on trunk, or an in-place
+  retarget on trunk where a host's deployment allows it; a long-lived
+  branch only for a host that fits neither
   ([`references/framework-to-modern.md`](references/framework-to-modern.md)).
 - Acceptance: which gates prove done, including a staging run when tests
   do not cover the runtime surface.
@@ -97,7 +98,8 @@ milestone, whether it is **trunk-safe** or **branch-only**, and a
 3. Retarget tier by tier. Libraries with Framework consumers multi-target
    (`net472;net10.0`); after each tier, every higher tier still builds and
    passes tests on the old target.
-4. Hosts: a new entry point per host; APIs and consoles, then web apps.
+4. Hosts: a new entry point per host, or an in-place retarget where the
+   Decide round chose it; APIs and consoles, then web apps.
 5. Cutover per host: staging validation, deploy the new entry point, keep
    the old one as the rollback. Drop the old target after the last host.
 

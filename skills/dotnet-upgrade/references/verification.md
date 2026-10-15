@@ -33,7 +33,11 @@ Put these to the user with the other Decide options:
 - **Characterization tests first.** Before a behaviour-touching task
   changes code, pin today's behaviour (odd behaviour included) in tests
   that run unchanged on both targets. The same test passing on both is the
-  parity proof.
+  parity proof. A host retargeted in place has no second target to run
+  them on: send the old and the new build the same requests and diff the
+  raw responses, including authenticated ones that return data. Error and
+  status responses never reach the serializer, so they hide a changed wire
+  format.
 - **Test seam.** New tests reach code without the component being
   upgraded: a plain DI container, an in-process database (SQLite), and
   substitutes or fakes for external services. Tests that must use the old
