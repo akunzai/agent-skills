@@ -133,6 +133,14 @@ durable) when recording.
 Autonomous recurrence-prevention after solving a problem stays with `agents-md`'s
 Prevent Recurrence mechanism.
 
+**Project memory storage migration:** project directories now use the project
+name without a local-path hash suffix, so same-name projects share memory
+across machines. Agents offer a confirmed, one-time
+[migration of all projects](skills/agents-memory/references/project-memory-migration.md),
+preserving conflicting notes and a verified backup. Old directories are removed
+after verification; a synced completion marker disables
+later legacy scans and prompts.
+
 <details>
 <summary>Migrating from <code>to-memory</code> or the <code>mem-*</code> skills</summary>
 

@@ -3,6 +3,7 @@ name: Record a confirmed project long-term note
 description: |
   The agent classifies the request as project long-term, shows the
   exact AGENTS.md addition, then writes it after the follow-up yes.
+  A separate simulated recall checks the legacy migration confirmation flow.
 
 tags:
   - agents-memory
@@ -19,6 +20,17 @@ inputs:
     for confirmation before writing.
   follow_up_prompts:
     - "Yes, write that into AGENTS.md now. In the same reply, name the scope and tier you used."
+    - |
+      Now dry-run a separate project short-term recall request using these
+      simulated filesystem facts only; do not inspect real memories.
+      Reading skill instructions is allowed. The facts are:
+      the resolver returns projects/demo, which already exists. Its sibling
+      projects/demo-a1b2c3 contains an uncopied note named 2026-10-17-build.md,
+      and projects/demo/2026-10-17-build.md has different content. Another sibling,
+      projects/other-d4e5f6, also contains uncopied notes. The store has no
+      migration completion marker. Show your next message to the user,
+      then explain your actions after approval, on partial copy failure,
+      and on a later recall after successful migration of the whole store.
   files:
     - path: AGENTS.md
 

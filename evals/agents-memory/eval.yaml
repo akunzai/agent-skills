@@ -1,7 +1,9 @@
 name: agents-memory-eval
 description: |
   Isolated-workspace suite for agents-memory. After explicit confirmation,
-  the agent writes one project long-term note into AGENTS.md.
+  the agent writes one project long-term note into AGENTS.md, then dry-runs
+  confirmation, conflict handling, and completion of a one-time migration
+  of all legacy project memories.
 skill: agents-memory
 schemaVersion: "1.0"
 version: "1.0"
@@ -21,6 +23,20 @@ metrics:
     description: Isolated-workspace graders for a confirmed project long-term note
 
 graders:
+  - type: text
+    name: confirmed-legacy-migration
+    config:
+      regex_match:
+        - '(?is)(completion|migration).{0,40}marker|\.project-name-migration-v1'
+        - '(?is)other-d4e5f6.{0,150}projects/other(?:/|[`\s.]|$)'
+        - '(?is)(all|every|both|batch|store.wide).{0,120}(project|source|director)'
+        - '(?is)(fail|interrupt|partial|incomplete).{0,250}(marker|mark)|(marker|mark).{0,250}(fail|interrupt|partial|incomplete)'
+        - '(?is)(confirm|approv|permission|may I|shall I|would you like).{0,250}(migrat|cop|demo)|(migrat|cop|demo).{0,250}(confirm|approv|permission|may I|shall I|would you like)'
+        - '(?is)(retain|keep|preserv|remain|leave).{0,150}backup|backup.{0,150}(retain|keep|preserv|remain|leave)'
+        - '(?is)(verif|check).{0,200}(remov|delet|cleanup)|(remov|delet|cleanup).{0,200}(verif|check)'
+        - '(?is)(rename|distinct|unique|unused|both|new name).{0,150}(note|file|build)|(note|file|build).{0,150}(rename|distinct|unique|unused|both|new name)'
+        - '(?is)(skip|no |not |without|avoid).{0,100}(prompt|ask|migrat|scan)|(prompt|ask|migrat|scan).{0,100}(skip|unnecessary|not needed)'
+
   - type: file
     name: agents-md-updated
     config:
