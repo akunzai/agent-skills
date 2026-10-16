@@ -200,11 +200,13 @@ Catalog skills under `skills/` share one repository version, a semver tag
 tag, so a release exists for readers: pushing a tag that points at `main`
 runs `.github/workflows/release.yml`, which publishes a GitHub Release with
 notes grouped by pull-request label. `.github/workflows/pr-labeler.yml`
-derives that label from the branch prefix (`feat/`, `fix/`, `docs/`, `ci/`,
-`refactor/`, `test/`, `chore/`) and adds `breaking` when the title carries a
-Conventional Commit `!`, except when the scope is a plugin (or `plugins`):
-that gets `plugin-breaking` and its own release-notes section, and does not
-count toward a Major catalog release.
+derives the category label from the branch prefix (`feat/`, `fix/`, `docs/`,
+`ci/`, `refactor/`, `test/`, `chore/`). PR titles can use plain language; set
+`breaking` or `plugin-breaking` explicitly for breaking changes. Legacy
+Conventional Commit `!` titles still infer the release label: a plugin scope
+(or `plugins`) gets `plugin-breaking`, which has its own release-notes section
+and does not count toward a Major catalog release. Titles without that prefix
+preserve manually assigned release labels.
 
 - **Major**: a skill is renamed or removed, loses a trigger, or changes where
   or how it stores data — anything an installed user must act on. Add a

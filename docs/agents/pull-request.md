@@ -13,10 +13,9 @@ What follows only adds what it does not say. Its checklist line "Tests pass
 ## Preparing
 
 - Work on a feature branch. Never prepare a request from the default branch.
-- Prefix the title with a Conventional Commit type and the skill or plugin as
-  the scope, matching this repo's merged history: `feat(to-walkthrough-video): …`,
-  `fix(setup-agent-ready-repo): …`, `docs(agents-md): …`, `ci(waza): …`,
-  `refactor(plugins): …`. A change spanning the repo drops the scope (`docs: …`).
+- Write a concise, plain-language title; a Conventional Commit prefix is not
+  required. Set `breaking` or `plugin-breaking` explicitly when applicable;
+  title edits without a prefix preserve these release labels.
 - Link the issue in the template's Related Issue section (`Closes #<n>`). If
   there is no tracked issue, drop the section — never leave an unlinked
   `Closes #` or empty issue marker.
@@ -60,7 +59,9 @@ What follows only adds what it does not say. Its checklist line "Tests pass
 
 - Atomic: one concern per commit. A skill edit and an unrelated CI fix are two
   commits, not one.
-- The subject uses the same Conventional Commit type and scope as the title.
+- Commit subjects use a Conventional Commit type and the relevant skill or
+  plugin scope (`fix(agents-memory): …`, `ci(waza): …`). Repo-wide changes omit
+  the scope (`docs: …`). Choose this independently of the PR title.
 - `tidy-commits` cleans WIP noise before the request is opened.
 
 ## Merge confidence
