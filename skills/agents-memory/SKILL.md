@@ -56,20 +56,24 @@ Land the note as its own file — one file per note, not appended to a shared lo
 
 ```text
 ~/.agents/memories/YYYY-MM-DD-<slug>.md                          # global
-~/.agents/memories/projects/<proj-slug>/YYYY-MM-DD-<slug>.md      # project
+~/.agents/memories/projects/<project-name>/YYYY-MM-DD-<slug>.md   # project
 ```
 
 - `YYYY-MM-DD` is today's date.
 - `<slug>` is a short, agent-chosen topic slug, so the filename alone identifies
   the content without opening the file.
-- Resolve `<proj-slug>` and the project memory directory with
-  `scripts/proj-memory-path.sh` (pure resolution by default; pass `--ensure`
-  to also create the directory).
-- No retention policy and no resolution markers: when a note is no longer needed,
-  delete the file directly — a destructive action, so get explicit confirmation
-  first, same as any other destructive operation.
-- To search past short-term notes, `grep`/`ls` the directories above directly — no
-  dedicated recall skill is needed once you know where they live.
+- Resolve `<project-name>` with `scripts/proj-memory-path.sh`;
+  `--ensure` also creates the directory.
+- `<project-name>` preserves the root name exactly: main repo for worktrees,
+  target outside Git. Same-name projects share memory; rename to isolate.
+- For project memory, check `~/.agents/memories/.project-name-migration-v1`.
+  If absent, read [migration](references/project-memory-migration.md) and ask to
+  copy **all projects**, mapping each `<name>-<hash6>` to its own `<name>`.
+  Keep verified backups and conflicting notes; remove old directories only
+  after verification. Mark completion after cleanup. Otherwise skip legacy scans.
+- No retention policy or note resolution markers. Delete obsolete notes only
+  after explicit confirmation.
+- Recall: search these directories directly with `grep`/`ls`.
 
 ## Never write
 

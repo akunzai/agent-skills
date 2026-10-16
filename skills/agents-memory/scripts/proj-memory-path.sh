@@ -3,7 +3,7 @@ set -euo pipefail
 
 # proj-memory-path.sh
 # Resolves global project short-term memory path
-# (~/.agents/memories/projects/<proj-slug>/).
+# (~/.agents/memories/projects/<project-name>/).
 #
 # Usage: proj-memory-path.sh [--ensure] [DIR]
 #   Default: pure path resolution (no side effects).
@@ -86,22 +86,9 @@ if [ -z "$MAIN_REPO_ROOT" ]; then
   MAIN_REPO_ROOT="$CANONICAL_TARGET"
 fi
 
-# Compute deterministic <proj-slug>: <folder-basename>-<path-hash>
+# Same-name projects intentionally share memory across local checkout paths.
 PROJ_NAME="$(basename "$MAIN_REPO_ROOT")"
-
-HASH=""
-if command -v md5sum >/dev/null 2>&1; then
-  HASH="$(printf "%s" "$MAIN_REPO_ROOT" | md5sum | cut -c1-6)"
-elif command -v md5 >/dev/null 2>&1; then
-  HASH="$(printf "%s" "$MAIN_REPO_ROOT" | md5 | cut -c1-6)"
-elif command -v shasum >/dev/null 2>&1; then
-  HASH="$(printf "%s" "$MAIN_REPO_ROOT" | shasum -a 256 | cut -c1-6)"
-else
-  HASH="$(printf "%s" "$MAIN_REPO_ROOT" | cksum | cut -d' ' -f1 | cut -c1-6)"
-fi
-
-SLUG="${PROJ_NAME}-${HASH}"
-GLOBAL_MEM_DIR="${HOME}/.agents/memories/projects/${SLUG}"
+GLOBAL_MEM_DIR="${HOME}/.agents/memories/projects/${PROJ_NAME}"
 
 if [[ "$ENSURE" -eq 1 ]]; then
   mkdir -p "$GLOBAL_MEM_DIR"

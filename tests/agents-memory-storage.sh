@@ -25,7 +25,7 @@ NON_GIT_DIR="$TMP_DIR/standalone_proj"
 mkdir -p "$NON_GIT_DIR"
 
 RES_NON_GIT="$("$SCRIPT" "$NON_GIT_DIR")"
-echo "$RES_NON_GIT" | grep -q "$HOME/.agents/memories/projects/standalone_proj-" \
+[ "$RES_NON_GIT" = "$HOME/.agents/memories/projects/standalone_proj" ] \
   || fail "Non-git directory resolution path failed: $RES_NON_GIT"
 
 [ ! -d "$RES_NON_GIT" ] || fail "Pure resolver should not create global memory directory automatically"
@@ -88,6 +88,8 @@ git -C "$SPACE_REPO_DIR" add README.md
 git -C "$SPACE_REPO_DIR" commit -m "initial commit" >/dev/null
 
 SPACE_MAIN_MEM_PATH="$("$SCRIPT" "$SPACE_REPO_DIR")"
+[ "$SPACE_MAIN_MEM_PATH" = "$HOME/.agents/memories/projects/repo with space" ] \
+  || fail "Project name with spaces was changed: $SPACE_MAIN_MEM_PATH"
 SPACE_SUBDIR_MEM_PATH="$("$SCRIPT" "$SPACE_REPO_DIR/sub dir")"
 if [ "$SPACE_MAIN_MEM_PATH" != "$SPACE_SUBDIR_MEM_PATH" ]; then
   fail "Space-in-path subdirectory memory path ($SPACE_SUBDIR_MEM_PATH) does not match main repo memory path ($SPACE_MAIN_MEM_PATH)"
@@ -100,5 +102,33 @@ SPACE_WORKTREE_MEM_PATH="$("$SCRIPT" "$SPACE_WORKTREE_DIR")"
 if [ "$SPACE_MAIN_MEM_PATH" != "$SPACE_WORKTREE_MEM_PATH" ]; then
   fail "Space-in-path worktree memory path ($SPACE_WORKTREE_MEM_PATH) does not match main repo memory path ($SPACE_MAIN_MEM_PATH)"
 fi
+
+# Same-name repositories share memory regardless of their parent path.
+OTHER_REPO_DIR="$TMP_DIR/other/main_repo"
+mkdir -p "$OTHER_REPO_DIR"
+git -C "$OTHER_REPO_DIR" init -b main >/dev/null
+[ "$("$SCRIPT" "$OTHER_REPO_DIR")" = "$MAIN_MEM_PATH" ] \
+  || fail "Same-name repositories should share a memory path"
+[ "$MAIN_MEM_PATH" = "$HOME/.agents/memories/projects/main_repo" ] \
+  || fail "Git repository path should use only its name: $MAIN_MEM_PATH"
+
+# Preserve spelling, case, spaces, and non-ASCII characters.
+NAMED_DIR="$TMP_DIR/My 專案"
+mkdir -p "$NAMED_DIR"
+[ "$("$SCRIPT" "$NAMED_DIR")" = "$HOME/.agents/memories/projects/My 專案" ] \
+  || fail "Project name should be preserved exactly"
+
+# Legacy memory remains untouched; --ensure creates only the new location.
+LEGACY_PROJECT="$TMP_DIR/legacy_project"
+LEGACY_MEMORY="$HOME/.agents/memories/projects/legacy_project-a1b2c3"
+mkdir -p "$LEGACY_PROJECT" "$LEGACY_MEMORY"
+printf 'legacy note\n' > "$LEGACY_MEMORY/note.md"
+NEW_MEMORY="$("$SCRIPT" --ensure "$LEGACY_PROJECT")"
+[ "$NEW_MEMORY" = "$HOME/.agents/memories/projects/legacy_project" ] \
+  || fail "Resolver should use the new name-only location"
+[ -d "$NEW_MEMORY" ] || fail "New memory directory was not created"
+[ ! -e "$NEW_MEMORY/note.md" ] || fail "Resolver should not migrate legacy notes"
+[ "$(cat "$LEGACY_MEMORY/note.md")" = 'legacy note' ] \
+  || fail "Resolver changed legacy memory"
 
 echo "agents-memory-storage tests passed"
