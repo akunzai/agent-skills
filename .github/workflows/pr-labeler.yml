@@ -42,13 +42,16 @@ jobs:
                 }
               }
             }
-            for (const name of ["breaking", "plugin-breaking"]) {
-              if (name === breakingLabel && !currentLabels.includes(name)) {
-                await github.rest.issues.addLabels({ ...issue, labels: [name] });
-                console.log(`Added label "${name}" to PR #${pr.number}`);
-              } else if (name !== breakingLabel && currentLabels.includes(name)) {
-                await github.rest.issues.removeLabel({ ...issue, name });
-                console.log(`Removed label "${name}" from PR #${pr.number}`);
+            // Plain titles leave manually assigned release labels unchanged.
+            if (bang) {
+              for (const name of ["breaking", "plugin-breaking"]) {
+                if (name === breakingLabel && !currentLabels.includes(name)) {
+                  await github.rest.issues.addLabels({ ...issue, labels: [name] });
+                  console.log(`Added label "${name}" to PR #${pr.number}`);
+                } else if (name !== breakingLabel && currentLabels.includes(name)) {
+                  await github.rest.issues.removeLabel({ ...issue, name });
+                  console.log(`Removed label "${name}" from PR #${pr.number}`);
+                }
               }
             }
 

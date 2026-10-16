@@ -24,6 +24,9 @@ jobs:
       - name: Run actionlint
         run: mise run lint-actions
 
+      - name: Run PR labeler behavior checks
+        run: bash tests/pr-labeler.sh
+
   zizmor:
     runs-on: ubuntu-latest
     steps:
