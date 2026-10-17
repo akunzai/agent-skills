@@ -30,11 +30,14 @@ conventions.
    idiomatic files enabled for interop.
 
 2. **Prefix** runtimes; `latest` for linters. `go = "1.27"`,
-   `python = "3.14"`, `java = "temurin-25"`, `node = "lts"` install the
-   newest matching release. Exact patches stay frozen. Go ≤1.20 needs
-   `prefix:1.20` because `1.20` is an exact tag
+   `python = "3.14"`, `java = "temurin-25"`, `node = "lts"`, `dotnet = "10"`
+   install the newest matching release. Exact patches stay frozen. Go ≤1.20
+   needs `prefix:1.20` because `1.20` is an exact tag
    ([Go](https://mise.jdx.dev/lang/go.html)). npm ranges (`1.27.x`,
-   `^1.27`) are rejected.
+   `^1.27`) are rejected. .NET shares `DOTNET_ROOT` (`global.json` selects
+   SDK); side-by-side runtimes use tool options
+   (`dotnet = ["10", { version = "8.0.14", runtime = "aspnetcore" }]`),
+   where `runtime` needs an exact patch.
 
 ```toml
 [tools]
