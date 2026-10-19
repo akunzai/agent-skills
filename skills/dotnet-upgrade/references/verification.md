@@ -38,6 +38,9 @@ Put these to the user with the other Decide options:
   raw responses, including authenticated ones that return data. Error and
   status responses never reach the serializer, so they hide a changed wire
   format.
+  Pin every setting the code under test reads, environment variables and
+  config-file defaults included: a runner left with a developer setup
+  script's machine-level variables flips the result on that runner alone.
 - **Test seam.** New tests reach code without the component being
   upgraded: a plain DI container, an in-process database (SQLite), and
   substitutes or fakes for external services. Tests that must use the old
@@ -48,6 +51,10 @@ Put these to the user with the other Decide options:
   shared environment backs it up without loading the CI runners.
 - **End-to-end.** The browser tool and the main flows, weighted towards the
   areas the upgrade touches (auth, uploads, scheduling, caching).
+  Where a request pipeline cannot start the hosts otherwise, a manual job
+  in it lets an agent run the suite as evidence. Marked `allow_failure`, a
+  failed run leaves the pipeline "passed with warnings": merge on the
+  job's own status.
 - **Performance parity.** A load script (k6 or similar) run against old and
   new builds in the same environment on the same data, with a threshold
   such as p95 within +10%, as a cutover gate.
