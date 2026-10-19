@@ -30,11 +30,18 @@ mkdir -p "$REPO/scripts" "$REPO/.github/workflows" \
 
 cp "$SCRIPT" "$REPO/scripts/bump-pinned-tools.sh"
 chmod +x "$REPO/scripts/bump-pinned-tools.sh"
-# The copy starts without a gitleaks pin whatever the repo pins today, so
-# the absent-pin case below always has something to test.
-grep -v '^gitleaks = ' "$ROOT_DIR/mise.toml" >"$REPO/mise.toml"
-# Keep the upgrade case below the fixture's latest whatever the repo pins today.
-sed -i.bak -E 's/("github:kenn-io\/agentsview" = ")v[0-9]+\.[0-9]+\.[0-9]+/\1v0.44.0/' "$REPO/mise.toml"
+# Every pin in the copy is reset to a fixed starting version, whatever the
+# repo pins today: the weekly deps/<tool>-<version> PRs move the real pins,
+# and a fixture that tracks them breaks on every bump. The precondition check
+# below fails fast if a pin's format drifts past these rewrites. The copy
+# also starts without a gitleaks pin, so the absent-pin case always has
+# something to test.
+grep -v '^gitleaks = ' "$ROOT_DIR/mise.toml" | sed -E \
+  -e 's/^zizmor = "[0-9.]+"/zizmor = "1.30.1"/' \
+  -e '/^\[tools\."github:microsoft\/waza"\]/,/^\[/ s/^version = "[0-9.]+"/version = "0.38.7"/' \
+  -e 's/("github:kenn-io\/agentsview" = ")v[0-9]+\.[0-9]+\.[0-9]+/\1v0.44.0/' \
+  -e 's/^SKILLSPECTOR_REF="[0-9a-f]{40}" # v[0-9.]+$/SKILLSPECTOR_REF="c7958a3268d9498644b22edb75d0f051bbc8cbfc" # v2.12.0/' \
+  >"$REPO/mise.toml"
 for skill in agentsview-extract agentsview-resume; do
   sed -E \
     -e 's/agentsview==[0-9]+\.[0-9]+\.[0-9]+/agentsview==0.44.0/' \
@@ -87,8 +94,16 @@ field() {
   printf '%s\n' "$output" | sed -nE "s/^${key}=(.*)\$/\1/p"
 }
 
+# --- precondition: the copy starts from the fixed pins above ----------------
+START_LIST="$(run_script --list)"
+for row in 'zizmor	1.30.1	' 'waza	0.38.7	' 'agentsview	0.44.0	' \
+  'skillspector	2.12.0	' 'model-signing	1.1.1	'; do
+  printf '%s\n' "$START_LIST" | grep -qF "$row" \
+    || fail "copy did not start from the fixed pin '$row' (did a pin's format change?). Got:\n$START_LIST"
+done
+
 # --- fixtures ----------------------------------------------------------------
-# zizmor: fixture top tag equals the repo's current pin, so --apply must be
+# zizmor: fixture top tag equals the copy's starting pin, so --apply must be
 # a no-op that leaves the file untouched (the "already current" case).
 printf 'v1.30.1\n' >"$FIXTURES/zizmorcore_zizmor.tags"
 
