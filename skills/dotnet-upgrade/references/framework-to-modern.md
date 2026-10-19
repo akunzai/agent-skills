@@ -120,6 +120,10 @@ Mapping notes:
   → middleware, in the same order.
 - Forms auth → cookie authentication; a fixed `machineKey` ticket shared
   with the old app needs the interop ticket format or a forced re-login.
+  Data Protection keys default to per machine, unlike a `machineKey` in
+  Web.config: a host on more than one node needs a shared key ring (a
+  shared folder, Redis, or blob storage) or users are signed out at
+  random; add it to the cutover checklist.
 - `ApiController` / `IHttpActionResult` → `ControllerBase` /
   `ActionResult<T>`. `[ApiController]` binds complex parameters from the
   body, and `Json()` uses System.Text.Json with camelCase; configure
