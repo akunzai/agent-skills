@@ -95,12 +95,17 @@ field() {
 }
 
 # --- precondition: the copy starts from the fixed pins above ----------------
-START_LIST="$(run_script --list)"
-for row in 'zizmor	1.30.1	' 'waza	0.38.7	' 'agentsview	0.44.0	' \
-  'skillspector	2.12.0	' 'model-signing	1.1.1	'; do
-  printf '%s\n' "$START_LIST" | grep -qF "$row" \
-    || fail "copy did not start from the fixed pin '$row' (did a pin's format change?). Got:\n$START_LIST"
-done
+# Compared whole, so a tool added to scripts/bump-pinned-tools.sh's
+# TOOL_ORDER fails here until the copy pins it to a fixed start too.
+START_PINS="$(run_script --list | sed 1d | cut -f1,2)" || fail "--list failed on the fixture copy"
+EXPECTED_PINS="$(printf '%s\t%s\n' zizmor 1.30.1 gitleaks - waza 0.38.7 \
+  agentsview 0.44.0 skillspector 2.12.0 model-signing 1.1.1)"
+[ "$START_PINS" = "$EXPECTED_PINS" ] \
+  || fail "copy did not start from the fixed pins (new tool, or a pin's format changed?).
+Want:
+$EXPECTED_PINS
+Got:
+$START_PINS"
 
 # --- fixtures ----------------------------------------------------------------
 # zizmor: fixture top tag equals the copy's starting pin, so --apply must be
