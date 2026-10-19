@@ -79,6 +79,48 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 1
 fi
 
+# One machine can run an agent under several accounts: claude-swap's
+# `cswap switch` rewrites Claude Code's default profile and `cswap run`
+# isolates a session with CLAUDE_CONFIG_DIR; Codex isolates one with
+# CODEX_HOME. CodexBar only polls the default profile's account, so a session
+# logged in as a different account must leave the flag for the session it
+# belongs to rather than claim it. The flag's account is the payload's
+# `account`, or, when Hide personal info omits it, the default profile's
+# account read here. Codex's email comes from its ID token claims, read the
+# way CodexBar does. Either side unknown (API-key auth, or an unreadable
+# credential) fails open to the single-account path.
+account_email() {
+  case "$provider" in
+    claude)
+      jq -r '.oauthAccount.emailAddress // empty' "$1/.claude.json" 2>/dev/null
+      ;;
+    codex)
+      jq -r '
+        .tokens.id_token | split(".")[1] | gsub("-"; "+") | gsub("_"; "/") | . as $s
+        | . + ("===" | .[0:((4 - ($s | length) % 4) % 4)]) | @base64d | fromjson
+        | .email // .["https://api.openai.com/profile"].email // empty
+      ' "$1/auth.json" 2>/dev/null
+      ;;
+  esac
+}
+case "$provider" in
+  claude) default_home="$HOME" session_home="${CLAUDE_CONFIG_DIR:-$HOME}" ;;
+  codex) default_home="$HOME/.codex" session_home="${CODEX_HOME:-$HOME/.codex}" ;;
+  *) default_home="" session_home="" ;;
+esac
+if [[ -n "$session_home" ]]; then
+  session_account="$(account_email "$session_home")" || session_account=""
+  flag_account="$(jq -r '.account // empty' "$flag_path" 2>/dev/null)" || flag_account=""
+  if [[ -z "$flag_account" ]]; then
+    flag_account="$(account_email "$default_home")" || flag_account=""
+  fi
+  if [[ -n "$session_account" && -n "$flag_account" ]] \
+    && [[ "$(printf '%s' "$flag_account" | tr '[:upper:]' '[:lower:]')" \
+      != "$(printf '%s' "$session_account" | tr '[:upper:]' '[:lower:]')" ]]; then
+    exit 0
+  fi
+fi
+
 # Claim the flag with an atomic rename rather than read-then-delete: Stop and
 # PostToolUse are both registered on the same script, and PostToolUse fires
 # once per tool call, so multiple tool calls finishing in the same parallel

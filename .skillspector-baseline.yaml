@@ -78,6 +78,10 @@ rules:
   - id: "AS3"
     path: "scripts/quota-reminder.sh"
     reason: "Interop check for the specific, named agents-memory skill to route a quota handoff; not enumeration of arbitrary peer skills."
+  - id: "E1"
+    path: "scripts/quota-reminder.sh"
+    message: "*api.openai.com/*"
+    reason: "`https://api.openai.com/profile` is a JWT claim name read from the local Codex ID token to match the session's account; no network request is made."
 
   # --- plugins/spoken-tts ---
   - id: "TM1"
