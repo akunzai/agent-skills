@@ -75,7 +75,7 @@ run_reminder() {
   # Drop host-detection vars from the calling environment (this test itself
   # may run under Copilot/Codex/Cursor) so the default case is Claude unless
   # extra_env puts them back.
-  (cd "$work" && env -u CURSOR_INVOKED_AS -u COPILOT_CLI -u PLUGIN_ROOT \
+  (cd "$work" && env -u CURSOR_INVOKED_AS -u COPILOT_CLI -u PLUGIN_ROOT -u CLAUDE_CONFIG_DIR -u CODEX_HOME \
     "${extra_env[@]+"${extra_env[@]}"}" HOME="$home" CODEXBAR_QUOTA_FLAG_PATH="$flag_path" "$SCRIPT")
 }
 
@@ -169,6 +169,84 @@ case "$CURSOR_STDERR" in
     ;;
 esac
 [ ! -f "$CURSOR_FLAG" ] || fail "[cursor] flag file was not cleared after firing"
+
+# --- multiple Claude accounts (claude-swap): only the session logged in as the
+#     flag's account may claim it; CLAUDE_CONFIG_DIR selects the profile. ---
+ACCOUNT_HOME="$TMP_DIR/account-home"
+ACCOUNT_PROFILE="$TMP_DIR/account-profile"
+mkdir -p "$ACCOUNT_HOME" "$ACCOUNT_PROFILE"
+printf '{"oauthAccount":{"emailAddress":"work@example.com"}}' >"$ACCOUNT_HOME/.claude.json"
+printf '{"oauthAccount":{"emailAddress":"personal@example.com"}}' >"$ACCOUNT_PROFILE/.claude.json"
+ACCOUNT_FLAG="$TMP_DIR/account/quota-low.json"
+mkdir -p "$(dirname "$ACCOUNT_FLAG")"
+printf '%s' "$FIXTURE" | jq -c '.account = "Work@Example.com"' >"$ACCOUNT_FLAG"
+
+RC=0
+run_reminder "$ACCOUNT_HOME" "$WORK_DIR" "$ACCOUNT_FLAG" "CLAUDE_CONFIG_DIR=$ACCOUNT_PROFILE" \
+  >/dev/null 2>&1 || RC=$?
+[ "$RC" -eq 0 ] || fail "[account] other-account session: expected exit 0, got $RC"
+[ -f "$ACCOUNT_FLAG" ] || fail "[account] other-account session must leave the flag in place"
+
+RC=0
+run_reminder "$ACCOUNT_HOME" "$WORK_DIR" "$ACCOUNT_FLAG" >/dev/null 2>&1 || RC=$?
+[ "$RC" -eq 2 ] || fail "[account] matching session (case-insensitive): expected exit 2, got $RC"
+[ ! -f "$ACCOUNT_FLAG" ] || fail "[account] matching session did not clear the flag"
+
+# Flag without `account` (Hide personal info): CodexBar polled the default
+# profile, so only a session on that profile's account claims it.
+printf '%s' "$FIXTURE" >"$ACCOUNT_FLAG"
+RC=0
+run_reminder "$ACCOUNT_HOME" "$WORK_DIR" "$ACCOUNT_FLAG" "CLAUDE_CONFIG_DIR=$ACCOUNT_PROFILE" \
+  >/dev/null 2>&1 || RC=$?
+[ "$RC" -eq 0 ] || fail "[account] no-account flag, other profile: expected exit 0, got $RC"
+[ -f "$ACCOUNT_FLAG" ] || fail "[account] no-account flag must stay for the default profile"
+RC=0
+run_reminder "$ACCOUNT_HOME" "$WORK_DIR" "$ACCOUNT_FLAG" >/dev/null 2>&1 || RC=$?
+[ "$RC" -eq 2 ] || fail "[account] no-account flag, default profile: expected exit 2, got $RC"
+
+# Default profile's account unknown too: fail open in any session.
+printf '%s' "$FIXTURE" >"$ACCOUNT_FLAG"
+RC=0
+run_reminder "$EMPTY_HOME" "$WORK_DIR" "$ACCOUNT_FLAG" "CLAUDE_CONFIG_DIR=$ACCOUNT_PROFILE" \
+  >/dev/null 2>&1 || RC=$?
+[ "$RC" -eq 2 ] || fail "[account] no account anywhere: expected exit 2, got $RC"
+
+# Codex: the session's email is a claim in CODEX_HOME/auth.json's ID token,
+# either top-level or under the OpenAI profile claim. The payloads below
+# encode to unpadded base64url, exercising the padding fix-up.
+write_codex_auth() {
+  local home="$1" claims="$2" payload
+  payload="$(printf '%s' "$claims" | base64 | tr -d '=\n' | tr '+/' '-_')"
+  mkdir -p "$home"
+  printf '{"tokens":{"id_token":"e30.%s.sig"}}' "$payload" >"$home/auth.json"
+}
+CODEX_DEFAULT="$ACCOUNT_HOME/.codex"
+CODEX_PROFILE="$TMP_DIR/codex-profile"
+write_codex_auth "$CODEX_DEFAULT" '{"email":"work@example.com"}'
+write_codex_auth "$CODEX_PROFILE" '{"https://api.openai.com/profile":{"email":"personal@example.com"}}'
+printf '%s' "$FIXTURE" | jq -c '.provider = "codex" | .account = "personal@example.com"' >"$ACCOUNT_FLAG"
+
+RC=0
+run_reminder "$ACCOUNT_HOME" "$WORK_DIR" "$ACCOUNT_FLAG" "PLUGIN_ROOT=/tmp/fake-codex-plugin-root" \
+  >/dev/null 2>&1 || RC=$?
+[ "$RC" -eq 0 ] || fail "[account] codex other-account session: expected exit 0, got $RC"
+[ -f "$ACCOUNT_FLAG" ] || fail "[account] codex other-account session must leave the flag in place"
+
+RC=0
+run_reminder "$ACCOUNT_HOME" "$WORK_DIR" "$ACCOUNT_FLAG" "PLUGIN_ROOT=/tmp/fake-codex-plugin-root" \
+  "CODEX_HOME=$CODEX_PROFILE" >/dev/null 2>&1 || RC=$?
+[ "$RC" -eq 2 ] || fail "[account] codex CODEX_HOME session: expected exit 2, got $RC"
+[ ! -f "$ACCOUNT_FLAG" ] || fail "[account] codex CODEX_HOME session did not clear the flag"
+
+printf '%s' "$FIXTURE" | jq -c '.provider = "codex"' >"$ACCOUNT_FLAG"
+RC=0
+run_reminder "$ACCOUNT_HOME" "$WORK_DIR" "$ACCOUNT_FLAG" "PLUGIN_ROOT=/tmp/fake-codex-plugin-root" \
+  "CODEX_HOME=$CODEX_PROFILE" >/dev/null 2>&1 || RC=$?
+[ "$RC" -eq 0 ] || fail "[account] codex no-account flag, other home: expected exit 0, got $RC"
+RC=0
+run_reminder "$ACCOUNT_HOME" "$WORK_DIR" "$ACCOUNT_FLAG" "PLUGIN_ROOT=/tmp/fake-codex-plugin-root" \
+  >/dev/null 2>&1 || RC=$?
+[ "$RC" -eq 2 ] || fail "[account] codex no-account flag, default home: expected exit 2, got $RC"
 
 # --- agents-memory present, cwd is not a git repo: global short-term path ---
 MEM_HOME="$TMP_DIR/mem-home"
