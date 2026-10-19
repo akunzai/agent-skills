@@ -1,6 +1,6 @@
 # SkillSpector baseline for this repo's published skills and plugins.
 #
-# Generated against skillspector@2.12.0 (commit c7958a3268d9498644b22edb75d0f051bbc8cbfc),
+# Generated against skillspector@2.13.0 (commit 091a509b3d6ba8ff5be528966e1f43c2e68cf214),
 # static analysis only (--no-llm), by scanning every skills/*/ and plugins/*/
 # directory independently (`mise run lint-skill-security`).
 #
@@ -32,7 +32,7 @@
 # AS3, RA2, most PE2 hits), the entry is scoped by `path` alone and the risk
 # is accepted for this first-cut baseline.
 version: 2
-scanner_version: "2.12.0"
+scanner_version: "2.13.0"
 
 rules:
   # --- Global: informational by the rule's own definition, not a vulnerability signal ---
@@ -46,6 +46,15 @@ rules:
       This skill format (Claude/Codex/OpenCode Skills) has no
       declared-permissions manifest concept; fires uniformly on every skill
       in this repo, not a per-skill gap.
+  - id: "SC3"
+    path: "skill.oms.sig"
+    # No message glob: 2.13.0 reports message=null and flags each base64 blob
+    # (certificate, timestamp, DSSE payload) separately, so only the path is stable.
+    reason: >-
+      skill.oms.sig is the Sigstore bundle written by
+      .github/workflows/sign-skills.yml; its base64 is the signing
+      certificate, timestamp, and DSSE payload, never executed or loaded as
+      instructions.
 
   # --- plugins/cheap-dev-workers ---
   - id: "RA2"

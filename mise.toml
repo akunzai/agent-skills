@@ -89,7 +89,7 @@ run = "bash evals/run-suites.sh"
 
 # Scoped to this task, not `mise run lint`, so the other lint/test jobs do
 # not pull SkillSpector (a git-installed uv tool, not a mise registry tool)
-# on every run. Pinned by commit SHA (not the v2.12.0 tag) per this repo's
+# on every run. Pinned by commit SHA (not the release tag) per this repo's
 # GitHub Actions convention of pinning to an exact, immutable revision.
 # Static analysis only (--no-llm): no LLM provider credentials are read or
 # required. Gates on MEDIUM+ severity because SkillSpector's own exit code
@@ -104,7 +104,7 @@ run = '''
 set +e
 set -u
 set -o pipefail
-SKILLSPECTOR_REF="c7958a3268d9498644b22edb75d0f051bbc8cbfc" # v2.12.0
+SKILLSPECTOR_REF="091a509b3d6ba8ff5be528966e1f43c2e68cf214" # v2.13.0
 SKILLSPECTOR="uvx --python 3.12 --from git+https://github.com/NVIDIA/skillspector.git@${SKILLSPECTOR_REF} skillspector"
 BASELINE=".skillspector-baseline.yaml"
 exit_code=0
