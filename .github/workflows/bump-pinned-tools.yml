@@ -107,6 +107,10 @@ jobs:
         continue-on-error: true
         env:
           TOOL: ${{ matrix.tool }}
+          # The output lands in the PR body: no ANSI colors, and no mise
+          # install progress bars from auto-installing the bumped tool.
+          NO_COLOR: "1"
+          MISE_QUIET: "1"
         run: |
           set -uo pipefail
           task=""
