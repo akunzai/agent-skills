@@ -123,7 +123,10 @@ Mapping notes:
   Data Protection keys default to per machine, unlike a `machineKey` in
   Web.config: a host on more than one node needs a shared key ring (a
   shared folder, Redis, or blob storage) or users are signed out at
-  random; add it to the cutover checklist.
+  random; add it to the cutover checklist. The key ring is the only copy
+  of its state, so keep it out of a Redis the team flushes as a cache on
+  deploy, and fail startup when a deployed host has no location
+  configured instead of falling back to the per-machine default.
 - `ApiController` / `IHttpActionResult` → `ControllerBase` /
   `ActionResult<T>`. `[ApiController]` binds complex parameters from the
   body, and `Json()` uses System.Text.Json with camelCase; configure
@@ -132,6 +135,24 @@ Mapping notes:
   functions), child actions → view components, `Ajax.*` helpers → unobtrusive
   AJAX or fetch, `System.Web.Optimization` bundles → static files plus a
   front-end bundler or `WebOptimizer`.
+- Razor HTML-encodes non-Latin text as `&#x…;` entities, which MVC 5 did
+  not: harmless in markup, but shown literally inside a script string
+  (`alert('@message')`). Set `WebEncoderOptions.TextEncoderSettings` to
+  `new TextEncoderSettings(UnicodeRanges.All)`; markup characters are
+  still encoded.
+- A route with a literal around the controller (`{controller}.mvc/{action}`,
+  kept from IIS 6 extension routing) is a complex segment, and endpoint
+  routing does not compare what it captured with the action's controller:
+  the action runs under any controller name, and two controllers' actions of
+  the same name become ambiguous (500). A `MatcherPolicy` that drops
+  candidates whose `RoutePattern.RequiredValues` differ from the matched
+  values restores MVC 5's behaviour.
+- `Url.Action(action, controller, values, protocol, host)` keeps the
+  request's port in MVC 5 but not in ASP.NET Core, so absolute callback URLs
+  (CAS or OAuth service URLs) built with a configured host lose a non-default
+  port; append it explicitly.
+- These three, like view rendering in general, compile and pass controller
+  tests: open the ported pages in a browser before calling a port done.
 - Third-party UI suites (Kendo, DevExpress, Syncfusion) need the vendor's
   ASP.NET Core package and license; confirm the license before planning
   the view port.
