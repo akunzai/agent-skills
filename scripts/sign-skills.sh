@@ -49,7 +49,9 @@ model_signing() {
   if [ -n "${MODEL_SIGNING_CMD:-}" ]; then
     "$MODEL_SIGNING_CMD" "$@"
   else
-    uvx -q --from "model-signing==$MODEL_SIGNING_VERSION" model_signing "$@"
+    # model-signing imports OpenSSL without declaring pyOpenSSL; it used to
+    # arrive via sigstore, which dropped it in 4.5.1.
+    uvx -q --from "model-signing==$MODEL_SIGNING_VERSION" --with pyOpenSSL model_signing "$@"
   fi
 }
 

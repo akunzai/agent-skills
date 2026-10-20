@@ -58,12 +58,12 @@ out="$(run)" || fail "third run exited non-zero"
 unchanged skills/beta" ] || fail "third run should re-sign only skills/alpha, got
 $out"
 
-uvx -q --from "model-signing==$MODEL_SIGNING_VERSION" model_signing verify key "$REPO/skills/alpha" \
+uvx -q --from "model-signing==$MODEL_SIGNING_VERSION" --with pyOpenSSL model_signing verify key "$REPO/skills/alpha" \
   --signature "$REPO/skills/alpha/skill.oms.sig" --public_key "$TMP_DIR/key.pub" >/dev/null \
   || fail "reference verifier rejected the re-signed skill"
 
 printf 'unsigned\n' > "$REPO/skills/alpha/extra.txt"
-if uvx -q --from "model-signing==$MODEL_SIGNING_VERSION" model_signing verify key "$REPO/skills/alpha" \
+if uvx -q --from "model-signing==$MODEL_SIGNING_VERSION" --with pyOpenSSL model_signing verify key "$REPO/skills/alpha" \
   --signature "$REPO/skills/alpha/skill.oms.sig" --public_key "$TMP_DIR/key.pub" >/dev/null 2>&1; then
   fail "an extra unsigned file should fail strict verification"
 fi
