@@ -1,10 +1,10 @@
 ---
 name: tech-lead
 description: >-
-  Tech-lead: split implementation into slices, brief a subagent, isolate
-  independent slices in git worktrees, and accept the result in the
-  primary session. Use when delegating implementation to subagents
-  or running parallel worktrees.
+  Lead implementation as a tech lead: slice the work, brief subagent
+  implementers in isolated git worktrees, and accept the result in the
+  primary session.
+disable-model-invocation: true
 license: MIT
 metadata:
   capabilities: shell, network, git-history, forge-writes

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Tech Lead"
+  short_description: "Delegate implementation to subagents in worktrees"
+policy:
+  allow_implicit_invocation: false

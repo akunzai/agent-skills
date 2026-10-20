@@ -56,7 +56,7 @@ Delegate implementation as a tech lead: split slices, brief an implementer
 with the cheapest live model and matching installed implementation skills,
 isolate independent slices in git worktrees, then accept the result in the
 primary session. Review skills stay with the tech lead after the implementer
-returns.
+returns. Manual-only: invoke with `/tech-lead`.
 
 #### [`mise`](skills/mise/SKILL.md)
 
