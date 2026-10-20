@@ -38,6 +38,21 @@ Each is a trunk-safe task when the Windows default stays the same:
   connection strings from configuration or user secrets.
 - Scripts: PowerShell-only dev scripts get a cross-platform equivalent
   (`pwsh`, `dotnet` tool, or a task runner).
+- Native libraries with no build for the developer's platform (for
+  example `System.Data.SQLite` 1.0's `SQLite.Interop.dll`, which has no
+  osx-arm64 build): move to a version that loads a separately packaged
+  native library (`System.Data.SQLite` 2.0 with the `SQLite` package)
+  rather than skipping on that platform. Such a package's `build` assets
+  can break legacy non-SDK `net4*` web hosts: with AnyCPU and no
+  RuntimeIdentifier they error, and with RID `win` they copy nothing. For
+  Framework targets set `ExcludeAssets="build;buildTransitive"` and add
+  each architecture's DLL as a `None` item with `Link` under
+  `runtimes\win-x86|win-x64\native\` and `CopyToOutputDirectory`. Not
+  `Content`: Web Publish also copies `Content` to the site root by its
+  `Link` path. Check the published output, not only `bin\`.
+- Tests that skip when a dependency cannot load on the current platform
+  (`Assume`, `Inconclusive`) hide failures on the developer's machine
+  that only CI then finds. Make them fail, and fix the dependency.
 
 Done when a clean clone on macOS or Linux builds and tests the filter and
 starts each migrated host by following the repo's own docs, with no step
