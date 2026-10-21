@@ -33,7 +33,7 @@ graders:
     config:
       contains:
         - "Plan"
-        - "backup"
+        - "reflog"
 
   - type: text
     name: uses-skill-operations
