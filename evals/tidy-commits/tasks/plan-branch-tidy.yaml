@@ -16,8 +16,8 @@ inputs:
     branch's complete log and each subject as an accurate description.
 
     Classify every commit (keep, squash/fixup, reorder, split, or drop).
-    Show a backup ref name and the exact non-interactive commands you
-    would run. Organize the response with a `Plan` heading. State where
+    Show how you would record the pre-rewrite tip for recovery and the
+    exact non-interactive commands you would run. Organize the response with a `Plan` heading. State where
     the post-rewrite tests and linters run, and when they can be skipped.
 
     This is a plan only. Do not run git rebase, git reset, or git push.
