@@ -303,7 +303,7 @@ grep -q '自訂測試語音' "$SAY_LOG" || fail "custom test text missing from s
 # Isolated PATH: Linux CI has no afplay/mpv; macOS /usr/bin/afplay must not hide that.
 NO_PLAYER="$TMP_DIR/no-player"
 mkdir -p "$NO_PLAYER"
-for bin in bash jq mktemp uname awk mkdir rm cat kill; do
+for bin in bash jq mktemp uname awk mkdir rm cat kill dirname; do
   src="$(command -v "$bin")" || fail "missing $bin for no-player PATH"
   ln -s "$src" "$NO_PLAYER/$bin"
 done
