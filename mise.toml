@@ -104,7 +104,7 @@ run = '''
 set +e
 set -u
 set -o pipefail
-SKILLSPECTOR_REF="091a509b3d6ba8ff5be528966e1f43c2e68cf214" # v2.13.0
+SKILLSPECTOR_REF="f3b25697d76256998ca9d42c198d256258d4c035" # v2.13.1
 SKILLSPECTOR="uvx --python 3.12 --from git+https://github.com/NVIDIA/skillspector.git@${SKILLSPECTOR_REF} skillspector"
 BASELINE=".skillspector-baseline.yaml"
 exit_code=0
