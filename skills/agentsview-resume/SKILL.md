@@ -38,10 +38,10 @@ Leave this step when `command -v agentsview` succeeds.
 If it fails, one confirmation covers every install this run needs.
 After consent:
 
-1. If `command -v uv` succeeds: `uv tool install agentsview==0.45.0`,
+1. If `command -v uv` succeeds: `uv tool install agentsview==0.46.1`,
    then `export PATH="$(uv tool dir --bin):$PATH"`.
 2. Otherwise, if `command -v mise` succeeds:
-   `mise use -g github:kenn-io/agentsview@v0.45.0`.
+   `mise use -g github:kenn-io/agentsview@v0.46.1`.
 3. Recheck `command -v agentsview`. Still missing — stop and report that
    `uv` or `mise` is needed; both install the pinned version.
 
