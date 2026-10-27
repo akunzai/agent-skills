@@ -17,6 +17,7 @@ package page, or `dotnet package search`) rather than memory.
 | WinForms / WPF | `System.Windows.Forms`, `PresentationFramework` | Run on `net10.0-windows`; not cross-platform |
 | JavaScriptSerializer | `System.Web.Script.Serialization` | Newtonsoft.Json or System.Text.Json |
 | WebClient / HttpWebRequest | obsolete warnings SYSLIB0014 | `HttpClient` via `IHttpClientFactory` |
+| `ServicePointManager` TLS setting | `ServicePointManager.SecurityProtocol`, `SecurityProtocolType.Ssl3` | Delete the line on the new runtime and let the OS choose. With `Ssl3` in the mask the setter throws `NotSupportedException` at runtime, and the build shows only a `CS0618` easily lost among others; without it the setting does nothing for `HttpClient` or `SslStream` (SYSLIB0014). Callers often catch and log the exception, so the feature fails while tests stay green: grep for it rather than waiting for a test |
 | SqlClient | `System.Data.SqlClient` | `Microsoft.Data.SqlClient`; `Encrypt` defaults to true |
 | Crypto namespaces | `System.Security.Cryptography.Pkcs` / `.Xml` | Separate NuGet packages |
 | ADAL | `Microsoft.IdentityModel.Clients.ActiveDirectory` | MSAL (`Microsoft.Identity.Client`) |
