@@ -1,0 +1,11 @@
+{
+  "codexbar-quota-handoff": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "${CLAUDE_PLUGIN_ROOT:-.}/scripts/quota-reminder.sh",
+        "timeout": 5
+      }
+    ]
+  }
+}

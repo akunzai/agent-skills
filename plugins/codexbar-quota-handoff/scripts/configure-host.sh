@@ -9,8 +9,8 @@ Install the shared runtime helpers and configure CodexBar host integrations.
 
 Options:
   --threshold <0-1>  Quota usage threshold (default: 0.9)
-  --runtime <name>   Configure only this runtime's rule: claude, codex, or
-                     copilot. Default: every CLI found on PATH.
+  --runtime <name>   Configure only this runtime's rule: antigravity, claude,
+                     codex, or copilot. Default: every CLI found on PATH.
   -h, --help         Show this help
 EOF
 }
@@ -47,9 +47,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$runtime" in
-  "" | claude | codex | copilot) ;;
+  agy) runtime="antigravity" ;;
+esac
+
+case "$runtime" in
+  "" | antigravity | claude | codex | copilot) ;;
   *)
-    echo "ERROR: --runtime must be claude, codex, or copilot, got: $runtime" >&2
+    echo "ERROR: --runtime must be antigravity, claude, codex, or copilot, got: $runtime" >&2
     exit 64
     ;;
 esac
@@ -123,6 +127,15 @@ echo "== Shared runtime =="
 install_helpers
 remove_leftover_grok_hooks
 
+echo "== Antigravity CLI =="
+if ! wanted antigravity; then
+  echo "  skipped (not the selected runtime)."
+elif command -v agy >/dev/null 2>&1; then
+  providers+=(antigravity)
+else
+  echo "  agy CLI not found on PATH; no CodexBar rule will be added."
+fi
+
 echo "== Claude Code =="
 if ! wanted claude; then
   echo "  skipped (not the selected runtime)."
@@ -152,7 +165,7 @@ fi
 
 echo "== CodexBar =="
 if [[ ${#providers[@]} -eq 0 ]]; then
-  echo "  none of claude/codex/copilot were found on PATH; nothing to configure."
+  echo "  none of agy/claude/codex/copilot were found on PATH; nothing to configure."
   exit 0
 fi
 if ! command -v codexbar >/dev/null 2>&1; then

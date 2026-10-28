@@ -46,6 +46,21 @@ bash scripts/upgrade.sh --plugin codexbar-quota-handoff --threshold 0.9
 ```
 
 <details>
+<summary>Antigravity CLI</summary>
+
+Install into Antigravity:
+
+```bash
+agy plugin install ./plugins/codexbar-quota-handoff
+```
+
+Antigravity CLI loads `PreInvocation` from the plugin root `hooks.json`. When
+CodexBar flags low quota, the hook injects an ephemeral wrap-up reminder via
+`injectSteps` before model execution.
+
+</details>
+
+<details>
 <summary>Claude Code</summary>
 
 Reload an active session with `/reload-plugins`.
@@ -74,7 +89,7 @@ session continues.
 </details>
 
 Claude Code, Codex, and Copilot load the bundled `hooks/hooks.json` from their
-installed plugin.
+installed plugin; Antigravity CLI loads `hooks.json` from the plugin root.
 
 Run the focused checks with:
 

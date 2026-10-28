@@ -75,7 +75,7 @@ run_reminder() {
   # Drop host-detection vars from the calling environment (this test itself
   # may run under Copilot/Codex/Cursor) so the default case is Claude unless
   # extra_env puts them back.
-  (cd "$work" && env -u CURSOR_INVOKED_AS -u COPILOT_CLI -u PLUGIN_ROOT -u CLAUDE_CONFIG_DIR -u CODEX_HOME \
+  (cd "$work" && env -u ANTIGRAVITY_AGENT -u ANTIGRAVITY_CONVERSATION_ID -u COPILOT_CLI -u PLUGIN_ROOT -u CLAUDE_CONFIG_DIR -u CODEX_HOME \
     "${extra_env[@]+"${extra_env[@]}"}" HOME="$home" CODEXBAR_QUOTA_FLAG_PATH="$flag_path" "$SCRIPT")
 }
 
@@ -134,6 +134,40 @@ run_case() {
 run_case "claude"
 run_case "codex" "PLUGIN_ROOT=/tmp/fake-codex-plugin-root"
 run_case "copilot" "COPILOT_CLI=1" "PLUGIN_ROOT=/tmp/fake-copilot-plugin-root"
+
+# --- Antigravity CLI: exit 0 with injectSteps JSON on stdout ---
+assert_antigravity_json() {
+  local stdout_output="$1" label="$2"
+  local ephemeral_message
+  ephemeral_message="$(printf '%s' "$stdout_output" | jq -r '.injectSteps[0].ephemeralMessage // empty')" \
+    || fail "[$label] stdout is not JSON (got: $stdout_output)"
+  [ -n "$ephemeral_message" ] || fail "[$label] missing ephemeralMessage (got: $stdout_output)"
+  assert_procedure "$ephemeral_message" "$label"
+}
+
+AGY_FLAG="$TMP_DIR/antigravity/quota-low.json"
+mkdir -p "$(dirname "$AGY_FLAG")"
+
+RC=0
+run_reminder "$EMPTY_HOME" "$WORK_DIR" "$AGY_FLAG" "ANTIGRAVITY_AGENT=1" \
+  >/dev/null 2>&1 || RC=$?
+[ "$RC" -eq 0 ] || fail "[antigravity] expected exit 0 with no flag file, got $RC"
+
+printf '%s' "$FIXTURE" >"$AGY_FLAG"
+RC=0
+AGY_STDOUT=""
+AGY_STDERR=""
+AGY_STDOUT="$(run_reminder "$EMPTY_HOME" "$WORK_DIR" "$AGY_FLAG" \
+  "ANTIGRAVITY_AGENT=1" 2>"$TMP_DIR/agy.stderr")" || RC=$?
+AGY_STDERR="$(cat "$TMP_DIR/agy.stderr")"
+[ "$RC" -eq 0 ] || fail "[antigravity] expected exit 0 with a flag file present, got $RC"
+assert_antigravity_json "$AGY_STDOUT" "antigravity"
+case "$AGY_STDERR" in
+  *"Then stop"*|*"handoff document"*)
+    fail "[antigravity] wrap-up procedure must not go to stderr (got: $AGY_STDERR)"
+    ;;
+esac
+[ ! -f "$AGY_FLAG" ] || fail "[antigravity] flag file was not cleared after firing"
 
 # --- multiple Claude accounts (claude-swap): only the session logged in as the
 #     flag's account may claim it; CLAUDE_CONFIG_DIR selects the profile. ---
@@ -305,7 +339,7 @@ FALLBACK_HOME="$TMP_DIR/fallback-home"
 mkdir -p "$FALLBACK_HOME/.local/state/codexbar-quota-handoff"
 printf '%s' "$FIXTURE" >"$FALLBACK_HOME/.local/state/codexbar-quota-handoff/quota-low-claude.json"
 RC=0
-(cd "$WORK_DIR" && env -u COPILOT_CLI -u PLUGIN_ROOT \
+(cd "$WORK_DIR" && env -u ANTIGRAVITY_AGENT -u ANTIGRAVITY_CONVERSATION_ID -u COPILOT_CLI -u PLUGIN_ROOT \
   HOME="$FALLBACK_HOME" XDG_STATE_HOME=relative "$SCRIPT" >/dev/null 2>&1) || RC=$?
 [ "$RC" -eq 2 ] || fail "relative XDG_STATE_HOME should fall back to HOME, got exit $RC"
 

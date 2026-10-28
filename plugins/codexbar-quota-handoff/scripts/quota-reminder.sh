@@ -1,23 +1,26 @@
 #!/usr/bin/env bash
-# Quota-reminder hook shared by every consuming tool (Claude Code, Codex
-# CLI, GitHub Copilot CLI), registered on both Stop and
-# PostToolUse through each tool's native hook location. A no-op unless
-# codexbar-quota-flag.sh has written a flag, for this tool's provider, since
-# the last time this fired.
+# Quota-reminder hook shared by every consuming tool (Antigravity CLI,
+# Claude Code, Codex CLI, GitHub Copilot CLI), registered on PreInvocation
+# (Antigravity) and Stop / PostToolUse (others) through each tool's native hook
+# location. A no-op unless codexbar-quota-flag.sh has written a flag, for this
+# tool's provider, since the last time this fired.
 #
-# Stop alone fires only once per turn — after the whole nested tool-call loop
-# finishes — so a long, continuous stretch of tool calls within a single turn
-# (a real risk during an implementation-heavy session) could burn through the
-# quota well before Stop ever gets a chance to fire. PostToolUse fires after
-# every individual tool call instead, closing that gap; it can't block the
-# way Stop can (the tool has already run by the time it fires), but exit 2
-# still surfaces its stderr to the model the same way, which is all this
-# reminder ever needed — it was never meant to force a stop, just to relay a
-# short message once the model reads it.
+# Antigravity CLI receives context via PreInvocation and returns an injected
+# ephemeralMessage on stdout with exit 0.
+#
+# For other tools, Stop alone fires only once per turn — after the whole nested
+# tool-call loop finishes — so a long, continuous stretch of tool calls within a
+# single turn (a real risk during an implementation-heavy session) could burn
+# through the quota well before Stop ever gets a chance to fire. PostToolUse
+# fires after every individual tool call instead, closing that gap; it can't
+# block the way Stop can (the tool has already run by the time it fires), but
+# exit 2 still surfaces its stderr to the model the same way, which is all this
+# reminder ever needed.
 #
 # Which tool is running is inferred from environment variables each hook
 # runner sets natively — not the shared CLAUDE_PLUGIN_ROOT compatibility
 # alias, which all of these tools set and can't disambiguate anything:
+#   - Antigravity sets ANTIGRAVITY_AGENT=1 or ANTIGRAVITY_CONVERSATION_ID.
 #   - GitHub Copilot CLI sets COPILOT_CLI=1 (observed by dumping the hook
 #     environment under Copilot CLI 1.0.82; COPILOT_PROJECT_DIR comes with
 #     it). This must be checked *before* PLUGIN_ROOT: Copilot supports both
@@ -33,7 +36,8 @@
 # arguments, and no risk of a tool's own shell reinterpreting a reminder
 # argument (a path, or a leftover command string like "$handoff").
 #
-# When a flag is present, hosts exit 2 with a wrap-up procedure on stderr so
+# When a flag is present, Antigravity injects an ephemeralMessage step via
+# stdout and exits 0. Other hosts exit 2 with a wrap-up procedure on stderr so
 # the model surfaces the quota, asks before writing a handoff document if
 # the session has unfinished work a later session cannot reconstruct, then
 # deletes the flag so the same crossing doesn't surface again on the next
@@ -41,7 +45,9 @@
 # threshold crossing for this provider and writes a new flag.
 set -euo pipefail
 
-if [[ -n "${COPILOT_CLI:-}" ]]; then
+if [[ -n "${ANTIGRAVITY_AGENT:-}" || -n "${ANTIGRAVITY_CONVERSATION_ID:-}" ]]; then
+  provider="antigravity"
+elif [[ -n "${COPILOT_CLI:-}" ]]; then
   provider="copilot"
 elif [[ -n "${PLUGIN_ROOT:-}" ]]; then
   provider="codex"
@@ -196,6 +202,11 @@ message="$(
   printf x
 )"
 message="${message%x}"
+
+if [[ "$provider" == "antigravity" ]]; then
+  jq -n --arg msg "$message" '{injectSteps: [{ephemeralMessage: $msg}]}'
+  exit 0
+fi
 
 printf '%s' "$message" >&2
 exit 2

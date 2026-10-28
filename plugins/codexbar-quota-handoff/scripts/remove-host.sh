@@ -9,9 +9,9 @@ Remove the shared runtime helpers, leftover Grok global hook, and CodexBar rules
 
 Options:
   --keep-state       Preserve quota flag files
-  --runtime <name>   Remove only this runtime's rules (claude, codex, or
-                     copilot). Shared helpers and state go only once no rule of
-                     this plugin remains.
+  --runtime <name>   Remove only this runtime's rules (antigravity, claude,
+                     codex, or copilot). Shared helpers and state go only once
+                     no rule of this plugin remains.
   -h, --help         Show this help
 EOF
 }
@@ -29,9 +29,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$runtime" in
-  "" | claude | codex | copilot) ;;
+  agy) runtime="antigravity" ;;
+esac
+
+case "$runtime" in
+  "" | antigravity | claude | codex | copilot) ;;
   *)
-    echo "ERROR: --runtime must be claude, codex, or copilot, got: $runtime" >&2
+    echo "ERROR: --runtime must be antigravity, claude, codex, or copilot, got: $runtime" >&2
     exit 64
     ;;
 esac
@@ -76,7 +80,7 @@ if [[ -f "$codexbar_config" ]]; then
   jq --arg runtime "$runtime" '
     ("agent-skills-codexbar-quota-handoff-") as $p
     | ([$p + "claude", $p + "cursor"]) as $claude
-    | (if $runtime == "" then $claude + [$p + "grok", $p + "codex", $p + "copilot"]
+    | (if $runtime == "" then $claude + [$p + "antigravity", $p + "grok", $p + "codex", $p + "copilot"]
        elif $runtime == "claude" then $claude
        else [$p + $runtime] end) as $drop
     | .hooks.events = ((.hooks.events // []) | map(select(.id as $id | $drop | index($id) | not)))

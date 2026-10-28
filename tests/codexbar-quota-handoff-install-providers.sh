@@ -34,7 +34,7 @@ ln -s "$REAL_JQ" "$STUB_BIN/jq"
 
 TOOL_BIN="$TMP_DIR/tool-bin"
 mkdir -p "$TOOL_BIN"
-for tool in claude grok codex copilot; do
+for tool in claude grok codex copilot agy; do
   printf '#!/usr/bin/env bash\nexit 0\n' >"$TOOL_BIN/$tool"
   chmod +x "$TOOL_BIN/$tool"
 done
@@ -101,11 +101,18 @@ ACTUAL="$(configured_providers "$COPILOT_ONLY_HOME")"
 [ ! -e "$COPILOT_ONLY_HOME/.grok/hooks/codexbar-quota-handoff.json" ] \
   || fail "setup wrote a Grok global hook when only copilot was on PATH"
 
+# --- only agy on PATH: only antigravity gets a CodexBar rule ---
+AGY_ONLY_HOME="$TMP_DIR/agy-only"
+mkdir -p "$AGY_ONLY_HOME"
+run_install "$AGY_ONLY_HOME" agy >/dev/null
+ACTUAL="$(configured_providers "$AGY_ONLY_HOME")"
+[ "$ACTUAL" = "antigravity" ] || fail "with only agy on PATH, expected only 'antigravity' configured, got: $ACTUAL"
+
 # --- all tools on PATH, including grok: grok is not a CodexBar provider ---
 ALL_TOOLS_HOME="$TMP_DIR/all-tools"
-run_install "$ALL_TOOLS_HOME" claude grok codex copilot >/dev/null
+run_install "$ALL_TOOLS_HOME" agy claude grok codex copilot >/dev/null
 ACTUAL="$(configured_providers "$ALL_TOOLS_HOME")"
-[ "$ACTUAL" = "claude,codex,copilot" ] || fail "with grok on PATH, expected no grok CodexBar provider, got: $ACTUAL"
+[ "$ACTUAL" = "antigravity,claude,codex,copilot" ] || fail "with grok on PATH, expected no grok CodexBar provider, got: $ACTUAL"
 [ ! -e "$ALL_TOOLS_HOME/.grok/hooks/codexbar-quota-handoff.json" ] \
   || fail "setup wrote a Grok global hook when grok is no longer a supported runtime"
 [ ! -e "$ALL_TOOLS_HOME/.grok/hooks/codexbar-quota-reminder.sh" ] \
