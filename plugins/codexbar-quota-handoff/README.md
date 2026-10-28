@@ -73,58 +73,8 @@ session continues.
 
 </details>
 
-<details>
-<summary>Cursor CLI</summary>
-
-Install into Claude Code: Cursor CLI runs the Claude-nested `PostToolUse`
-hook from the Claude Code install. `Stop` is unreliable on the Cursor CLI, so
-the reminder path relies on `PostToolUse`. On Cursor, exit 2 does not inject
-stderr into the model; the hook instead prints `{"additional_context":"..."}`
-on stdout and exits 0.
-
-Setup configures the CodexBar `cursor` provider whenever `cursor-agent` is on
-PATH, whichever runtime you select (never a bare `agent` binary, which
-collides with Grok's `agent`).
-
-</details>
-
-Open CodexBar once and authorize each provider before setup. If a provider
-cannot be reached, setup warns but leaves its rule installed so authorization
-can be fixed without rewriting the config.
-
-## Uninstall
-
-```bash
-bash scripts/uninstall.sh --plugin codexbar-quota-handoff
-```
-
-Select a runtime interactively; installed status is detected before removal.
-Pass `--keep-state` to preserve quota flags. The script removes owned runtime
-helpers, CodexBar rules, and leftover Grok global hook files from older
-installs.
-
-To drop leftover Grok files without uninstalling this plugin from other
-runtimes:
-
-```bash
-bash plugins/codexbar-quota-handoff/scripts/remove-grok.sh
-```
-
-That removes the owned `~/.grok/hooks/` files and the CodexBar `grok` rule.
-It prints `grok plugin marketplace remove akunzai-agent-skills`; pass `--yes`
-to run that command when `grok` is on PATH. Reload Grok hooks or start a new
-session afterwards.
-
-## How it works
-
-CodexBar runs the installed `codexbar-quota-flag.sh` on `quota_low`, passing a
-provider and an absolute state directory. The agent hook runs
-`quota-reminder.sh`, detects its host from native environment variables,
-atomically claims the matching flag, emits the wrap-up procedure, and
-clears the claim. The reminder no longer suggests `/handoff` or `$handoff`.
-
 Claude Code, Codex, and Copilot load the bundled `hooks/hooks.json` from their
-installed plugin; Cursor CLI runs Claude Code's installed copy.
+installed plugin.
 
 Run the focused checks with:
 

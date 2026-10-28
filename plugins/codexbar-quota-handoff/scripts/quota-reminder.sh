@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Quota-reminder hook shared by every consuming tool (Claude Code, Codex
-# CLI, GitHub Copilot CLI, Cursor CLI), registered on both Stop and
+# CLI, GitHub Copilot CLI), registered on both Stop and
 # PostToolUse through each tool's native hook location. A no-op unless
 # codexbar-quota-flag.sh has written a flag, for this tool's provider, since
 # the last time this fired.
@@ -13,15 +13,11 @@
 # way Stop can (the tool has already run by the time it fires), but exit 2
 # still surfaces its stderr to the model the same way, which is all this
 # reminder ever needed — it was never meant to force a stop, just to relay a
-# short message once the model reads it. Cursor CLI is different: a
-# PostToolUse exit 2 does not inject stderr into the model (it silently
-# claims the flag), so when the provider is cursor this script prints JSON
-# with additional_context on stdout and exits 0 instead.
+# short message once the model reads it.
 #
 # Which tool is running is inferred from environment variables each hook
 # runner sets natively — not the shared CLAUDE_PLUGIN_ROOT compatibility
 # alias, which all of these tools set and can't disambiguate anything:
-#   - Cursor CLI sets CURSOR_INVOKED_AS (e.g. cursor-agent).
 #   - GitHub Copilot CLI sets COPILOT_CLI=1 (observed by dumping the hook
 #     environment under Copilot CLI 1.0.82; COPILOT_PROJECT_DIR comes with
 #     it). This must be checked *before* PLUGIN_ROOT: Copilot supports both
@@ -37,19 +33,15 @@
 # arguments, and no risk of a tool's own shell reinterpreting a reminder
 # argument (a path, or a leftover command string like "$handoff").
 #
-# When a flag is present, non-Cursor hosts exit 2 with a wrap-up procedure on
-# stderr so the model surfaces the quota, asks before writing a handoff
-# document if the session has unfinished work a later session cannot
-# reconstruct, then deletes the flag so the same crossing doesn't surface
-# again on the next tool call or turn. Cursor prints the same procedure as
-# {"additional_context":"..."} on stdout and exits 0. It fires again only
-# after CodexBar detects a fresh threshold crossing for this provider and
-# writes a new flag.
+# When a flag is present, hosts exit 2 with a wrap-up procedure on stderr so
+# the model surfaces the quota, asks before writing a handoff document if
+# the session has unfinished work a later session cannot reconstruct, then
+# deletes the flag so the same crossing doesn't surface again on the next
+# tool call or turn. It fires again only after CodexBar detects a fresh
+# threshold crossing for this provider and writes a new flag.
 set -euo pipefail
 
-if [[ -n "${CURSOR_INVOKED_AS:-}" ]]; then
-  provider="cursor"
-elif [[ -n "${COPILOT_CLI:-}" ]]; then
+if [[ -n "${COPILOT_CLI:-}" ]]; then
   provider="copilot"
 elif [[ -n "${PLUGIN_ROOT:-}" ]]; then
   provider="codex"
@@ -204,11 +196,6 @@ message="$(
   printf x
 )"
 message="${message%x}"
-
-if [[ "$provider" == "cursor" ]]; then
-  jq -n --arg additional_context "$message" '{additional_context: $additional_context}'
-  exit 0
-fi
 
 printf '%s' "$message" >&2
 exit 2

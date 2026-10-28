@@ -32,13 +32,11 @@ mise run lint
 ```
 
 The two marketplace manifests (`.claude-plugin/`, `.agents/plugins/`) must
-continue to resolve to this shared plugin root; Copilot and Cursor reuse the
+continue to resolve to this shared plugin root; Copilot reuses the
 Claude one, so there is no third. Grok Build is not a supported plugin
 runtime: do not add `.grok-plugin/`. Configure removes leftover
 `~/.grok/hooks/codexbar-quota-handoff.json` files from older installs so they
 cannot claim the Claude flag.
 
 The reminder's host detection depends on each runtime's hook identity variables
-and the order they are tested in (`../../docs/agents/harnesses.md`). Reminder
-env cases: `CURSOR_INVOKED_AS=cursor-agent` must select
-`quota-low-cursor.json`, not `quota-low-claude.json`.
+and the order they are tested in (`../../docs/agents/harnesses.md`).

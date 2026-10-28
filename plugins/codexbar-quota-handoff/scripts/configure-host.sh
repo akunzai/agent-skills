@@ -10,8 +10,7 @@ Install the shared runtime helpers and configure CodexBar host integrations.
 Options:
   --threshold <0-1>  Quota usage threshold (default: 0.9)
   --runtime <name>   Configure only this runtime's rule: claude, codex, or
-                     copilot (claude also covers Cursor CLI, which loads the
-                     Claude plugin). Default: every CLI found on PATH.
+                     copilot. Default: every CLI found on PATH.
   -h, --help         Show this help
 EOF
 }
@@ -54,7 +53,6 @@ case "$runtime" in
     exit 64
     ;;
 esac
-# Cursor CLI runs the Claude Code plugin, so it follows the claude runtime.
 wanted() { [[ -z "$runtime" || "$runtime" == "$1" ]]; }
 
 if ! [[ "$threshold" =~ ^[0-9]*\.?[0-9]+$ ]] \
@@ -152,20 +150,9 @@ else
   echo "  copilot CLI not found on PATH; no CodexBar rule will be added."
 fi
 
-# Detect cursor-agent only — never a bare `agent` binary. Grok and Cursor
-# both ship `agent`, so that name collides and cannot identify Cursor.
-echo "== Cursor CLI =="
-if ! wanted claude; then
-  echo "  skipped (not the selected runtime)."
-elif command -v cursor-agent >/dev/null 2>&1; then
-  providers+=(cursor)
-else
-  echo "  cursor-agent CLI not found on PATH; no CodexBar rule will be added."
-fi
-
 echo "== CodexBar =="
 if [[ ${#providers[@]} -eq 0 ]]; then
-  echo "  none of claude/codex/copilot/cursor-agent were found on PATH; nothing to configure."
+  echo "  none of claude/codex/copilot were found on PATH; nothing to configure."
   exit 0
 fi
 if ! command -v codexbar >/dev/null 2>&1; then

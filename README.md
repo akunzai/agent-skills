@@ -5,7 +5,7 @@
 [![Skill security](https://github.com/akunzai/agent-skills/actions/workflows/skill-security.yml/badge.svg)](https://github.com/akunzai/agent-skills/actions/workflows/skill-security.yml)
 
 Reusable agent skills — compatible with Antigravity, Claude Code, Codex,
-GitHub Copilot CLI, Cursor CLI, and more.
+GitHub Copilot CLI, and more.
 Those runtimes can load the skills; **effectiveness is measured only on
 GitHub Copilot's agent runtime** via [Waza](https://github.com/microsoft/waza),
 with models served through OpenRouter. See
@@ -199,13 +199,7 @@ marketplace manifest.
 
 ### Install
 
-Cursor CLI needs no install of its own: `cursor-agent` loads the plugins
-enabled in Claude Code. Without Claude Code, add the marketplace and enable
-plugins in the session with `/plugin`. It needs the `github.com/` prefix:
-
-```bash
-cursor-agent plugin marketplace add github.com/akunzai/agent-skills
-```
+Plugins are installed and managed via the lifecycle scripts or native runtime commands.
 
 <details>
 <summary>Extra setup for <code>codexbar-quota-handoff</code> and <code>cheap-dev-workers</code>, upgrading, and uninstalling</summary>

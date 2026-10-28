@@ -4,8 +4,7 @@
 
 How each runtime loads these roles is in `../../docs/agents/harnesses.md`.
 Claude Code and GitHub Copilot CLI read `agents/` straight from the installed
-plugin, so no runtime-specific copy of the role definitions exists; Cursor CLI
-reads the Claude Code install, so there is no Cursor runtime to select. Codex
+plugin, so no runtime-specific copy of the role definitions exists. Codex
 CLI needs copies. From the repository root:
 
 ```bash
@@ -94,9 +93,6 @@ plugin-local scripts are internal post-action helpers.
 - Skills request roles, never plugin identities or provider models. Runtime
   adapters resolve them: Claude Code and Copilot CLI dispatch
   `cheap-dev-workers:<role>`; Codex requests the installed role name.
-  Cursor CLI loads the same plugin agents and dispatches only the read-only
-  roles; `evidence-collector` work stays in primary there because its
-  `tools:` boundary is not enforced (`../../docs/agents/harnesses.md`).
 - Choose the role before the model. Prefer an available named worker for
   bounded, context-heavy work. If the role is unavailable or unsupported,
   callers may use one generic worker only when they can reproduce its
@@ -141,12 +137,9 @@ The `agents/*.md` and `codex-agents/*.toml` definitions carry the same hard
 rules and instructions in each runtime's native format. Both are rendered from
 `roles/`, so they cannot be kept in sync by hand — edit the source and
 re-render. A role's single `capability` becomes the `tools:` frontmatter and
-the `sandbox_mode` together, with no runtime-specific tool list. A `read-only`
-sandbox also renders `permissionMode: readonly`, the field Cursor CLI enforces
-on plugin agents; `read+exec` renders none, since readonly blocks every shell
-call. Read-only roles carry `permissionMode: readonly`, never `readonly: true`,
-and a `read+exec` role carries neither; `tests/cheap-dev-workers-agents-content.sh`
-enforces both.
+the `sandbox_mode` together, with no runtime-specific tool list. Read-only roles
+carry `tools: Read, Grep, Glob` or `tools: Read`, avoiding unsupported
+`permissionMode` fields that trigger warnings under Claude Code.
 
 Claude plugin subagents do not support `hooks` or `permissionMode`, so a
 `read+exec` role's Bash mutation boundary is prompt-enforced. The primary

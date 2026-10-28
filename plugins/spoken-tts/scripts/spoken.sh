@@ -253,7 +253,7 @@ locale_from_lang() {
   esac
 }
 
-# Cursor and Git Bash often set LANG=en_US; OS UI may differ. LC_ALL wins.
+# Git Bash often sets LANG=en_US; OS UI may differ. LC_ALL wins.
 macos_ui_lang() {
   [[ "$(detect_os)" == macos ]] || return 1
   command -v defaults >/dev/null 2>&1 || return 1
@@ -756,7 +756,7 @@ inject_rules() {
     jq -n --arg msg "$body" '{injectSteps:[{ephemeralMessage:$msg}]}'
     return
   fi
-  if [[ -n "${CURSOR_INVOKED_AS:-}" || -n "${COPILOT_CLI:-}" ]]; then
+  if [[ -n "${COPILOT_CLI:-}" ]]; then
     jq -n --arg additional_context "$body" '{additional_context:$additional_context}'
     return
   fi
