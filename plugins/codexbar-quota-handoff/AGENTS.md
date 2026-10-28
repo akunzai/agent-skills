@@ -40,3 +40,11 @@ cannot claim the Claude flag.
 
 The reminder's host detection depends on each runtime's hook identity variables
 and the order they are tested in (`../../docs/agents/harnesses.md`).
+
+## Hooks: two files, two formats
+
+`hooks.json` (plugin root) — **agy format**: named hook namespace (`"codexbar-quota-handoff"`)
+with flat handler lists under `PreInvocation`. Injects `ephemeralMessage` via stdout JSON.
+
+`hooks/hooks.json` — **Copilot/Claude Code format**: nested wrapper
+(`Stop`, `PostToolUse`). Exits 2 with wrap-up procedure on stderr.
