@@ -43,7 +43,7 @@ CODEX_HOOKS_PATH="$(jq -r '.hooks' "$CODEX_PLUGIN_JSON")"
   || fail "Codex hooks field is '$CODEX_HOOKS_PATH'"
 
 for event in Stop PreInvocation; do
-  COMMAND="$(jq -r ".hooks.${event}[0].command // .hooks.${event}[0].hooks[0].command // empty" "$ANTIGRAVITY_HOOKS_JSON")"
+  COMMAND="$(jq -r "((.\"spoken-tts\".${event}[0].command // .\"spoken-tts\".${event}[0].hooks[0].command // .hooks.${event}[0].command // .hooks.${event}[0].hooks[0].command) // empty)" "$ANTIGRAVITY_HOOKS_JSON")"
   case "$COMMAND" in
     *spoken.sh*) ;;
     *) fail "Antigravity hooks.json $event command does not reference spoken.sh (got: $COMMAND)" ;;

@@ -1,17 +1,10 @@
 {
-  "hooks": {
+  "spoken-tts": {
     "Stop": [
       {
         "type": "command",
         "command": "${CLAUDE_PLUGIN_ROOT:-.}/scripts/spoken.sh hook-stop",
         "timeout": 10
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "type": "command",
-        "command": "${CLAUDE_PLUGIN_ROOT:-.}/scripts/spoken.sh hook-prompt",
-        "timeout": 5
       }
     ],
     "PreInvocation": [

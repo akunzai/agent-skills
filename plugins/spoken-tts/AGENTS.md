@@ -26,9 +26,10 @@ detection (`say` / empty).
 
 ## Hooks: two files, two formats
 
-`hooks.json` (plugin root) — **agy format**: flat handler lists under each
-event name (`Stop: [{ type, command, timeout }]`). Do not add a nested
-`{ "hooks": [...] }` wrapper here; agy ignores it.
+`hooks.json` (plugin root) — **agy format**: named hook namespace (`"spoken-tts"`)
+with flat handler lists under each supported event name (`Stop`, `PreInvocation`).
+Do not add a nested `{ "hooks": [...] }` wrapper or unsupported Claude events like
+`UserPromptSubmit` here.
 
 `hooks/hooks.json` — **Copilot/Claude Code format**: nested wrapper
 (`Stop: [{ hooks: [{ command }] }]`). Keep as-is for Copilot compatibility.
