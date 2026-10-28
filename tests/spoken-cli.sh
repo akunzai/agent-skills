@@ -57,7 +57,7 @@ chmod +x "$STUB_BIN/edge-tts"
 export PATH="$STUB_BIN:/usr/bin:/bin"
 export SPOKEN_SYNC=1
 export SPOKEN_NATIVE_PROVIDER=say
-unset CURSOR_INVOKED_AS COPILOT_CLI PLUGIN_ROOT SPOKEN_SESSION_ID CLAUDE_CODE_SESSION_ID ANTIGRAVITY_CONVERSATION_ID ANTIGRAVITY_AGENT || true
+unset COPILOT_CLI PLUGIN_ROOT SPOKEN_SESSION_ID CLAUDE_CODE_SESSION_ID ANTIGRAVITY_CONVERSATION_ID ANTIGRAVITY_AGENT || true
 
 run() {
   bash "$SCRIPT" "$@"
@@ -339,9 +339,9 @@ run on --session-id sess-1 >/dev/null
 copilot_out="$(printf '%s' "$prompt_json" | COPILOT_CLI=1 run hook-prompt)"
 printf '%s' "$copilot_out" | jq -e '.additional_context' >/dev/null \
   || fail "Copilot hook-prompt should print additional_context: $copilot_out"
-cursor_out="$(printf '%s' "$prompt_json" | CURSOR_INVOKED_AS=1 run hook-prompt)"
-printf '%s' "$cursor_out" | jq -e '.additional_context' >/dev/null \
-  || fail "Cursor hook-prompt should print additional_context: $cursor_out"
+copilot_out="$(printf '%s' "$prompt_json" | COPILOT_CLI=1 run hook-prompt)"
+printf '%s' "$copilot_out" | jq -e '.additional_context' >/dev/null \
+  || fail "Copilot hook-prompt should print additional_context: $copilot_out"
 
 # --- hook-prompt stops playback ---
 sleep 30 &

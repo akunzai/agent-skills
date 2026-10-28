@@ -34,7 +34,7 @@ ln -s "$REAL_JQ" "$STUB_BIN/jq"
 
 TOOL_BIN="$TMP_DIR/tool-bin"
 mkdir -p "$TOOL_BIN"
-for tool in claude grok codex copilot cursor-agent agent; do
+for tool in claude grok codex copilot; do
   printf '#!/usr/bin/env bash\nexit 0\n' >"$TOOL_BIN/$tool"
   chmod +x "$TOOL_BIN/$tool"
 done
@@ -101,30 +101,11 @@ ACTUAL="$(configured_providers "$COPILOT_ONLY_HOME")"
 [ ! -e "$COPILOT_ONLY_HOME/.grok/hooks/codexbar-quota-handoff.json" ] \
   || fail "setup wrote a Grok global hook when only copilot was on PATH"
 
-# --- only cursor-agent on PATH: only cursor gets a CodexBar rule; no Grok hooks ---
-CURSOR_ONLY_HOME="$TMP_DIR/cursor-only"
-mkdir -p "$CURSOR_ONLY_HOME"
-run_install "$CURSOR_ONLY_HOME" cursor-agent >/dev/null
-ACTUAL="$(configured_providers "$CURSOR_ONLY_HOME")"
-[ "$ACTUAL" = "cursor" ] || fail "with only cursor-agent on PATH, expected only 'cursor' configured, got: $ACTUAL"
-[ ! -e "$CURSOR_ONLY_HOME/.grok/hooks/codexbar-quota-handoff.json" ] \
-  || fail "setup wrote a Grok global hook when only cursor-agent was on PATH"
-[ ! -e "$CURSOR_ONLY_HOME/.grok/hooks/codexbar-quota-reminder.sh" ] \
-  || fail "setup wrote a Grok reminder script when only cursor-agent was on PATH"
-
-# --- a bare `agent` stub without cursor-agent must not configure cursor
-#     (Grok and Cursor both ship `agent`; that name collides) ---
-AGENT_ONLY_HOME="$TMP_DIR/agent-only"
-mkdir -p "$AGENT_ONLY_HOME"
-run_install "$AGENT_ONLY_HOME" agent >/dev/null
-ACTUAL="$(configured_providers "$AGENT_ONLY_HOME")"
-[ -z "$ACTUAL" ] || fail "with only a bare agent on PATH, expected no providers configured, got: $ACTUAL"
-
 # --- all tools on PATH, including grok: grok is not a CodexBar provider ---
 ALL_TOOLS_HOME="$TMP_DIR/all-tools"
-run_install "$ALL_TOOLS_HOME" claude grok codex copilot cursor-agent >/dev/null
+run_install "$ALL_TOOLS_HOME" claude grok codex copilot >/dev/null
 ACTUAL="$(configured_providers "$ALL_TOOLS_HOME")"
-[ "$ACTUAL" = "claude,codex,copilot,cursor" ] || fail "with grok on PATH, expected no grok CodexBar provider, got: $ACTUAL"
+[ "$ACTUAL" = "claude,codex,copilot" ] || fail "with grok on PATH, expected no grok CodexBar provider, got: $ACTUAL"
 [ ! -e "$ALL_TOOLS_HOME/.grok/hooks/codexbar-quota-handoff.json" ] \
   || fail "setup wrote a Grok global hook when grok is no longer a supported runtime"
 [ ! -e "$ALL_TOOLS_HOME/.grok/hooks/codexbar-quota-reminder.sh" ] \
@@ -245,13 +226,13 @@ run_install_again >/dev/null
 
 # --- --runtime limits rules; removing one runtime keeps the others and the helper ---
 RT_HOME="$TMP_DIR/runtime-scoped"
-run_install "$RT_HOME" claude codex copilot cursor-agent --runtime claude >/dev/null
-[ "$(configured_providers "$RT_HOME")" = "claude,cursor" ] \
-  || fail "--runtime claude should configure only claude and cursor, got: $(configured_providers "$RT_HOME")"
+run_install "$RT_HOME" claude codex copilot --runtime claude >/dev/null
+[ "$(configured_providers "$RT_HOME")" = "claude" ] \
+  || fail "--runtime claude should configure only claude, got: $(configured_providers "$RT_HOME")"
 REMOVE="$ROOT_DIR/plugins/codexbar-quota-handoff/scripts/remove-host.sh"
 PATH="$STUB_BIN:/usr/bin:/bin:/usr/sbin:/sbin" HOME="$RT_HOME" XDG_DATA_HOME="$RT_HOME/xdg-data" \
   XDG_STATE_HOME="$RT_HOME/xdg-state" bash "$REMOVE" --runtime codex >/dev/null
-[ "$(configured_providers "$RT_HOME")" = "claude,cursor" ] || fail "removing codex touched other rules"
+[ "$(configured_providers "$RT_HOME")" = "claude" ] || fail "removing codex touched other rules"
 [ -x "$RT_HOME/xdg-data/codexbar-quota-handoff/scripts/codexbar-quota-flag.sh" ] \
   || fail "removing one runtime deleted the shared helper"
 PATH="$STUB_BIN:/usr/bin:/bin:/usr/sbin:/sbin" HOME="$RT_HOME" XDG_DATA_HOME="$RT_HOME/xdg-data" \

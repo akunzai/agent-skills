@@ -10,8 +10,8 @@ Remove the shared runtime helpers, leftover Grok global hook, and CodexBar rules
 Options:
   --keep-state       Preserve quota flag files
   --runtime <name>   Remove only this runtime's rules (claude, codex, or
-                     copilot; claude also covers Cursor). Shared helpers and
-                     state go only once no rule of this plugin remains.
+                     copilot). Shared helpers and state go only once no rule of
+                     this plugin remains.
   -h, --help         Show this help
 EOF
 }
