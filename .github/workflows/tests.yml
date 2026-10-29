@@ -244,39 +244,71 @@ jobs:
         run: bash tests/plugin-version-bump.sh
 
   bash32-compat:
-    # Confirms the shipped/dev shell scripts still work on macOS's stock
-    # /bin/bash (3.2, pre-GPLv3), not just the Bash 4+ this repo's own dev
-    # shell and the other ubuntu-latest jobs use. No mise setup: jq and
-    # python3 are already on the macos-latest image, and the point is to
-    # exercise the system bash rather than a tool this repo's own toolchain
-    # provides.
-    runs-on: macos-latest
+    # Confirms the shipped/dev shell scripts still work on Bash 3.2 (stock
+    # /bin/bash on macOS, pre-GPLv3), not just the Bash 4+ this repo's own
+    # dev shell and the other ubuntu-latest jobs use. Compiles Bash 3.2.57
+    # on Ubuntu and caches the binary, running the suite under Linux Actions
+    # runner without consuming macOS runner minutes.
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Confirm the system bash is the pre-4.0 version these tests target
-        run: /bin/bash --version
+      - name: Cache Bash 3.2 binary
+        id: cache-bash32
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.local/bash32
+          key: bash-3.2.57-ubuntu-24.04
 
-      - name: Run plugin setup checks under /bin/bash
-        run: /bin/bash tests/plugin-setup.sh
+      - name: Compile Bash 3.2
+        if: steps.cache-bash32.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.local/bash32
+          build_dir="$(mktemp -d)"
+          curl -fsSL https://ftp.gnu.org/gnu/bash/bash-3.2.57.tar.gz | tar -xz -C "$build_dir"
+          cd "$build_dir/bash-3.2.57"
+          export CC="gcc -std=gnu89"
+          export CC_FOR_BUILD="gcc -std=gnu89"
+          cflags="-std=gnu89 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=implicit-int"
+          export CFLAGS="$cflags"
+          export CFLAGS_FOR_BUILD="$cflags"
+          ./configure \
+            --prefix="$HOME/.local/bash32" \
+            --without-bash-malloc
+          make -j"$(nproc)"
+          make install
+          rm -rf "$build_dir"
 
-      - name: Run setup-agent-ready-repo template install checks under /bin/bash
-        run: /bin/bash tests/setup-agent-ready-repo-install-templates.sh
+      - name: Add Bash 3.2 to PATH
+        run: |
+          echo "$HOME/.local/bash32/bin" >> "$GITHUB_PATH"
 
-      - name: Run waza run-suites checks under /bin/bash
-        run: /bin/bash tests/waza-run-suites.sh
+      - name: Confirm the compiled bash is the pre-4.0 version these tests target
+        run: |
+          [[ "$("$HOME/.local/bash32/bin/bash" --version | head -1)" == *"version 3.2"* ]]
+          ~/.local/bash32/bin/bash --version
 
-      - name: Run backfill-unit-tests tests-pass grader checks under /bin/bash
-        run: /bin/bash tests/backfill-unit-tests-tests-pass-grader.sh
+      - name: Run plugin setup checks under Bash 3.2
+        run: ~/.local/bash32/bin/bash tests/plugin-setup.sh
 
-      - name: Run bump-pinned-tools checks under /bin/bash
-        run: /bin/bash tests/bump-pinned-tools.sh
+      - name: Run setup-agent-ready-repo template install checks under Bash 3.2
+        run: ~/.local/bash32/bin/bash tests/setup-agent-ready-repo-install-templates.sh
 
-      - name: Run hidden-unicode checks under /bin/bash
-        run: /bin/bash tests/hidden-unicode.sh
+      - name: Run waza run-suites checks under Bash 3.2
+        run: ~/.local/bash32/bin/bash tests/waza-run-suites.sh
+
+      - name: Run backfill-unit-tests tests-pass grader checks under Bash 3.2
+        run: ~/.local/bash32/bin/bash tests/backfill-unit-tests-tests-pass-grader.sh
+
+      - name: Run bump-pinned-tools checks under Bash 3.2
+        run: ~/.local/bash32/bin/bash tests/bump-pinned-tools.sh
+
+      - name: Run hidden-unicode checks under Bash 3.2
+        run: ~/.local/bash32/bin/bash tests/hidden-unicode.sh
 
   spoken:
     runs-on: ubuntu-latest
