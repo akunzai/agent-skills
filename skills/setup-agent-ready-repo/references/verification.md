@@ -18,7 +18,7 @@ This applies to a script this skill writes. Where the project already has
 one non-interactive command, record that command and skip the contract;
 a wrapper exists only to satisfy a checklist, and it drifts.
 
-A script, where one is warranted, must satisfy all four:
+A script, where one is warranted, must satisfy all five:
 
 - **Mode detection, layered**: an explicit `--non-interactive` flag,
   then `NON_INTERACTIVE=true|false`, then `CI=true`, then stdin not
@@ -31,6 +31,12 @@ A script, where one is warranted, must satisfy all four:
 - **Prove it came up.** A health endpoint, a port accepting a
   connection, or a command exiting zero. A running container is not
   evidence.
+- **Bound the wait.** Give each long step, a test run above all, a
+  wall-clock limit that fails the script. On expiry, report what was
+  still running (the tests that started but never finished, a stack
+  sample of the test process) before killing it. A framework's per-test
+  time limit cannot end a test whose thread is blocked, and a hang with
+  no limit leaves an agent waiting with no diagnosis.
 
 A dependency's own log is often too quiet to show the request that
 proves an integration. Raise its level for the check and restore the
