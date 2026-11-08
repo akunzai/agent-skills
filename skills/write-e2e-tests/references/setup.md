@@ -46,6 +46,27 @@ export default defineConfig({
 
 Chromium switch: `devices['Desktop Chrome']`.
 
+When defining multiple browser projects, mark the primary project `default: true`
+(Playwright >= 1.65) so local CLI runs default to the primary browser only, avoiding
+redundant multi-browser runs until requested via `--project`.
+
+When scaffolding a `webServer` for modern frontend SPAs (Vite, Next.js, etc.), run
+pre-built preview servers in CI rather than live dev servers to eliminate on-demand
+JIT compilation latency:
+
+```ts
+  webServer: {
+    command: process.env.CI ? 'npm run build && npm run preview' : 'npm run dev',
+    url: 'http://localhost:5173',
+    reuseExistingServer: !process.env.CI,
+  },
+```
+
+If the SPA relies on client-side mock service workers (e.g. MSW enabled
+conditionally via `import.meta.env.DEV`), a standard production `preview` build
+will exclude mock handlers. For mock-dependent apps, either pass a mock build flag
+(such as `VITE_ENABLE_MOCK=true`) or keep `npm run dev`.
+
 ## Browser binaries
 
 Install both, even when the spec will run on one:
