@@ -67,9 +67,9 @@ Install the selected browser (default is Chromium):
 playwright install --with-deps chromium
 ```
 
-Prefix with the project's runner from the table. CUAWright launches
-Firefox during autonomous flow exploration; the converted spec uses
-the browser chosen in *toolchain* (default Chromium).
+Prefix with the project's runner from the table. When invoking CUAWright
+for flow exploration, instruct it to use the target browser (default Chromium)
+so no secondary browser binary (Firefox) is required.
 
 ## CUAWright skill
 
