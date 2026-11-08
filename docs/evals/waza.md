@@ -9,7 +9,7 @@ to OpenRouter rather than a Copilot subscription. Each `eval.yaml`
 Skills remain usable in other assistants; those runtimes are not the
 effectiveness instrument.
 
-Covered: `agents-md`, `mise`, `aube`, `tidy-commits`, `agents-memory`,
+Covered: `agents-md`, `mise`, `tidy-commits`, `agents-memory`,
 `backfill-unit-tests`, `pr-workflow`, `write-e2e-tests`, `github-epic`,
 `gitlab-epic`, `record-walkthrough`, `setup-agent-ready-repo`.
 Not covered here: `agentsview-extract`, `agentsview-resume` — a suite

@@ -1,7 +1,7 @@
 # CI job
 
 Write a job only after *repo* confirmation. Follow the project's
-Node/toolchain install (mise, aube, pnpm, npm). Browser in
+Node/toolchain install (mise, bun, pnpm, npm). Browser in
 `playwright install --with-deps` matches the converted spec: the
 *toolchain* scaffold choice if this run created `playwright.config`,
 otherwise the browser already declared in the existing config
@@ -37,7 +37,7 @@ e2e:
         path: playwright-report/
 ```
 
-Prefix `playwright` with the project's runner (`aube exec --`, `pnpm exec`,
+Prefix `playwright` with the project's runner (`bunx --bun`, `pnpm exec`,
 `npx`, …). Swap `firefox` for `chromium` when the spec's config uses
 Chromium.
 

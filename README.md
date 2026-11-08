@@ -63,12 +63,6 @@ returns. Manual-only: invoke with `/tech-lead`.
 One `mise.toml` as the version source: prefix runtimes, tasks over scripts,
 host then CI then containers.
 
-#### [`aube`](skills/aube/SKILL.md)
-
-Use [aube](https://aube.sh/) as the Node.js package manager, installed and
-pinned through mise. Covers `aube run`/`aube ci` workflows, lockfile policy,
-the lifecycle-script jail, and migrating from pnpm/npm/bun.
-
 #### [`dotnet-upgrade`](skills/dotnet-upgrade/SKILL.md)
 
 Upgrade a .NET codebase — .NET Framework 4.x to modern .NET, or an

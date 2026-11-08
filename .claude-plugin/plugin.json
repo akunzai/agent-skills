@@ -9,7 +9,6 @@
     "./skills/agents-memory",
     "./skills/agentsview-extract",
     "./skills/agentsview-resume",
-    "./skills/aube",
     "./skills/backfill-unit-tests",
     "./skills/dotnet-upgrade",
     "./skills/github-epic",

@@ -80,7 +80,7 @@ through tasks:
 - run: mise run lint
 ```
 
-Scope a job with `install_args` (`node aube`) so versions still come
+Scope a job with `install_args` (`node bun`) so versions still come
 only from `mise.toml` and a JS job does not pull unrelated SDKs. Done
 when the job has no duplicate setup action for a tool already in
 `mise.toml`.
@@ -91,8 +91,3 @@ Pin the mise binary by version and sha256 (`curl | bash` is not a pin).
 `mise install --system` lands in `/usr/local/share/mise`; make it
 world-readable so a uid-dropped runtime user sees the tools. Done when
 that user can run the declared binaries.
-
-## Related
-
-- [`aube`](../aube/SKILL.md) — Node.js package manager installed through
-  mise.
