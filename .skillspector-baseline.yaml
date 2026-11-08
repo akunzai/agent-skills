@@ -131,12 +131,6 @@ rules:
     message: "*ignore previous instructions*"
     reason: "Same quoted transcript-injection example as the P1 finding on this file: teaching material in a defensive doc, not an active payload."
 
-  # --- skills/aube ---
-  - id: "PE3"
-    path: "SKILL.md"
-    message: "*.npmrc*"
-    reason: ".npmrc is discussed only as a config file for aube/Dependabot lockfile settings, not credential access."
-
   # --- skills/backfill-unit-tests ---
   - id: "EA4"
     path: "SKILL.md"
