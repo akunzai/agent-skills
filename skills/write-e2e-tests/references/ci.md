@@ -41,6 +41,13 @@ Prefix `playwright` with the project's runner (`aube exec --`, `pnpm exec`,
 `npx`, …). Swap `firefox` for `chromium` when the spec's config uses
 Chromium.
 
+## Performance & reporters
+
+In `playwright.config`:
+
+- **Concurrency**: Set `workers: process.env.CI ? 2 : undefined` to leverage standard 2-4 vCPU hosted runners instead of dropping to sequential 1-worker runs.
+- **Failure reporters** (Playwright >= 1.65): Use `['failures']` for instant terminal output on errors without progress bars, and `['html', { onlyFailures: true }]` to record only unexpected or flaky runs, drastically cutting artifact payload size.
+
 ## GitLab CI
 
 ```yaml

@@ -72,6 +72,10 @@ Selenium suite stays; confirm before adding Playwright beside it.
      waits (`expect(locator).toBeVisible()`, `waitForLoadState('domcontentloaded')`,
      or `waitForResponse()`). Check optional dialogues (tours, cookie banners)
      with immediate `await locator.isVisible()` rather than blocking `waitFor`.
+     Reuse authenticated sessions via `storageState` or API requests (`request.post`),
+     avoiding repeated UI login form submissions in `beforeEach` unless testing auth itself.
+     For tests mutating shared database or server state, isolate with `{ lock: '-exclusive-' }`
+     rather than disabling `fullyParallel` across the entire suite.
    - **Scan output.** Run `scripts/scan-secrets.sh` on the drafted spec
      before writing it. Non-zero exit: follow that doc. Write only a spec
      the script accepts.
