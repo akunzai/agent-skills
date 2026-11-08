@@ -8,7 +8,7 @@ Follow the target project's package manager. One manager per project.
 | `pnpm-lock.yaml` | `pnpm add -D @playwright/test` | `pnpm exec playwright …` |
 | `package-lock.json` | `npm install -D @playwright/test` | `npx playwright …` |
 | `yarn.lock` | `yarn add -D @playwright/test` | `yarn playwright …` |
-| `bun.lock` / `bun.lockb` | `bun add -d @playwright/test` | `bunx playwright …` |
+| `bun.lock` / `bun.lockb` | `bun add -d @playwright/test` | `bunx --bun playwright …` |
 
 **aube and a new project (no lockfile yet):** a bare `aube add` writes
 `aube-lock.yaml`, which Dependabot cannot maintain. Seed an empty
@@ -33,6 +33,13 @@ export default defineConfig({
   testDir: 'e2e',
   use: {
     ...devices['Desktop Firefox'],
+    launchOptions: {
+      args: [
+        '--disable-gpu',
+        '--disable-dev-shm-usage',
+        '--disable-background-networking',
+      ],
+    },
   },
 });
 ```
@@ -57,7 +64,7 @@ when its `skills` binary is on `PATH`:
 `skills add microsoft/CUAWright --skill cuawright-web --yes` (add `-p` for
 project scope). Otherwise
 `npx skills add microsoft/CUAWright --skill cuawright-web`
-(https://github.com/microsoft/CUAWright). Either lands the skill at
+([CUAWright](https://github.com/microsoft/CUAWright)). Either lands the skill at
 `~/.agents/skills/cuawright-web/SKILL.md` (user) or
 `.agents/skills/cuawright-web/SKILL.md` at the git root (project); when the
 harness does not list a skill installed mid-session, read that file

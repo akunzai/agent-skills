@@ -67,7 +67,11 @@ Selenium suite stays; confirm before adding Playwright beside it.
      `expect()` assertion; that mapping is the whole of the conversion.
      Use `final_script.py` for selectors and action order only. Write
      credential fields as `process.env` names; leave selectors and
-     non-credential fixtures as literals.
+     non-credential fixtures as literals. Never emit static delays
+     (`page.waitForTimeout()` or `time.sleep` conversions) — use event-driven
+     waits (`expect(locator).toBeVisible()`, `waitForLoadState('domcontentloaded')`,
+     or `waitForResponse()`). Check optional dialogues (tours, cookie banners)
+     with immediate `await locator.isVisible()` rather than blocking `waitFor`.
    - **Scan output.** Run `scripts/scan-secrets.sh` on the drafted spec
      before writing it. Non-zero exit: follow that doc. Write only a spec
      the script accepts.
