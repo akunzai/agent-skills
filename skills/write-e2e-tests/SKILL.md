@@ -45,10 +45,11 @@ Selenium suite stays; confirm before adding Playwright beside it.
    unless the user asks to re-run. Otherwise go to *explore*.
 
 4. **Explore.** Confirm on its own before driving the real site. If the
-   user has not named the flow, ask. Invoke the `cuawright-web` skill and
-   run it to Done. Leave this step when cuawright-web reports Done and a
-   qualifying run from step 3 is on disk. Reading source is not
-   Explore. Convert is the next step. Exploration stays in cuawright-web.
+   user has not named the flow, ask. Invoke the `cuawright-web` skill with the
+   target browser (default Chromium, e.g. `playwright.chromium`) and run it
+   to Done. Leave this step when cuawright-web reports Done and a qualifying run
+   from step 3 is on disk. Reading source is not Explore. Convert is the next
+   step. Exploration stays in cuawright-web.
 
 5. **Repo — gitignore.** Propose `.gitignore` rules when unignored
    cuawright-web artifacts exist (`outputs/`, `final_runs/`, screenshots/logs)

@@ -5,7 +5,7 @@ Node/toolchain install (mise, bun, pnpm, npm). Browser in
 `playwright install --with-deps` matches the converted spec: the
 *toolchain* scaffold choice if this run created `playwright.config`,
 otherwise the browser already declared in the existing config
-(`firefox` / `chromium` in `use` / `projects`). Use the project's
+(`chromium` / `firefox` in `use` / `projects`). Use the project's
 checkout action and Playwright image pins when they exist; the snippets
 below are a starting shape, not a version spec.
 
@@ -28,7 +28,7 @@ e2e:
     - uses: actions/checkout@v7
     - name: Install toolchain
       run: # project's mise / setup-node / package-manager install
-    - run: playwright install --with-deps firefox
+    - run: playwright install --with-deps chromium
     - run: playwright test
     - if: ${{ !cancelled() }}
       uses: actions/upload-artifact@v4
@@ -38,8 +38,8 @@ e2e:
 ```
 
 Prefix `playwright` with the project's runner (`bunx --bun`, `pnpm exec`,
-`npx`, …). Swap `firefox` for `chromium` when the spec's config uses
-Chromium.
+`npx`, …). Swap `chromium` for `firefox` when the spec's config uses
+Firefox.
 
 ## Performance & reporters
 
@@ -64,7 +64,7 @@ e2e:
   image: mcr.microsoft.com/playwright:focal
   script:
     - # project's package-manager install
-    - playwright install --with-deps firefox
+    - playwright install --with-deps chromium
     - playwright test
   artifacts:
     when: always

@@ -14,7 +14,7 @@ Prefer `playwright.config.ts` when the project is TypeScript, otherwise
 
 ## New config
 
-Default browser is Firefox. Switch to Chromium only if the user confirmed
+Default browser is Chromium. Switch to Firefox only if the user confirmed
 that in *toolchain*. `testDir` is `e2e/` unless the project already has
 an e2e or Playwright test directory — use that.
 
@@ -24,7 +24,7 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: 'e2e',
   use: {
-    ...devices['Desktop Firefox'],
+    ...devices['Desktop Chrome'],
     launchOptions: {
       args: [
         '--disable-gpu',
@@ -36,7 +36,7 @@ export default defineConfig({
 });
 ```
 
-Chromium switch: `devices['Desktop Chrome']`.
+Firefox switch: `devices['Desktop Firefox']`.
 
 When defining multiple browser projects, mark the primary project `default: true`
 (Playwright >= 1.65) so local CLI runs default to the primary browser only, avoiding
@@ -61,14 +61,15 @@ will exclude mock handlers. For mock-dependent apps, either pass a mock build fl
 
 ## Browser binaries
 
-Install both, even when the spec will run on one:
+Install the selected browser (default is Chromium):
 
 ```bash
-playwright install firefox chromium
+playwright install --with-deps chromium
 ```
 
-Prefix with the project's runner from the table. CUAWright launches
-Firefox; the converted spec uses the browser chosen in *toolchain*.
+Prefix with the project's runner from the table. When invoking CUAWright
+for flow exploration, instruct it to use the target browser (default Chromium)
+so no secondary browser binary (Firefox) is required.
 
 ## CUAWright skill
 
