@@ -45,8 +45,17 @@ Chromium.
 
 In `playwright.config`:
 
-- **Concurrency**: Set `workers: process.env.CI ? 2 : undefined` to leverage standard 2-4 vCPU hosted runners instead of dropping to sequential 1-worker runs.
-- **Failure reporters** (Playwright >= 1.65): Use `['failures']` for instant terminal output on errors without progress bars, and `['html', { onlyFailures: true }]` to record only unexpected or flaky runs, drastically cutting artifact payload size.
+- **Concurrency**: Set `workers: process.env.CI ? 2 : undefined` to leverage
+  standard 2-4 vCPU hosted runners instead of dropping to sequential 1-worker runs.
+- **Browser matrix pruning**: For routine PR and push CI pipelines, scope
+  tests to a single primary browser (e.g. Chromium) rather than full
+  multi-browser matrices (`chromium`, `firefox`, `webkit`). Reserve cross-browser
+  runs for nightly or release workflows to cut ~150-200 MB in browser
+  downloads and halve CI test duration.
+- **Failure reporters** (Playwright >= 1.65): Use `['failures']` for instant
+  terminal output on errors without progress bars, and
+  `['html', { onlyFailures: true }]` to record only unexpected or flaky runs,
+  drastically cutting artifact payload size.
 
 ## GitLab CI
 
