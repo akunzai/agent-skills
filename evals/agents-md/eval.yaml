@@ -72,22 +72,23 @@ graders:
         - >-
           bool(re.search(r'(?<![@\\])\\?`src/widget\.ts\\?`', output))
 
-  # Scoped to the Prevent Recurrence section so the audit sections above
-  # cannot satisfy these by accident.
+  # Scoped to the text after the last "Prevent Recurrence" heading line so
+  # audit findings that mention the section (e.g. "no Prevent Recurrence
+  # section") or cite docs/agents/ paths cannot satisfy or fail these.
   - type: code
     name: prevention-before-recording
     config:
       assertions:
         - >-
-          bool(re.search(r'(?is)prevent recurrence.{0,2000}?(enforc|assert|a
-          test|test tier|lint rule|\ba (small |lightweight )?check\b)', output))
+          bool(re.search(r'(?is)enforc|assert|a test|test tier|lint
+          rule|\ba (small |lightweight )?check\b', re.split(r'(?im)^[#*\s]*prevent
+          recurrence[*:\s]*$', output)[-1]))
         - >-
-          bool(re.search(r'(?is)prevent
-          recurrence.{0,2000}?(agents\.md|package\.json|tests?/|\bci\b|script|workflow)',
-          output))
+          bool(re.search(r'(?is)agents\.md|package\.json|tests?/|\bci\b|script|workflow',
+          re.split(r'(?im)^[#*\s]*prevent recurrence[*:\s]*$', output)[-1]))
         - >-
-          not bool(re.search(r'(?is)prevent
-          recurrence.{0,2000}?(lessons-learned|docs/agents/)', output))
+          not bool(re.search(r'(?is)lessons-learned|docs/agents/',
+          re.split(r'(?im)^[#*\s]*prevent recurrence[*:\s]*$', output)[-1]))
 
   - type: file
     name: workspace-paths
