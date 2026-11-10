@@ -29,8 +29,9 @@ inputs:
       and projects/demo/2026-10-17-build.md has different content. Another sibling,
       projects/other-d4e5f6, also contains uncopied notes. The store has no
       migration completion marker. Show your next message to the user,
-      then explain your actions after approval, on partial copy failure,
-      and on a later recall after successful migration of the whole store.
+      then explain your actions after approval (including what happens to
+      the backup once cleanup finishes), on partial copy failure, and on a
+      later recall after successful migration of the whole store.
   files:
     - path: AGENTS.md
 

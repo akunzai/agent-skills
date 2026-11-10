@@ -28,7 +28,7 @@ graders:
     config:
       regex_match:
         - '(?is)(completion|migration).{0,40}marker|\.project-name-migration-v1'
-        - '(?is)other-d4e5f6.{0,150}projects/other(?:/|[`\s.]|$)'
+        - '(?is)other-d4e5f6.{0,150}(?:projects/|(?:→|->|\bto|\binto)\s*`?(?:projects/)?)other(?:/|[`\s.,)]|$)'
         - '(?is)(all|every|both|batch|store.wide).{0,120}(project|source|director)'
         - '(?is)(fail|interrupt|partial|incomplete).{0,250}(marker|mark)|(marker|mark).{0,250}(fail|interrupt|partial|incomplete)'
         - '(?is)(confirm|approv|permission|may I|shall I|would you like).{0,250}(migrat|cop|demo)|(migrat|cop|demo).{0,250}(confirm|approv|permission|may I|shall I|would you like)'
