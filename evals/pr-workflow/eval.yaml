@@ -11,7 +11,7 @@ config:
   timeout_seconds: 300
   parallel: false
   executor: copilot-sdk
-  model: google/gemini-3.8-flash
+  model: google/gemini-4-hydrogen
   inject_skill_body: true
 
 metrics:

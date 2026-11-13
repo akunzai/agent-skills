@@ -5,7 +5,7 @@ agent runtime only** (Waza's `copilot-sdk` executor), with model calls sent
 to OpenRouter rather than a Copilot subscription. Each `eval.yaml`
 `config.model` pins an OpenRouter model id: every suite pins
 `anthropic/claude-haiku-5.5` except `pr-workflow`, which pins
-`google/gemini-3.8-flash`.
+`google/gemini-4-hydrogen`.
 Skills remain usable in other assistants; those runtimes are not the
 effectiveness instrument.
 
