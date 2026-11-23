@@ -106,7 +106,8 @@ assert_flag() {
   if [ "$flag" = "--help" ]; then
     return 0
   fi
-  grep -qE "^[[:space:]]+(-[a-zA-Z], +)?${flag}([[:space:]]|$)" "$(help_file_for "$subpath")" \
+  # agentsview v0.48.0 formats boolean flags as `--flag[=true|false]`.
+  grep -qE "^[[:space:]]+(-[a-zA-Z], +)?${flag}(\[=[^]]+\])?([[:space:]]|$)" "$(help_file_for "$subpath")" \
     || fail "flag '${flag}' of 'agentsview ${subpath}' (cited in ${origin}) is not in the CLI's help"
 }
 

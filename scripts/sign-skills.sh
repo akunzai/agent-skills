@@ -49,9 +49,12 @@ model_signing() {
   if [ -n "${MODEL_SIGNING_CMD:-}" ]; then
     "$MODEL_SIGNING_CMD" "$@"
   else
-    # model-signing imports OpenSSL without declaring pyOpenSSL; it used to
-    # arrive via sigstore, which dropped it in 4.5.1.
-    uvx -q --from "model-signing==$MODEL_SIGNING_VERSION" --with pyOpenSSL model_signing "$@"
+    # model-signing imports OpenSSL and certifi without declaring either; both
+    # used to arrive via sigstore, which dropped pyOpenSSL in 4.5.1
+    # (https://github.com/sigstore/model-transparency/issues/685) and
+    # requests/certifi in 4.6.0
+    # (https://github.com/sigstore/sigstore-python/pull/1970).
+    uvx -q --from "model-signing==$MODEL_SIGNING_VERSION" --with pyOpenSSL --with certifi model_signing "$@"
   fi
 }
 
